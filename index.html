@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>American Corner Mahajanga - Système Complet</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#" onclick="showPage('home')">
+                <i class="fas fa-university me-2"></i>
+                American Corner Mahajanga
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="showPage('home')">Accueil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('about')">À Propos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('attendance')">Présence</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('qr-generator')">QR Codes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('members')">Membres</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showPage('contact')">Contact</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Home Page -->
+    <section id="home" class="page-section active">
+        <div class="hero-section">
+            <div class="container">
+                <h1 class="display-4 fw-bold mb-4">American Corner Mahajanga</h1>
+                <p class="lead mb-4">Votre porte d'entrée vers l'éducation, la culture et l'information américaine à Mahajanga, Madagascar</p>
+                <button class="btn btn-light btn-lg px-4 me-2" onclick="showPage('about')">En Savoir Plus</button>
+                <button class="btn btn-outline-light btn-lg px-4" onclick="showPage('attendance')">Check-In</button>
+            </div>
+        </div>
+
+        <!-- Services Preview -->
+        <section class="py-5">
+            <div class="container">
+                <h2 class="section-title text-center">Nos Services</h2>
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card service-card text-center p-4">
+                            <div class="service-icon">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <h4>Conseil Éducatif</h4>
+                            <p>Guidance gratuite pour les étudiants malgaches intéressés par les études aux États-Unis.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card service-card text-center p-4">
+                            <div class="service-icon">
+                                <i class="fas fa-book"></i>
+                            </div>
+                            <h4>Ressources Bibliothèque</h4>
+                            <p>Accès aux livres, magazines et ressources numériques sur la culture américaine.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card service-card text-center p-4">
+                            <div class="service-icon">
+                                <i class="fas fa-language"></i>
+                            </div>
+                            <h4>Programmes d'Anglais</h4>
+                            <p>Clubs de conversation, ateliers et ressources pour apprendre l'anglais.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card service-card text-center p-4">
+                            <div class="service-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h4>Programmes Culturels</h4>
+                            <p>Événements, projections de films et ateliers célébrant la culture américaine.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Access -->
+        <section class="py-5 bg-light">
+            <div class="container">
+                <h2 class="section-title text-center">Accès Rapide</h2>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="card text-center p-4">
+                            <i class="fas fa-qrcode fa-3x text-primary mb-3"></i>
+                            <h4>Système de Présence</h4>
+                            <p>Check-in avec QR code pour le suivi des présences</p>
+                            <button class="btn btn-primary mt-2" onclick="showPage('attendance')">Accéder</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center p-4">
+                            <i class="fas fa-id-card fa-3x text-primary mb-3"></i>
+                            <h4>Générateur QR</h4>
+                            <p>Créez des QR codes personnalisés pour les membres</p>
+                            <button class="btn btn-primary mt-2" onclick="showPage('qr-generator')">Générer</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center p-4">
+                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                            <h4>Gestion Membres</h4>
+                            <p>Consultez la liste des membres et leurs profils</p>
+                            <button class="btn btn-primary mt-2" onclick="showPage('members')">Voir</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </section>
+
+    <!-- About Page -->
+    <section id="about" class="page-section py-5">
+        <div class="container">
+            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
+                <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+            </button>
+            <h2 class="section-title text-center">À Propos de Nous</h2>
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-4">
+                    <p class="lead">American Corner Mahajanga est un centre culturel et d'information situé à Mahajanga (Majunga), Madagascar. C'est un partenariat entre l'Ambassade des États-Unis à Madagascar et l'Université de Mahajanga.</p>
+                    <p>Nous servons de ressource pour les étudiants, les professionnels et le grand public qui s'intéressent aux États-Unis, sa culture, son système éducatif et ses politiques.</p>
+                    <p>Les American Corners font partie d'une initiative mondiale du Département d'État américain pour fournir une fenêtre sur les États-Unis dans les villes où il n'y a pas de Centre américain complet ou d'Ambassade.</p>
+                    <p>Notre mission est de promouvoir la compréhension mutuelle entre les peuples de Madagascar et des États-Unis grâce à des programmes éducatifs et culturels.</p>
+                </div>
+                <div class="col-md-6">
+                    <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Students at American Corner" class="img-fluid rounded shadow">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Attendance System Page -->
+    <section id="attendance" class="page-section py-5">
+        <div class="container">
+            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
+                <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+            </button>
+            <h2 class="section-title text-center">Système de Présence ACM</h2>
+            
+            <!-- Alerts -->
+            <div id="attendanceAlert" class="alert alert-attendance" style="display: none;"></div>
+            
+            <!-- Attendance Dashboard -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalSessions">0</div>
+                        <div class="stat-label">Sessions Total</div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="activeSessions">0</div>
+                        <div class="stat-label">Sessions Actives</div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="todaySessions">0</div>
+                        <div class="stat-label">Aujourd'hui</div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="avgDuration">0m</div>
+                        <div class="stat-label">Durée Moyenne</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Scanner Section -->
+            <div class="card attendance-card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-qrcode me-2"></i>Check-in par QR Code</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="qr-scanner-container">
+                                <h5>Scannez Votre QR Code Membre</h5>
+                                <div class="camera-placeholder" id="cameraPlaceholder">
+                                    <i class="fas fa-camera"></i>
+                                    <p>Utilisez l'entrée manuelle ci-dessous</p>
+                                </div>
+                                <button class="btn btn-primary mt-3 w-100" onclick="attendance.startManualEntry()">
+                                    <i class="fas fa-keyboard me-2"></i>Entrée Manuelle
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-4">
+                                <h5>Comment Check-in</h5>
+                                <ol class="list-group list-group-numbered mb-4">
+                                    <li class="list-group-item">Obtenez votre QR code personnel</li>
+                                    <li class="list-group-item">Utilisez "Entrée Manuelle" si pas de QR code</li>
+                                    <li class="list-group-item">Remplissez les détails de votre visite</li>
+                                    <li class="list-group-item">Cliquez "Démarrer Session"</li>
+                                    <li class="list-group-item">Check-out en partant</li>
+                                </ol>
+                                
+                                <!-- Manual Entry Form -->
+                                <div class="manual-entry-form" id="manualEntryForm" style="display: none;">
+                                    <h6 class="mb-3">Entrée Manuelle Membre</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Numéro d'Enregistrement</label>
+                                        <input type="text" class="form-control" id="manualMemberId" placeholder="ex: ACM001, ACM002">
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-success btn-sm" onclick="attendance.processManualEntry()">
+                                            <i class="fas fa-check me-1"></i>Continuer
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="attendance.cancelManualEntry()">
+                                            Annuler
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Quick Demo -->
+                                <div class="mt-4 p-3 bg-light rounded">
+                                    <h6>Démo Rapide</h6>
+                                    <p class="small mb-2">Testez avec un membre exemple :</p>
+                                    <button class="btn btn-outline-primary btn-sm w-100" onclick="attendance.useDemoMember()">
+                                        Utiliser ACM001 (Linus Torvalds)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Details Form -->
+            <div id="sessionDetails" class="card attendance-card" style="display: none;">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-user-check me-2"></i>Détails de la Session</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Informations Membre</h5>
+                            <p><strong>Nom:</strong> <span id="scannedMemberName">-</span></p>
+                            <p><strong>ID:</strong> <span id="scannedMemberId">-</span></p>
+                            <p><strong>Heure Check-in:</strong> <span id="checkInTime">-</span></p>
+                        </div>
+                    </div>
+                    
+                    <form id="sessionForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="purpose" class="form-label">Motif de la Visite *</label>
+                                <select class="form-select" id="purpose" required>
+                                    <option value="">Sélectionnez un motif...</option>
+                                    <option value="Study">Étude/Recherche</option>
+                                    <option value="Meeting">Réunion</option>
+                                    <option value="Event">Participation Événement</option>
+                                    <option value="Workshop">Atelier/Formation</option>
+                                    <option value="Library">Utilisation Bibliothèque</option>
+                                    <option value="Other">Autre</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="topic" class="form-label">Activité/Projet Spécifique</label>
+                                <input type="text" class="form-control" id="topic" 
+                                       placeholder="ex: Club d'Anglais, Travail de Projet">
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check me-2"></i>Démarrer Session
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="attendance.cancelSession()">
+                                <i class="fas fa-times me-2"></i>Annuler
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Active Session Panel -->
+            <div id="activeSession" class="card attendance-card" style="display: none;">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0"><i class="fas fa-clock me-2"></i>Session Active</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 id="activeMemberName">-</h5>
+                            <p class="mb-1"><strong>Motif:</strong> <span id="activePurpose">-</span></p>
+                            <p class="mb-1"><strong>Début:</strong> <span id="activeStartTime">-</span></p>
+                            <p class="mb-0"><strong>Durée:</strong> <span id="activeDuration">0m</span></p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-danger btn-lg" onclick="attendance.endSession()">
+                                <i class="fas fa-sign-out-alt me-2"></i>Check-Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Sessions -->
+            <div class="card attendance-card">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0"><i class="fas fa-history me-2"></i>Sessions Récentes</h4>
+                </div>
+                <div class="card-body">
+                    <div id="recentSessionsLoading" class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div id="recentSessionsContainer">
+                        <!-- Sessions will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- QR Generator Page -->
+    <section id="qr-generator" class="page-section py-5">
+        <div class="container">
+            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
+                <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+            </button>
+            <h2 class="section-title text-center">Générateur de QR Codes</h2>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Format API:</strong> Les QR codes générés utilisent le format exact de votre API pour une compatibilité parfaite avec le système d'attendance.
+            </div>
+            
+            <!-- QR Generator Form -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-qrcode me-2"></i>Générer un QR Code Membre</h4>
+                </div>
+                <div class="card-body">
+                    <form id="qrGeneratorForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="registrationNumber" class="form-label">Numéro d'Enregistrement *</label>
+                                    <input type="text" class="form-control" id="registrationNumber" required 
+                                           placeholder="ex: ACM001, ACM002">
+                                    <div class="form-text">Doit correspondre au registrationNumber de l'API</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="firstName" class="form-label">Prénom *</label>
+                                    <input type="text" class="form-control" id="firstName" required 
+                                           placeholder="ex: Linus">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="lastName" class="form-label">Nom *</label>
+                                    <input type="text" class="form-control" id="lastName" required 
+                                           placeholder="ex: Torvalds">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="occupation" class="form-label">Occupation</label>
+                                    <select class="form-select" id="occupation">
+                                        <option value="student">Étudiant</option>
+                                        <option value="employee">Employé</option>
+                                        <option value="entrepreneur">Entrepreneur</option>
+                                        <option value="unemployed">Sans emploi</option>
+                                        <option value="other">Autre</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="phoneNumber" class="form-label">Téléphone</label>
+                                    <input type="tel" class="form-control" id="phoneNumber" 
+                                           placeholder="ex: +261 34 12 345 67">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="studyWorkPlace" class="form-label">Lieu d'Étude/Travail</label>
+                                    <input type="text" class="form-control" id="studyWorkPlace" 
+                                           placeholder="ex: Université de Mahajanga">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-qrcode me-2"></i>Générer QR Code
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="qrGenerator.clearQRForm()">
+                                <i class="fas fa-eraser me-2"></i>Effacer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- QR Code Display -->
+            <div class="card" id="qrCodeSection" style="display: none;">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-check-circle me-2"></i>QR Code Généré</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="qr-code-display">
+                                <div id="qrcode"></div>
+                                <div class="mt-3">
+                                    <button class="btn btn-success me-2" onclick="qrGenerator.downloadQRCode()">
+                                        <i class="fas fa-download me-2"></i>Télécharger
+                                    </button>
+                                    <button class="btn btn-outline-primary" onclick="qrGenerator.printQRCode()">
+                                        <i class="fas fa-print me-2"></i>Imprimer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="member-info">
+                                <h5>Informations Membre</h5>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <p><strong>Numéro:</strong> <span id="displayRegNumber" class="member-id-display">-</span></p>
+                                        <p><strong>Nom:</strong> <span id="displayName">-</span></p>
+                                        <p><strong>Occupation:</strong> <span id="displayOccupation">-</span></p>
+                                        <p><strong>Téléphone:</strong> <span id="displayPhone">-</span></p>
+                                        <p><strong>Lieu:</strong> <span id="displayStudyWork">-</span></p>
+                                        <p><strong>Généré:</strong> <span id="displayTimestamp">-</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>Contenu du QR Code (Format API):</h5>
+                        <pre class="bg-light p-3 rounded"><code id="jsonPreview"></code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sample Members Section -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fas fa-users me-2"></i>Membres ACM - Prêts à Scanner</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-center mb-4">Cliquez sur un membre pour générer instantanément son QR code</p>
+                    
+                    <div class="row g-4" id="sampleMembers">
+                        <!-- Sample members will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Members Page -->
+    <section id="members" class="page-section py-5">
+        <div class="container">
+            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
+                <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+            </button>
+            <h2 class="section-title text-center">Nos Membres</h2>
+            <p class="text-center mb-5">Découvrez nos membres dédiés qui participent aux activités de l'American Corner.</p>
+            
+            <div class="row g-4" id="membersContainer">
+                <!-- Members will be loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Page -->
+    <section id="contact" class="page-section py-5 bg-light">
+        <div class="container">
+            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
+                <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+            </button>
+            <h2 class="section-title text-center">Contactez-Nous</h2>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h4 class="mb-4">Coordonnées</h4>
+                            <div class="mb-3">
+                                <h5><i class="fas fa-map-marker-alt me-2 text-primary"></i> Adresse</h5>
+                                <p>Université de Mahajanga<br>Mahajanga, Région Boeny<br>Madagascar</p>
+                            </div>
+                            <div class="mb-3">
+                                <h5><i class="fas fa-envelope me-2 text-primary"></i> Email</h5>
+                                <p>info@americancornermahajanga.mg</p>
+                            </div>
+                            <div class="mb-3">
+                                <h5><i class="fas fa-phone me-2 text-primary"></i> Téléphone</h5>
+                                <p>+261 XX XX XXX XX</p>
+                            </div>
+                            <div class="mb-3">
+                                <h5><i class="fas fa-clock me-2 text-primary"></i> Heures d'Ouverture</h5>
+                                <p>Lundi - Vendredi: 9h00 - 17h00<br>Samedi: 9h00 - 13h00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h4 class="mb-4">Envoyez un Message</h4>
+                            <form id="contactForm">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Nom</label>
+                                    <input type="text" class="form-control" id="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="subject" class="form-label">Sujet</label>
+                                    <input type="text" class="form-control" id="subject" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="message" class="form-label">Message</label>
+                                    <textarea class="form-control" id="message" rows="4" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary px-4">Envoyer</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5>American Corner Mahajanga</h5>
+                    <p>Un partenariat entre l'Ambassade des États-Unis à Madagascar et l'Université de Mahajanga.</p>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5>Liens Rapides</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('home')">Accueil</a></li>
+                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('about')">À Propos</a></li>
+                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('attendance')">Présence</a></li>
+                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('qr-generator')">QR Codes</a></li>
+                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('contact')">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Ressources</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="https://mg.usembassy.gov" class="text-white text-decoration-none">Ambassade USA Madagascar</a></li>
+                        <li><a href="https://educationusa.state.gov" class="text-white text-decoration-none">EducationUSA</a></li>
+                        <li><a href="https://exchanges.state.gov" class="text-white text-decoration-none">Programmes d'Échange</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="mt-4 mb-3">
+            <div class="row">
+                <div class="col-md-12 text-center">
+                    <p class="mb-0">&copy; 2024 American Corner Mahajanga. Tous droits réservés.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/attendance.js"></script>
+    <script src="js/qr-generator.js"></script>
+    <script src="js/members.js"></script>
+</body>
+</html>
