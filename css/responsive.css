@@ -31,6 +31,15 @@
     .service-icon {
         font-size: 2rem;
     }
+    
+    #qrReader {
+        height: 300px;
+    }
+    
+    .scanner-frame {
+        width: 200px;
+        height: 200px;
+    }
 }
 
 @media (max-width: 576px) {

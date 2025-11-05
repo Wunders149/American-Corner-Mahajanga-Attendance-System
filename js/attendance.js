@@ -3,41 +3,58 @@ class AttendanceSystem {
     constructor() {
         this.currentSession = null;
         this.durationInterval = null;
-        this.scanner = new QRScanner(); // Instance du scanner
     }
 
     initializeAttendanceSystem() {
         this.loadAttendanceStats();
         this.loadRecentSessions();
-        this.setupScannerUI();
+        this.setupEventListeners();
+        console.log('✅ Système de présence initialisé');
     }
-    // Méthodes pour le scanner
+
+    setupEventListeners() {
+        // Scanner
+        document.getElementById('startScannerBtn').onclick = () => this.startScanner();
+        document.getElementById('stopScannerBtn').onclick = () => this.stopScanner();
+        
+        // Entrée manuelle
+        document.getElementById('manualEntryBtn').onclick = () => this.startManualEntry();
+        document.getElementById('processManualBtn').onclick = () => this.processManualEntry();
+        document.getElementById('cancelManualBtn').onclick = () => this.cancelManualEntry();
+        
+        // Session
+        document.getElementById('startSessionBtn').onclick = (e) => {
+            e.preventDefault();
+            this.startSession();
+        };
+        document.getElementById('cancelSessionBtn').onclick = () => this.cancelSession();
+        document.getElementById('endSessionBtn').onclick = () => this.endSession();
+        
+        // Démo
+        document.getElementById('demoMemberBtn').onclick = () => this.useDemoMember();
+        
+        console.log('📝 Événements d\'attendance configurés');
+    }
+
+    // Scanner methods
     startScanner() {
-        this.scanner.startScanner();
+        if (window.qrScanner && qrScanner.isAvailable) {
+            qrScanner.startScanner();
+        } else {
+            this.showAlert('Scanner non disponible sur cet appareil', 'error');
+        }
     }
 
     stopScanner() {
-        this.scanner.stopScanner();
-    }
-
-    switchCamera() {
-        this.scanner.switchCamera();
-    }
-
-    setupScannerUI() {
-        // Ajouter un bouton pour changer de caméra si disponible
-        const scannerSection = document.getElementById('scannerSection');
-        if (scannerSection) {
-            const switchCameraBtn = document.createElement('button');
-            switchCameraBtn.className = 'btn btn-outline-info btn-sm mt-2 w-100';
-            switchCameraBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Changer de caméra';
-            switchCameraBtn.onclick = () => this.switchCamera();
-            scannerSection.appendChild(switchCameraBtn);
+        if (window.qrScanner) {
+            qrScanner.stopScanner();
         }
     }
-    
+
     showAlert(message, type = 'info') {
         const alertEl = document.getElementById('attendanceAlert');
+        if (!alertEl) return;
+        
         const alertClass = type === 'error' ? 'alert-danger' : 
                          type === 'success' ? 'alert-success' :
                          type === 'warning' ? 'alert-warning' : 'alert-info';
@@ -70,18 +87,21 @@ class AttendanceSystem {
         const memberId = document.getElementById('manualMemberId').value.trim();
         
         if (!memberId) {
-            this.showAlert('Veuillez entrer le numéro d\'enregistrement du membre', 'warning');
+            this.showAlert('Veuillez entrer le numéro d\'enregistrement', 'warning');
             return;
         }
 
-        // Find member by registration number
         const member = apiService.getMemberByRegistrationNumber(memberId);
         
         if (!member) {
-            this.showAlert('Membre non trouvé. Vérifiez le numéro d\'enregistrement.', 'error');
+            this.showAlert('Membre non trouvé. Vérifiez le numéro.', 'error');
             return;
         }
 
+        this.processMemberCheckin(member);
+    }
+
+    processMemberCheckin(member) {
         document.getElementById('manualEntryForm').style.display = 'none';
         
         document.getElementById('scannedMemberName').textContent = `${member.firstName} ${member.lastName}`;
@@ -96,29 +116,27 @@ class AttendanceSystem {
             memberData: member
         };
         
-        this.showAlert(`Entrée manuelle réussie! Bienvenue ${member.firstName} ${member.lastName}`, 'success');
+        this.showAlert(`✅ Bienvenue ${member.firstName} ${member.lastName}!`, 'success');
     }
 
     useDemoMember() {
         if (apiService.members.length === 0) {
-            this.showAlert('Chargement des membres en cours...', 'warning');
-            return;
+            // Créer un membre de démo temporaire
+            const demoMember = {
+                id: 999,
+                registrationNumber: "ACM001",
+                firstName: "Linus",
+                lastName: "Torvalds",
+                occupation: "entrepreneur",
+                phoneNumber: "555-123-4567",
+                studyOrWorkPlace: "NY University"
+            };
+            this.processMemberCheckin(demoMember);
+            this.showAlert('🔧 Mode démo activé - Données de test', 'info');
+        } else {
+            const demoMember = apiService.members[0];
+            this.processMemberCheckin(demoMember);
         }
-        
-        const demoMember = apiService.members[0];
-        document.getElementById('scannedMemberName').textContent = `${demoMember.firstName} ${demoMember.lastName}`;
-        document.getElementById('scannedMemberId').textContent = demoMember.registrationNumber;
-        document.getElementById('checkInTime').textContent = new Date().toLocaleString();
-        
-        document.getElementById('sessionDetails').style.display = 'block';
-        this.currentSession = {
-            memberId: demoMember.registrationNumber,
-            name: `${demoMember.firstName} ${demoMember.lastName}`,
-            checkInTime: new Date().toISOString(),
-            memberData: demoMember
-        };
-        
-        this.showAlert(`Démo: ${demoMember.firstName} ${demoMember.lastName}`, 'success');
     }
 
     cancelSession() {
@@ -155,7 +173,7 @@ class AttendanceSystem {
         this.updateDuration();
         this.durationInterval = setInterval(() => this.updateDuration(), 1000);
         
-        this.showAlert(`Session démarrée pour ${this.currentSession.name}`, 'success');
+        this.showAlert(`✅ Session démarrée pour ${this.currentSession.name}`, 'success');
         this.loadAttendanceStats();
     }
 
@@ -198,7 +216,7 @@ class AttendanceSystem {
             const durationMs = endTime - startTime;
             const minutes = Math.floor(durationMs / 60000);
             
-            this.showAlert(`Session terminée pour ${this.currentSession.name}. Durée: ${minutes} minutes`, 'info');
+            this.showAlert(`📊 Session terminée - Durée: ${minutes} minutes`, 'info');
             
             this.addToRecentSessions({
                 ...this.currentSession,
@@ -207,7 +225,6 @@ class AttendanceSystem {
             });
             
             this.currentSession = null;
-            
             this.loadAttendanceStats();
             this.loadRecentSessions();
         }
@@ -249,12 +266,13 @@ class AttendanceSystem {
         const container = document.getElementById('recentSessionsContainer');
         const loadingEl = document.getElementById('recentSessionsLoading');
         
+        if (!container) return;
+        
         loadingEl.style.display = 'block';
         container.innerHTML = '';
         
         setTimeout(() => {
             const sessions = JSON.parse(localStorage.getItem('recentSessions') || '[]');
-            
             loadingEl.style.display = 'none';
             
             if (sessions.length === 0) {
@@ -262,7 +280,7 @@ class AttendanceSystem {
                     <div class="text-center text-muted py-4">
                         <i class="fas fa-history fa-3x mb-3"></i>
                         <p>Aucune session récente</p>
-                        <small>Utilisez le formulaire ci-dessus pour voir les sessions ici</small>
+                        <small>Les sessions apparaitront ici après utilisation</small>
                     </div>
                 `;
                 return;

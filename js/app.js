@@ -6,18 +6,34 @@ class AppController {
     }
 
     async init() {
+        // Effacer les données locales
+        this.clearLocalData();
+        
         await this.loadMembers();
         this.setupEventListeners();
         this.initializeDemoData();
         this.showWelcomeMessage();
+        
+        // Rendre disponible globalement
+        window.appController = this;
+        
+        console.log('🚀 Application American Corner initialisée');
+    }
+
+    clearLocalData() {
+        // Effacer uniquement les sessions, garder les autres préférences
+        if (localStorage.getItem('recentSessions')) {
+            localStorage.removeItem('recentSessions');
+            console.log('🗑️ Données de sessions effacées');
+        }
     }
 
     async loadMembers() {
         try {
             await apiService.fetchMembers();
-            console.log('Membres chargés:', apiService.members.length);
+            console.log(`📊 ${apiService.members.length} membres chargés`);
         } catch (error) {
-            console.error('Erreur lors du chargement des membres:', error);
+            console.error('❌ Erreur chargement membres:', error);
         }
     }
 
@@ -31,45 +47,18 @@ class AppController {
             });
         }
 
-        // Session form
-        const sessionForm = document.getElementById('sessionForm');
-        if (sessionForm) {
-            sessionForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                attendance.startSession();
-            });
-        }
-
-        // QR Generator form
-        const qrGeneratorForm = document.getElementById('qrGeneratorForm');
-        if (qrGeneratorForm) {
-            qrGeneratorForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                qrGenerator.generateQRCode();
-            });
-        }
+        console.log('📝 Événements globaux configurés');
     }
 
     initializeDemoData() {
-        if (!localStorage.getItem('recentSessions')) {
-            const demoSession = {
-                id: 'demo-1',
-                memberId: 'ACM001',
-                name: 'Linus Torvalds',
-                purpose: 'Study',
-                topic: 'English Practice',
-                startTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-                endTime: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-                duration: '60m'
-            };
-            localStorage.setItem('recentSessions', JSON.stringify([demoSession]));
-        }
+        // Pas de données de démo préchargées
+        console.log('🔧 Mode démo disponible si nécessaire');
     }
 
     showWelcomeMessage() {
         setTimeout(() => {
-            if (document.getElementById('attendanceAlert')) {
-                attendance.showAlert('Bienvenue au système de présence ACM!', 'info');
+            if (document.getElementById('attendanceAlert') && window.attendance) {
+                attendance.showAlert('Bienvenue au système de présence ACM! 🎉', 'info');
             }
         }, 1000);
     }
@@ -101,13 +90,19 @@ function showPage(pageId) {
     // Page-specific initialization
     switch(pageId) {
         case 'members':
-            members.loadMembersPage();
+            if (window.members) {
+                members.loadMembersPage();
+            }
             break;
         case 'attendance':
-            attendance.initializeAttendanceSystem();
+            if (window.attendance) {
+                attendance.initializeAttendanceSystem();
+            }
             break;
         case 'qr-generator':
-            qrGenerator.initializeQRGenerator();
+            if (window.qrGenerator) {
+                qrGenerator.initializeQRGenerator();
+            }
             break;
     }
     
@@ -158,5 +153,5 @@ const utils = {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new AppController();
+    new AppController();
 });

@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- QR Code Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-    <!-- Bibliothèque de scan -->
+    <!-- HTML5 QR Code Scanner -->
     <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
     
     <!-- Custom CSS -->
@@ -214,39 +214,40 @@
                         <div class="col-md-6">
                             <div class="qr-scanner-container">
                                 <h5>Scannez Votre QR Code Membre</h5>
-                                <!-- Dans la section QR Scanner (remplacez la partie camera-placeholder) -->
-                                <div class="col-md-6">
-                                    <div class="qr-scanner-container">
-                                        <h5>Scannez Votre QR Code Membre</h5>
-                                        
-                                        <!-- Scanner Section -->
-                                        <div id="scannerSection">
-                                            <div class="camera-placeholder" id="cameraPlaceholder">
-                                                <i class="fas fa-camera"></i>
-                                                <p>Cliquez pour activer le scanner</p>
-                                            </div>
-                                            <div id="scannerContainer" style="display: none;">
-                                                <div id="qrReader" style="width: 100%;"></div>
-                                            </div>
-                                            
-                                            <div class="mt-3">
-                                                <button class="btn btn-primary w-100" id="startScannerBtn" onclick="attendance.startScanner()">
-                                                    <i class="fas fa-camera me-2"></i>Activer le Scanner
-                                                </button>
-                                                <button class="btn btn-secondary w-100" id="stopScannerBtn" onclick="attendance.stopScanner()" style="display: none;">
-                                                    <i class="fas fa-stop me-2"></i>Arrêter le Scanner
-                                                </button>
-                                            </div>
-                                        </div>
-                                        
-                                        <button class="btn btn-outline-primary mt-3 w-100" onclick="attendance.startManualEntry()">
-                                            <i class="fas fa-keyboard me-2"></i>Entrée Manuelle
+                                
+                                <div id="scannerSection">
+                                    <div class="camera-placeholder" id="cameraPlaceholder">
+                                        <i class="fas fa-camera"></i>
+                                        <p>Cliquez pour activer le scanner</p>
+                                        <small class="text-muted mt-2">Utilisez l'entrée manuelle si le scanner ne fonctionne pas</small>
+                                    </div>
+                                    
+                                    <div id="scannerContainer" style="display: none;">
+                                        <div id="qrReader" style="width: 100%;"></div>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <button class="btn btn-primary w-100" id="startScannerBtn">
+                                            <i class="fas fa-camera me-2"></i>Activer le Scanner
+                                        </button>
+                                        <button class="btn btn-secondary w-100" id="stopScannerBtn" style="display: none;">
+                                            <i class="fas fa-stop me-2"></i>Arrêter le Scanner
                                         </button>
                                     </div>
                                 </div>
-                                <button class="btn btn-primary mt-3 w-100" onclick="attendance.startManualEntry()">
+                                
+                                <button class="btn btn-outline-primary mt-3 w-100" id="manualEntryBtn">
                                     <i class="fas fa-keyboard me-2"></i>Entrée Manuelle
                                 </button>
+                                
+                                <!-- Quick Demo -->
+                                <div class="mt-3 p-3 bg-light rounded">
+                                    <h6>Mode Démo</h6>
+                                    <p class="small mb-2">Testez le système avec des données locales</p>
+                                    <button class="btn btn-outline-info btn-sm w-100" id="demoMemberBtn">
+                                        Utiliser ACM001 (Linus Torvalds)
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -268,22 +269,13 @@
                                         <input type="text" class="form-control" id="manualMemberId" placeholder="ex: ACM001, ACM002">
                                     </div>
                                     <div class="d-flex gap-2">
-                                        <button class="btn btn-success btn-sm" onclick="attendance.processManualEntry()">
+                                        <button class="btn btn-success btn-sm" id="processManualBtn">
                                             <i class="fas fa-check me-1"></i>Continuer
                                         </button>
-                                        <button class="btn btn-secondary btn-sm" onclick="attendance.cancelManualEntry()">
+                                        <button class="btn btn-secondary btn-sm" id="cancelManualBtn">
                                             Annuler
                                         </button>
                                     </div>
-                                </div>
-                                
-                                <!-- Quick Demo -->
-                                <div class="mt-4 p-3 bg-light rounded">
-                                    <h6>Démo Rapide</h6>
-                                    <p class="small mb-2">Testez avec un membre exemple :</p>
-                                    <button class="btn btn-outline-primary btn-sm w-100" onclick="attendance.useDemoMember()">
-                                        Utiliser ACM001 (Linus Torvalds)
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -327,10 +319,10 @@
                             </div>
                         </div>
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-success">
+                            <button type="submit" class="btn btn-success" id="startSessionBtn">
                                 <i class="fas fa-check me-2"></i>Démarrer Session
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="attendance.cancelSession()">
+                            <button type="button" class="btn btn-secondary" id="cancelSessionBtn">
                                 <i class="fas fa-times me-2"></i>Annuler
                             </button>
                         </div>
@@ -352,7 +344,7 @@
                             <p class="mb-0"><strong>Durée:</strong> <span id="activeDuration">0m</span></p>
                         </div>
                         <div class="col-md-4 text-end">
-                            <button class="btn btn-danger btn-lg" onclick="attendance.endSession()">
+                            <button class="btn btn-danger btn-lg" id="endSessionBtn">
                                 <i class="fas fa-sign-out-alt me-2"></i>Check-Out
                             </button>
                         </div>
@@ -448,10 +440,10 @@
                         </div>
                         
                         <div class="text-center mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-primary btn-lg" id="generateQRBtn">
                                 <i class="fas fa-qrcode me-2"></i>Générer QR Code
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="qrGenerator.clearQRForm()">
+                            <button type="button" class="btn btn-outline-secondary btn-lg ms-2" id="clearQRBtn">
                                 <i class="fas fa-eraser me-2"></i>Effacer
                             </button>
                         </div>
@@ -470,10 +462,10 @@
                             <div class="qr-code-display">
                                 <div id="qrcode"></div>
                                 <div class="mt-3">
-                                    <button class="btn btn-success me-2" onclick="qrGenerator.downloadQRCode()">
+                                    <button class="btn btn-success me-2" id="downloadQRBtn">
                                         <i class="fas fa-download me-2"></i>Télécharger
                                     </button>
-                                    <button class="btn btn-outline-primary" onclick="qrGenerator.printQRCode()">
+                                    <button class="btn btn-outline-primary" id="printQRBtn">
                                         <i class="fas fa-print me-2"></i>Imprimer
                                     </button>
                                 </div>
@@ -587,7 +579,7 @@
                                     <label for="message" class="form-label">Message</label>
                                     <textarea class="form-control" id="message" rows="4" required></textarea>
                                 </div>
-                                <button type="submit" class="btn btn-primary px-4">Envoyer</button>
+                                <button type="submit" class="btn btn-primary px-4" id="sendMessageBtn">Envoyer</button>
                             </form>
                         </div>
                     </div>
@@ -643,10 +635,10 @@
     
     <!-- Custom JavaScript -->
     <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/attendance.js"></script>
     <script src="js/scanner.js"></script>
+    <script src="js/attendance.js"></script>
     <script src="js/qr-generator.js"></script>
     <script src="js/members.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

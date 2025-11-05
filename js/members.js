@@ -6,7 +6,20 @@ class MembersSystem {
 
     loadMembersPage() {
         const container = document.getElementById('membersContainer');
+        if (!container) return;
+        
         container.innerHTML = '';
+        
+        if (apiService.members.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Aucun membre disponible</h4>
+                    <p class="text-muted">Les membres seront affichés ici une fois chargés depuis l'API</p>
+                </div>
+            `;
+            return;
+        }
         
         apiService.members.forEach(member => {
             const memberCard = document.createElement('div');
@@ -42,17 +55,52 @@ class MembersSystem {
             `;
             container.appendChild(memberCard);
         });
+        
+        console.log(`✅ ${apiService.members.length} membres affichés`);
     }
 
     viewMemberProfile(registrationNumber) {
         const member = apiService.getMemberByRegistrationNumber(registrationNumber);
         if (member) {
-            alert(`Profil de ${member.firstName} ${member.lastName}\n\n` +
-                  `Numéro: ${member.registrationNumber}\n` +
-                  `Occupation: ${utils.formatOccupation(member.occupation)}\n` +
-                  `Téléphone: ${member.phoneNumber || 'Non spécifié'}\n` +
-                  `Lieu: ${member.studyOrWorkPlace || 'Non spécifié'}\n` +
-                  `Date d'adhésion: ${utils.formatDate(member.joinDate)}`);
+            const profileHtml = `
+                <strong>Nom complet:</strong> ${member.firstName} ${member.lastName}<br>
+                <strong>Numéro:</strong> ${member.registrationNumber}<br>
+                <strong>Occupation:</strong> ${utils.formatOccupation(member.occupation)}<br>
+                <strong>Téléphone:</strong> ${member.phoneNumber || 'Non spécifié'}<br>
+                <strong>Lieu d'étude/travail:</strong> ${member.studyOrWorkPlace || 'Non spécifié'}<br>
+                <strong>Date d'adhésion:</strong> ${utils.formatDate(member.joinDate)}<br>
+                <strong>Adresse:</strong> ${member.address || 'Non spécifié'}
+            `;
+            
+            // Créer une modal Bootstrap pour afficher le profil
+            const modalHtml = `
+                <div class="modal fade" id="memberProfileModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Profil de ${member.firstName} ${member.lastName}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                ${profileHtml}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Ajouter la modal au DOM si elle n'existe pas
+            let modal = document.getElementById('memberProfileModal');
+            if (modal) {
+                modal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const memberModal = new bootstrap.Modal(document.getElementById('memberProfileModal'));
+            memberModal.show();
         }
     }
 }

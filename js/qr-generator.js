@@ -5,38 +5,18 @@ class QRGenerator {
     }
 
     initializeQRGenerator() {
-        this.loadSampleMembers();
+        this.setupEventListeners();
+        console.log('✅ Générateur QR initialisé');
     }
 
-    loadSampleMembers() {
-        const container = document.getElementById('sampleMembers');
-        container.innerHTML = '';
-        
-        apiService.members.forEach(member => {
-            const memberCard = document.createElement('div');
-            memberCard.className = 'col-md-6 col-lg-4 col-xl-3';
-            
-            const initials = utils.getInitials(member.firstName, member.lastName);
-            
-            memberCard.innerHTML = `
-                <div class="card member-card" onclick="qrGenerator.generateSampleQR('${member.registrationNumber}')" style="cursor: pointer;">
-                    <div class="initials-avatar">${initials}</div>
-                    <div class="card-body">
-                        <h6 class="card-title">${member.firstName} ${member.lastName}</h6>
-                        <span class="member-occupation mb-2">${utils.formatOccupation(member.occupation)}</span>
-                        <p class="card-text">
-                            <small class="text-muted member-id-display">${member.registrationNumber}</small>
-                        </p>
-                        <div class="d-grid">
-                            <button class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-qrcode me-1"></i>Générer QR
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            container.appendChild(memberCard);
-        });
+    setupEventListeners() {
+        document.getElementById('generateQRBtn').onclick = (e) => {
+            e.preventDefault();
+            this.generateQRCode();
+        };
+        document.getElementById('clearQRBtn').onclick = () => this.clearQRForm();
+        document.getElementById('downloadQRBtn').onclick = () => this.downloadQRCode();
+        document.getElementById('printQRBtn').onclick = () => this.printQRCode();
     }
 
     generateQRCode() {
@@ -63,31 +43,6 @@ class QRGenerator {
         };
 
         this.generateQRCodeFromData(memberData);
-    }
-
-    generateSampleQR(registrationNumber) {
-        const member = apiService.getMemberByRegistrationNumber(registrationNumber);
-        if (member) {
-            document.getElementById('registrationNumber').value = member.registrationNumber;
-            document.getElementById('firstName').value = member.firstName;
-            document.getElementById('lastName').value = member.lastName;
-            document.getElementById('occupation').value = member.occupation;
-            document.getElementById('phoneNumber').value = member.phoneNumber || '';
-            document.getElementById('studyWorkPlace').value = member.studyOrWorkPlace || '';
-            
-            const memberData = {
-                registrationNumber: member.registrationNumber,
-                firstName: member.firstName,
-                lastName: member.lastName,
-                occupation: member.occupation,
-                phoneNumber: member.phoneNumber,
-                studyOrWorkPlace: member.studyOrWorkPlace,
-                timestamp: new Date().toISOString()
-            };
-
-            this.generateQRCodeFromData(memberData);
-            document.getElementById('qrCodeSection').scrollIntoView({ behavior: 'smooth' });
-        }
     }
 
     generateQRCodeFromData(memberData) {
