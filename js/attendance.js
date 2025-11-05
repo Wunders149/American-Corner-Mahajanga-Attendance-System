@@ -3,13 +3,39 @@ class AttendanceSystem {
     constructor() {
         this.currentSession = null;
         this.durationInterval = null;
+        this.scanner = new QRScanner(); // Instance du scanner
     }
 
     initializeAttendanceSystem() {
         this.loadAttendanceStats();
         this.loadRecentSessions();
+        this.setupScannerUI();
+    }
+    // Méthodes pour le scanner
+    startScanner() {
+        this.scanner.startScanner();
     }
 
+    stopScanner() {
+        this.scanner.stopScanner();
+    }
+
+    switchCamera() {
+        this.scanner.switchCamera();
+    }
+
+    setupScannerUI() {
+        // Ajouter un bouton pour changer de caméra si disponible
+        const scannerSection = document.getElementById('scannerSection');
+        if (scannerSection) {
+            const switchCameraBtn = document.createElement('button');
+            switchCameraBtn.className = 'btn btn-outline-info btn-sm mt-2 w-100';
+            switchCameraBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Changer de caméra';
+            switchCameraBtn.onclick = () => this.switchCamera();
+            scannerSection.appendChild(switchCameraBtn);
+        }
+    }
+    
     showAlert(message, type = 'info') {
         const alertEl = document.getElementById('attendanceAlert');
         const alertClass = type === 'error' ? 'alert-danger' : 
