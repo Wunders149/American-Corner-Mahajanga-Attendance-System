@@ -1,4 +1,4 @@
-/* Variables CSS */
+/* ===== VARIABLES ET CONFIGURATION GÉNÉRALE ===== */
 :root {
     --primary-color: #2c3e50;
     --secondary-color: #3498db;
@@ -8,14 +8,24 @@
     --danger-color: #e74c3c;
     --light-color: #ecf0f1;
     --dark-color: #2c3e50;
+    --gradient-primary: linear-gradient(135deg, var(--primary-color), #34495e);
+    --gradient-secondary: linear-gradient(135deg, var(--secondary-color), #2980b9);
+    --gradient-accent: linear-gradient(135deg, #667eea, #764ba2);
 }
 
-/* Styles de base */
+/* ===== RÉINITIALISATION ET STYLES DE BASE ===== */
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f8f9fa;
+    margin: 0;
+    padding: 0;
 }
 
+/* ===== STRUCTURE ET LAYOUT ===== */
 .page-section {
     display: none;
 }
@@ -24,20 +34,38 @@ body {
     display: block;
 }
 
-/* Navigation */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* ===== COMPOSANTS DE NAVIGATION ===== */
 .navbar {
-    background: linear-gradient(135deg, var(--primary-color), #34495e);
+    background: var(--gradient-primary);
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 1rem 0;
 }
 
 .navbar-brand {
     font-weight: 700;
     font-size: 1.3rem;
+    color: white !important;
 }
 
-/* Hero Section */
+.navbar-nav .nav-link {
+    color: rgba(255,255,255,0.9) !important;
+    transition: color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    color: white !important;
+}
+
+/* ===== SECTIONS HÉRO ET TITRES ===== */
 .hero-section {
-    background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+    background: var(--gradient-secondary);
     color: white;
     padding: 100px 0;
     text-align: center;
@@ -46,14 +74,20 @@ body {
 .hero-section h1 {
     font-weight: 800;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    margin-bottom: 1rem;
 }
 
-/* Section Titles */
+.hero-section .lead {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+}
+
 .section-title {
     font-weight: 700;
     color: var(--primary-color);
     margin-bottom: 3rem;
     position: relative;
+    text-align: center;
 }
 
 .section-title::after {
@@ -67,24 +101,29 @@ body {
     background: var(--secondary-color);
 }
 
-/* Service Cards */
-.service-card {
+/* ===== COMPOSANTS DE CARTES ===== */
+.card {
     border: none;
     border-radius: 15px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
-    height: 100%;
 }
 
-.service-card:hover {
+.card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* Cartes de service */
+.service-card {
+    height: 100%;
+    text-align: center;
 }
 
 .service-icon {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+    background: var(--gradient-secondary);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -94,7 +133,7 @@ body {
     font-size: 2rem;
 }
 
-/* Stat Cards */
+/* Cartes de statistiques */
 .stat-card {
     background: white;
     padding: 1.5rem;
@@ -118,11 +157,8 @@ body {
     font-size: 0.9rem;
 }
 
-/* Attendance Cards */
+/* Cartes de présence */
 .attendance-card {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     margin-bottom: 2rem;
 }
 
@@ -131,13 +167,41 @@ body {
     font-weight: 600;
 }
 
-/* QR Scanner */
+/* ===== SYSTÈME DE PRÉSENCE ===== */
+.session-active {
+    border-left: 4px solid var(--success-color);
+}
+
+.session-ended {
+    border-left: 4px solid #6c757d;
+}
+
+.alert-attendance {
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(-10px);
+    border: none;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+}
+
+.alert-attendance.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 2rem;
+}
+
+/* ===== SYSTÈME DE SCAN QR ===== */
 .qr-scanner-container {
     text-align: center;
 }
 
 .camera-placeholder {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gradient-accent);
     border-radius: 10px;
     padding: 3rem 2rem;
     color: white;
@@ -162,94 +226,6 @@ body {
     margin-bottom: 1rem;
 }
 
-/* Alerts */
-.alert-attendance {
-    transition: all 0.3s ease;
-    opacity: 0;
-    transform: translateY(-10px);
-    border: none;
-    border-radius: 10px;
-    margin-bottom: 1.5rem;
-}
-
-.alert-attendance.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* Loading Spinner */
-.loading-spinner {
-    text-align: center;
-    padding: 2rem;
-}
-
-/* Member Cards */
-.member-card {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-}
-
-.member-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-}
-
-.initials-avatar {
-    width: 80px;
-    height: 80px;
-    background: linear-gradient(135deg, var(--secondary-color), #2980b9);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 1.5rem;
-}
-
-.initials-avatar.small {
-    width: 50px;
-    height: 50px;
-    font-size: 1rem;
-}
-
-.initials-avatar.large {
-    width: 120px;
-    height: 120px;
-    font-size: 2.5rem;
-}
-
-.member-occupation {
-    display: inline-block;
-    background: var(--light-color);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--dark-color);
-}
-
-.member-id-display {
-    font-family: 'Courier New', monospace;
-    background: #f8f9fa;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-weight: bold;
-    color: var(--primary-color);
-}
-
-/* Session States */
-.session-active {
-    border-left: 4px solid var(--success-color);
-}
-
-.session-ended {
-    border-left: 4px solid #6c757d;
-}
-
-/* QR Code Display */
 .qr-code-display {
     text-align: center;
 }
@@ -263,114 +239,16 @@ body {
     background: white;
 }
 
-/* Sample Member Cards */
-.sample-member-card {
-    border: 2px dashed #dee2e6;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    cursor: pointer;
+/* ===== SYSTÈME DE MEMBRES ===== */
+.member-card {
+    overflow: hidden;
 }
 
-.sample-member-card:hover {
-    border-color: var(--secondary-color);
-    transform: translateY(-2px);
-}
-
-/* Footer */
-.footer {
-    background: var(--primary-color);
-    color: white;
-    padding: 3rem 0 1rem;
-    margin-top: 3rem;
-}
-
-.social-icons a {
-    color: white;
-    margin-right: 1rem;
-    font-size: 1.2rem;
-    transition: color 0.3s ease;
-}
-
-.social-icons a:hover {
-    color: var(--secondary-color);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .hero-section {
-        padding: 60px 0;
-    }
-    
-    .hero-section h1 {
-        font-size: 2.5rem;
-    }
-    
-    .stat-number {
-        font-size: 2rem;
-    }
-    
-    .initials-avatar {
-        width: 60px;
-        height: 60px;
-        font-size: 1.2rem;
-    }
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.fade-in {
-    animation: fadeIn 0.5s ease-out;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--secondary-color);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #2980b9;
-}
-
-/* Print Styles */
-@media print {
-    .no-print {
-        display: none !important;
-    }
-    
-    .page-section:not(.active) {
-        display: none !important;
-    }
-    
-    .attendance-card {
-        box-shadow: none;
-        border: 1px solid #dee2e6;
-    }
-}
-
-/* Styles améliorés pour les membres */
 .member-avatar {
     width: 80px;
     height: 80px;
     position: relative;
+    margin: 0 auto;
 }
 
 .member-avatar.large {
@@ -381,7 +259,7 @@ body {
 .initials-avatar {
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: var(--gradient-accent);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -389,10 +267,34 @@ body {
     color: white;
     font-weight: bold;
     font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.initials-avatar.small {
+    width: 50px;
+    height: 50px;
+    font-size: 1rem;
 }
 
 .initials-avatar.large {
     font-size: 2.5rem;
+}
+
+.profile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #e9ecef;
+    transition: opacity 0.3s ease;
+}
+
+.profile-image.large {
+    border: 4px solid #e9ecef;
+}
+
+.profile-image:not([src]) {
+    opacity: 0;
 }
 
 .occupation-badge {
@@ -411,35 +313,40 @@ body {
     font-size: 0.8rem;
 }
 
+.occupation-badge.small {
+    width: 20px;
+    height: 20px;
+    font-size: 0.6rem;
+}
+
 .occupation-badge.large {
     width: 40px;
     height: 40px;
     font-size: 1rem;
 }
 
-.profile-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.no-image-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    background: #ffc107;
+    border: 2px solid white;
     border-radius: 50%;
-    border: 3px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.6rem;
 }
 
-.profile-image.large {
-    border: 4px solid #e9ecef;
-}
-
-.member-card {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    transition: all 0.3s ease;
-    overflow: hidden;
-}
-
-.member-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+.no-image-badge.large {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+    bottom: -8px;
+    right: -8px;
 }
 
 .member-details {
@@ -448,15 +355,201 @@ body {
     padding: 15px;
 }
 
+.member-occupation {
+    display: inline-block;
+    background: var(--light-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
 .member-id-display {
     font-family: 'Courier New', monospace;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     font-weight: bold;
 }
 
-/* Animation de chargement */
+.member-qr-status {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 15px;
+    display: inline-block;
+}
+
+/* ===== GÉNÉRATEUR QR - MEMBRES PRÊTS À SCANNER ===== */
+.sample-member-card {
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.sample-member-card:hover {
+    border-color: #3498db;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.15);
+}
+
+.sample-member-card.border-success {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #f8fff9, #ffffff);
+}
+
+.sample-member-card.border-success:hover {
+    border-color: #218838;
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.15);
+}
+
+.recent-qr-card {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.recent-qr-card:hover {
+    border-color: #27ae60;
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.1);
+}
+
+.qr-display-section {
+    background: var(--gradient-accent);
+    border-radius: 15px;
+    padding: 2rem;
+    color: white;
+}
+
+.qr-display-section .card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.recent-qr-section {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 2rem;
+}
+
+.card-print-preview {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 2px dashed #dee2e6 !important;
+}
+
+/* ===== FORMULAIRES ET RECHERCHE ===== */
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+#membersSearch {
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-right: none;
+}
+
+.search-active {
+    border-color: #3498db !important;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25) !important;
+}
+
+.search-loading {
+    position: relative;
+}
+
+.search-loading::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.member-card mark {
+    background: linear-gradient(135deg, #ffd700, #ffa500);
+    padding: 0.1em 0.2em;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+/* ===== BOUTONS ET BADGES ===== */
+.btn-group .btn {
+    border-radius: 6px !important;
+}
+
+.btn-group .btn.active {
+    font-weight: 600;
+}
+
+.bg-light .btn-group .btn {
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.badge {
+    font-size: 0.75em;
+    font-weight: 500;
+}
+
+.badge[class*="bg-"] {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+#membersCount {
+    font-size: 0.9em;
+    padding: 0.35em 0.65em;
+}
+
+.position-absolute .badge {
+    font-size: 0.6rem;
+    padding: 0.25em 0.5em;
+}
+
+/* ===== FOOTER ===== */
+.footer {
+    background: var(--primary-color);
+    color: white;
+    padding: 3rem 0 1rem;
+    margin-top: 3rem;
+}
+
+.social-icons a {
+    color: white;
+    margin-right: 1rem;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+}
+
+.social-icons a:hover {
+    color: var(--secondary-color);
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -468,19 +561,109 @@ body {
     }
 }
 
+@keyframes qrGenerate {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes quickGenerate {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+@keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.8); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(0.8); opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
 .member-card {
     animation: fadeInUp 0.5s ease-out;
 }
 
-/* Responsive */
+#qrcode img {
+    animation: qrGenerate 0.5s ease-out;
+}
+
+.quick-generate {
+    animation: quickGenerate 0.3s ease;
+}
+
+.recent-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: #28a745;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.member-avatar:hover .initials-avatar {
+    transform: scale(1.05);
+}
+
+/* ===== BARRE DE DÉFILEMENT PERSONNALISÉE ===== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--secondary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
+}
+
+/* ===== DESIGN RESPONSIVE ===== */
 @media (max-width: 768px) {
+    .hero-section {
+        padding: 60px 0;
+    }
+    
+    .hero-section h1 {
+        font-size: 2.5rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+    }
+    
+    .initials-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 1.2rem;
+    }
+    
     .member-avatar {
         width: 60px;
         height: 60px;
     }
     
-    .initials-avatar {
-        font-size: 1.2rem;
+    .member-avatar.large {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .initials-avatar.large {
+        font-size: 1.8rem;
     }
     
     .occupation-badge {
@@ -488,17 +671,81 @@ body {
         height: 25px;
         font-size: 0.7rem;
     }
+    
+    .qr-display-section {
+        padding: 1rem;
+    }
+    
+    .sample-member-card .btn-group {
+        flex-direction: column;
+    }
+    
+    .sample-member-card .btn-group .btn {
+        border-radius: 6px !important;
+        margin-bottom: 0.25rem;
+    }
+    
+    .btn-group {
+        flex-wrap: wrap;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+        font-size: 0.8rem;
+    }
+    
+    .member-qr-status {
+        font-size: 0.7rem;
+    }
 }
 
-/* Badges colorés par occupation */
-.badge[class*="bg-"] {
-    font-size: 0.75rem;
-    padding: 0.35em 0.65em;
+/* ===== STYLES D'IMPRESSION ===== */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .page-section:not(.active) {
+        display: none !important;
+    }
+    
+    .attendance-card {
+        box-shadow: none;
+        border: 1px solid #dee2e6;
+    }
+    
+    .sample-member-card,
+    .recent-qr-card,
+    .bg-light {
+        break-inside: avoid;
+    }
+    
+    .btn-group,
+    .no-print {
+        display: none !important;
+    }
 }
 
-/* Grid responsive */
+/* ===== GRID ET LAYOUT AVANCÉ ===== */
 .members-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
+}
+
+.bg-light {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef) !important;
+}
+
+/* ===== ÉTATS ET INDICATEURS ===== */
+.profile-status {
+    font-size: 0.8rem;
+}
+
+.profile-status .complete {
+    color: #28a745;
+}
+
+.profile-status .incomplete {
+    color: #ffc107;
 }
