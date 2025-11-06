@@ -365,3 +365,140 @@ body {
         border: 1px solid #dee2e6;
     }
 }
+
+/* Styles améliorés pour les membres */
+.member-avatar {
+    width: 80px;
+    height: 80px;
+    position: relative;
+}
+
+.member-avatar.large {
+    width: 120px;
+    height: 120px;
+}
+
+.initials-avatar {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.initials-avatar.large {
+    font-size: 2.5rem;
+}
+
+.occupation-badge {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    background: #28a745;
+    border: 3px solid white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.8rem;
+}
+
+.occupation-badge.large {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+}
+
+.profile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #e9ecef;
+}
+
+.profile-image.large {
+    border: 4px solid #e9ecef;
+}
+
+.member-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.member-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.member-details {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.member-id-display {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+}
+
+/* Animation de chargement */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.member-card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .member-avatar {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .initials-avatar {
+        font-size: 1.2rem;
+    }
+    
+    .occupation-badge {
+        width: 25px;
+        height: 25px;
+        font-size: 0.7rem;
+    }
+}
+
+/* Badges colorés par occupation */
+.badge[class*="bg-"] {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+/* Grid responsive */
+.members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}

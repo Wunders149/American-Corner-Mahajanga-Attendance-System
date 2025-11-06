@@ -1,18 +1,18 @@
-// QR Code Scanner System
+// QR Code Scanner System - Optimisé pour les cartes
 class QRScanner {
     constructor() {
         this.html5QrCode = null;
         this.isScanning = false;
-        this.scannerInitialized = false;
     }
 
     async startScanner() {
-        console.log('🎬 Démarrage du scanner QR...');
+        console.log('🎬 Démarrage du scanner pour cartes...');
         
         try {
-            // Vérifier si la bibliothèque est disponible
+            // Vérifier la bibliothèque
             if (typeof Html5Qrcode === 'undefined') {
-                throw new Error('Bibliothèque scanner non chargée');
+                this.showAlert('Scanner non disponible. Rechargez la page.', 'error');
+                return;
             }
 
             const scannerContainer = document.getElementById('scannerContainer');
@@ -20,42 +20,48 @@ class QRScanner {
             const startBtn = document.getElementById('startScannerBtn');
             const stopBtn = document.getElementById('stopScannerBtn');
 
-            if (!scannerContainer) {
-                throw new Error('Container scanner non trouvé');
-            }
-
             // Mise à jour UI
             if (cameraPlaceholder) cameraPlaceholder.style.display = 'none';
             if (startBtn) startBtn.style.display = 'none';
             if (stopBtn) stopBtn.style.display = 'block';
-            
-            scannerContainer.style.display = 'block';
-            scannerContainer.innerHTML = '<div id="qrReader" style="width: 100%;"></div>';
+            if (scannerContainer) {
+                scannerContainer.style.display = 'block';
+                scannerContainer.innerHTML = '<div id="qrReader" style="width: 100%;"></div>';
+            }
 
-            // Initialiser le scanner
+            // Configuration optimisée pour les cartes
             this.html5QrCode = new Html5Qrcode("qrReader");
             
             const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
+                fps: 15, // Augmenté pour plus de réactivité
+                qrbox: { width: 300, height: 300 }, // Zone plus grande
+                aspectRatio: 1.0,
+                focusMode: "continuous" // Focus automatique
             };
 
-            // Démarrer le scanner
-            await this.html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                this.onScanSuccess.bind(this),
-                this.onScanFailure.bind(this)
-            );
+            console.log('📷 Démarrage du scanner...');
+            
+            // Essayer d'abord la caméra arrière, puis la caméra avant
+            try {
+                await this.html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    (decodedText) => this.onScanSuccess(decodedText),
+                    (error) => console.log('🔍 Scan en cours...')
+                );
+            } catch (rearError) {
+                console.log('📱 Essai caméra avant...');
+                await this.html5QrCode.start(
+                    { facingMode: "user" },
+                    config,
+                    (decodedText) => this.onScanSuccess(decodedText),
+                    (error) => console.log('🔍 Scan en cours...')
+                );
+            }
             
             this.isScanning = true;
-            this.scannerInitialized = true;
             console.log('✅ Scanner démarré avec succès');
-            
-            if (window.attendance) {
-                window.attendance.showAlert('Scanner activé! Pointez vers un QR code.', 'success');
-            }
+            this.showAlert('Scanner activé! Pointez vers la carte QR code.', 'success');
 
         } catch (error) {
             console.error('❌ Erreur démarrage scanner:', error);
@@ -64,72 +70,106 @@ class QRScanner {
     }
 
     async stopScanner() {
-        console.log('🛑 Arrêt du scanner...');
-        
         if (this.html5QrCode && this.isScanning) {
             try {
                 await this.html5QrCode.stop();
-                this.html5QrCode.clear();
                 this.isScanning = false;
-                console.log('✅ Scanner arrêté');
+                console.log('🛑 Scanner arrêté');
             } catch (error) {
                 console.error('Erreur arrêt scanner:', error);
             }
         }
-        
         this.resetScannerUI();
     }
 
     onScanSuccess(decodedText) {
-        console.log('✅ QR Code scanné:', decodedText);
+        console.log('✅ QR Code détecté:', decodedText);
         
         // Arrêter le scanner temporairement
         this.stopScanner();
         
+        // Traitement du QR code
+        this.processQRCode(decodedText);
+    }
+
+    processQRCode(decodedText) {
         try {
-            const memberData = JSON.parse(decodedText);
+            let memberData;
+            
+            // Essayer de parser comme JSON d'abord
+            try {
+                memberData = JSON.parse(decodedText);
+                console.log('📋 QR code format JSON:', memberData);
+            } catch (jsonError) {
+                // Si ce n'est pas du JSON, traiter comme texte simple (numéro de membre)
+                console.log('📋 QR code format texte:', decodedText);
+                memberData = {
+                    registrationNumber: decodedText.trim(),
+                    firstName: "Membre",
+                    lastName: "Scanné",
+                    isFromCard: true
+                };
+            }
+
+            // Valider les données
+            if (!memberData.registrationNumber) {
+                throw new Error('Numéro de membre manquant dans le QR code');
+            }
+
+            // Traiter le membre
             this.processScannedMember(memberData);
+            
         } catch (error) {
-            console.error('❌ QR code invalide:', error);
-            this.showAlert('QR code invalide. Format incorrect.', 'error');
+            console.error('❌ Erreur traitement QR code:', error);
+            this.showAlert('QR code invalide: ' + error.message, 'error');
             
             // Redémarrer après erreur
             setTimeout(() => this.startScanner(), 2000);
         }
     }
 
-    onScanFailure(error) {
-        // Ignorer les erreurs normales de scan
-        if (error && !error.includes('NotFoundException')) {
-            console.log('🔍 Scan en cours...');
+    processScannedMember(memberData) {
+        console.log('🔍 Recherche du membre:', memberData.registrationNumber);
+
+        // Nettoyer le numéro de membre
+        const cleanRegistration = memberData.registrationNumber.toString().trim().toUpperCase();
+        
+        // Rechercher le membre
+        const member = apiService.getMemberByRegistrationNumber(cleanRegistration);
+        
+        if (member) {
+            console.log('✅ Membre trouvé:', member);
+            
+            // Feedback visuel
+            this.showScanSuccess();
+            
+            // Transférer au système de présence
+            if (window.attendance && window.attendance.processMemberCheckin) {
+                setTimeout(() => {
+                    window.attendance.processMemberCheckin(member);
+                }, 500);
+            }
+            
+            this.showAlert(`✅ Carte acceptée! Bienvenue ${member.firstName} ${member.lastName}`, 'success');
+            
+        } else {
+            console.log('❌ Membre non trouvé:', cleanRegistration);
+            this.showAlert(`❌ Carte non reconnue: ${cleanRegistration}`, 'error');
+            
+            // Redémarrer le scanner
+            setTimeout(() => this.startScanner(), 3000);
         }
     }
 
-    processScannedMember(memberData) {
-        if (!memberData.registrationNumber) {
-            this.showAlert('QR code invalide: numéro manquant', 'error');
-            return;
-        }
-
-        console.log('👤 Traitement membre:', memberData.registrationNumber);
-
-        if (typeof apiService === 'undefined') {
-            this.showAlert('Erreur: service indisponible', 'error');
-            return;
-        }
-
-        const member = apiService.getMemberByRegistrationNumber(memberData.registrationNumber);
-        
-        if (member) {
-            this.showAlert(`✅ Bienvenue ${member.firstName} ${member.lastName}!`, 'success');
+    showScanSuccess() {
+        const scannerContainer = document.getElementById('scannerContainer');
+        if (scannerContainer) {
+            scannerContainer.style.border = '3px solid #28a745';
+            scannerContainer.style.transition = 'border 0.3s ease';
             
-            // Transférer à attendance system
-            if (window.attendance) {
-                window.attendance.processMemberCheckin(member);
-            }
-        } else {
-            this.showAlert('❌ Membre non trouvé', 'error');
-            setTimeout(() => this.startScanner(), 3000);
+            setTimeout(() => {
+                scannerContainer.style.border = '2px solid #dee2e6';
+            }, 1000);
         }
     }
 
@@ -143,8 +183,8 @@ class QRScanner {
             cameraPlaceholder.style.display = 'flex';
             cameraPlaceholder.innerHTML = `
                 <i class="fas fa-camera"></i>
-                <p>Cliquez pour activer le scanner</p>
-                <small class="text-muted mt-2">Scannez les QR codes des membres</small>
+                <p>Cliquez pour scanner une carte</p>
+                <small class="text-muted mt-2">Approchez la carte QR code de la caméra</small>
             `;
         }
         if (scannerContainer) {
@@ -157,33 +197,47 @@ class QRScanner {
 
     handleScannerError(error) {
         console.error('🚨 Erreur scanner:', error);
-        let errorMessage = 'Erreur caméra: ';
+        let errorMessage = 'Impossible d\'accéder à la caméra: ';
         
         if (error.name === 'NotAllowedError') {
-            errorMessage = 'Permission caméra refusée. Autorisez l\'accès dans les paramètres.';
+            errorMessage = '📵 Permission refusée. Autorisez l\'accès caméra dans les paramètres de votre navigateur.';
         } else if (error.name === 'NotFoundError') {
-            errorMessage = 'Aucune caméra détectée sur cet appareil.';
+            errorMessage = '📵 Aucune caméra détectée. Vérifiez votre appareil.';
         } else if (error.name === 'NotSupportedError') {
-            errorMessage = 'Votre navigateur ne supporte pas le scan QR. Essayez Chrome ou Firefox.';
+            errorMessage = '📵 Navigateur non supporté. Utilisez Chrome ou Firefox.';
         } else if (error.name === 'NotReadableError') {
-            errorMessage = 'Caméra déjà utilisée par une autre application.';
+            errorMessage = '📵 Caméra utilisée par une autre application.';
         } else {
             errorMessage += error.message;
         }
         
         this.showAlert(errorMessage, 'error');
         this.resetScannerUI();
+        
+        // Proposer l'entrée manuelle
+        setTimeout(() => {
+            if (window.attendance && confirm('Scanner impossible. Voulez-vous utiliser l\'entrée manuelle?')) {
+                window.attendance.startManualEntry();
+            }
+        }, 2000);
     }
 
     showAlert(message, type = 'info') {
+        console.log(`💬 ${type}: ${message}`);
+        
         if (window.attendance && window.attendance.showAlert) {
             window.attendance.showAlert(message, type);
         } else {
-            // Fallback simple
+            // Fallback
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
             alertDiv.style.zIndex = '9999';
-            alertDiv.innerHTML = message;
+            alertDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${this.getAlertIcon(type)} me-2"></i>
+                    <div>${message}</div>
+                </div>
+            `;
             document.body.appendChild(alertDiv);
             
             setTimeout(() => {
@@ -191,6 +245,15 @@ class QRScanner {
                     alertDiv.parentNode.removeChild(alertDiv);
                 }
             }, 5000);
+        }
+    }
+
+    getAlertIcon(type) {
+        switch(type) {
+            case 'success': return 'check-circle';
+            case 'error': return 'exclamation-triangle';
+            case 'warning': return 'exclamation-circle';
+            default: return 'info-circle';
         }
     }
 }

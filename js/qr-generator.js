@@ -1,13 +1,13 @@
-// QR Generator System
+// QR Generator System - Optimisé pour les cartes
 class QRGenerator {
     constructor() {
         this.currentQRCode = null;
     }
 
-    async initializeQRGenerator() {
+    initializeQRGenerator() {
         this.setupEventListeners();
-        await this.loadSampleMembers();
-        console.log('✅ Générateur QR initialisé');
+        this.loadSampleMembers();
+        console.log('✅ Générateur QR pour cartes initialisé');
     }
 
     setupEventListeners() {
@@ -20,20 +20,13 @@ class QRGenerator {
         document.getElementById('printQRBtn').onclick = () => this.printQRCode();
     }
 
-    async loadSampleMembers() {
+    loadSampleMembers() {
         const container = document.getElementById('sampleMembers');
-        if (!container) return;
-
-        // Attendre que les membres soient chargés
-        if (apiService.members.length === 0) {
-            await apiService.fetchMembers();
-        }
-
-        if (apiService.members.length === 0) return;
+        if (!container || apiService.members.length === 0) return;
 
         container.innerHTML = '';
         
-        // Afficher jusqu'à 6 membres comme exemples
+        // Afficher les 6 premiers membres comme exemples
         const sampleMembers = apiService.members.slice(0, 6);
         
         sampleMembers.forEach(member => {
@@ -48,8 +41,8 @@ class QRGenerator {
                     <h6 class="mb-1">${member.firstName} ${member.lastName}</h6>
                     <small class="text-muted member-id-display">${member.registrationNumber}</small>
                     <button class="btn btn-sm btn-primary mt-2 w-100" 
-                            onclick="qrGenerator.generateSampleQR('${member.registrationNumber}')">
-                        <i class="fas fa-qrcode me-1"></i>Générer QR
+                            onclick="qrGenerator.generateMemberQR('${member.registrationNumber}')">
+                        <i class="fas fa-qrcode me-1"></i>Générer Carte
                     </button>
                 </div>
             `;
@@ -58,31 +51,22 @@ class QRGenerator {
         });
     }
 
-    generateSampleQR(registrationNumber = null) {
-        console.log('🎨 Génération d\'un QR code d\'exemple...');
+    generateMemberQR(registrationNumber) {
+        console.log('🎨 Génération carte pour:', registrationNumber);
         
-        let sampleMember;
-        if (registrationNumber && apiService) {
-            const member = apiService.getMemberByRegistrationNumber(registrationNumber);
-            if (member) {
-                sampleMember = member;
-            }
+        const member = apiService.getMemberByRegistrationNumber(registrationNumber);
+        if (member) {
+            // Remplir le formulaire automatiquement
+            document.getElementById('registrationNumber').value = member.registrationNumber;
+            document.getElementById('firstName').value = member.firstName;
+            document.getElementById('lastName').value = member.lastName;
+            document.getElementById('occupation').value = member.occupation || 'student';
+            document.getElementById('phoneNumber').value = member.phoneNumber || '';
+            document.getElementById('studyWorkPlace').value = member.studyOrWorkPlace || '';
+            
+            // Générer le QR code
+            this.generateQRCode();
         }
-        
-        if (!sampleMember) {
-            sampleMember = {
-                registrationNumber: "ACM-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-                firstName: "John",
-                lastName: "Doe",
-                occupation: "student",
-                phoneNumber: "+261 34 12 345 67",
-                studyOrWorkPlace: "Université de Mahajanga",
-                timestamp: new Date().toISOString(),
-                isSample: true
-            };
-        }
-
-        this.generateQRCodeFromData(sampleMember);
     }
 
     generateQRCode() {
@@ -94,57 +78,66 @@ class QRGenerator {
         const studyWorkPlace = document.getElementById('studyWorkPlace').value.trim();
 
         if (!registrationNumber || !firstName || !lastName) {
-            this.showAlert('Veuillez remplir tous les champs obligatoires (Numéro, Prénom, Nom)', 'warning');
+            this.showAlert('Veuillez remplir les champs obligatoires', 'warning');
             return;
         }
 
-        // Validation des entrées
-        try {
-            const memberData = {
-                registrationNumber: utils.sanitizeInput(registrationNumber),
-                firstName: utils.sanitizeInput(firstName),
-                lastName: utils.sanitizeInput(lastName),
-                occupation: occupation,
-                phoneNumber: utils.sanitizeInput(phoneNumber),
-                studyOrWorkPlace: utils.sanitizeInput(studyWorkPlace),
-                timestamp: new Date().toISOString()
-            };
+        // Format optimisé pour le scanner de cartes
+        const memberData = {
+            registrationNumber: registrationNumber,
+            firstName: firstName,
+            lastName: lastName,
+            occupation: occupation,
+            phoneNumber: phoneNumber || undefined,
+            studyOrWorkPlace: studyWorkPlace || undefined,
+            timestamp: new Date().toISOString().split('T')[0] // Date seulement
+        };
 
-            apiService.validateMemberData(memberData);
-            this.generateQRCodeFromData(memberData);
-            
-        } catch (error) {
-            this.showAlert(`Erreur de validation: ${error.message}`, 'error');
-        }
+        // Nettoyer les données (supprimer les champs undefined)
+        Object.keys(memberData).forEach(key => {
+            if (memberData[key] === undefined) {
+                delete memberData[key];
+            }
+        });
+
+        this.generateQRCodeFromData(memberData);
     }
 
     generateQRCodeFromData(memberData) {
-        const jsonString = JSON.stringify(memberData, null, 2);
+        const jsonString = JSON.stringify(memberData);
         
-        document.getElementById('qrcode').innerHTML = '';
+        // Vider le conteneur
+        const qrcodeContainer = document.getElementById('qrcode');
+        qrcodeContainer.innerHTML = '';
         
+        // Générer le QR code
         const typeNumber = 0;
-        const errorCorrectionLevel = 'L';
+        const errorCorrectionLevel = 'M'; // Correction moyenne pour les cartes
         const qr = qrcode(typeNumber, errorCorrectionLevel);
         qr.addData(jsonString);
         qr.make();
         
-        const qrImage = qr.createImgTag(5, 0);
-        document.getElementById('qrcode').innerHTML = qrImage;
+        // Créer l'image QR
+        const qrImage = qr.createImgTag(5, 0, 'Carte ACM');
+        qrcodeContainer.innerHTML = qrImage;
         
+        // Mettre à jour les informations d'affichage
         document.getElementById('displayRegNumber').textContent = memberData.registrationNumber;
         document.getElementById('displayName').textContent = `${memberData.firstName} ${memberData.lastName}`;
         document.getElementById('displayOccupation').textContent = utils.formatOccupation(memberData.occupation);
         document.getElementById('displayPhone').textContent = memberData.phoneNumber || 'Non fourni';
         document.getElementById('displayStudyWork').textContent = memberData.studyOrWorkPlace || 'Non fourni';
-        document.getElementById('displayTimestamp').textContent = new Date().toLocaleString();
+        document.getElementById('displayTimestamp').textContent = new Date().toLocaleDateString('fr-FR');
         
+        // Afficher le contenu JSON
         document.getElementById('jsonPreview').textContent = jsonString;
+        
+        // Afficher la section QR code
         document.getElementById('qrCodeSection').style.display = 'block';
         
         this.currentQRCode = memberData;
         
-        this.showAlert('QR code généré avec succès!', 'success');
+        this.showAlert('Carte QR générée avec succès!', 'success');
     }
 
     downloadQRCode() {
@@ -152,18 +145,18 @@ class QRGenerator {
         if (qrCodeElement) {
             const regNumber = document.getElementById('displayRegNumber').textContent;
             const link = document.createElement('a');
-            link.download = `ACM-QR-${regNumber}.png`;
+            link.download = `Carte-ACM-${regNumber}.png`;
             link.href = qrCodeElement.src;
             link.click();
         } else {
-            this.showAlert('Veuillez générer un QR code d\'abord', 'warning');
+            this.showAlert('Générez d\'abord une carte QR', 'warning');
         }
     }
 
     printQRCode() {
         const qrCodeElement = document.querySelector('#qrcode img');
         if (!qrCodeElement) {
-            this.showAlert('Veuillez générer un QR code d\'abord', 'warning');
+            this.showAlert('Générez d\'abord une carte QR', 'warning');
             return;
         }
 
@@ -175,11 +168,13 @@ class QRGenerator {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>QR Code - ${regNumber}</title>
+                <title>Carte Membre - ${regNumber}</title>
                 <style>
                     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-                    .qr-container { margin: 20px auto; max-width: 300px; }
-                    .member-info { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; text-align: left; }
+                    .card-container { margin: 20px auto; max-width: 300px; border: 2px solid #333; padding: 20px; border-radius: 10px; }
+                    .header { background: #2c3e50; color: white; padding: 10px; margin: -20px -20px 20px -20px; border-radius: 8px 8px 0 0; }
+                    .qr-container { margin: 15px 0; }
+                    .member-info { text-align: left; margin: 15px 0; }
                     .member-id { font-family: 'Courier New', monospace; background: #f8f9fa; padding: 5px 10px; border-radius: 5px; font-weight: bold; }
                     @media print { 
                         body { margin: 0; padding: 10px; }
@@ -188,24 +183,30 @@ class QRGenerator {
                 </style>
             </head>
             <body>
-                <h2>American Corner Mahajanga</h2>
-                <h3>QR Code Membre</h3>
-                <div class="member-info">
-                    <strong>Numéro:</strong> <span class="member-id">${regNumber}</span><br>
-                    <strong>Nom:</strong> ${memberName}<br>
-                    <strong>Généré:</strong> ${new Date().toLocaleDateString()}
+                <div class="card-container">
+                    <div class="header">
+                        <h3>American Corner Mahajanga</h3>
+                        <p>Carte de Membre</p>
+                    </div>
+                    
+                    <div class="qr-container">
+                        ${document.querySelector('#qrcode').innerHTML}
+                    </div>
+                    
+                    <div class="member-info">
+                        <p><strong>Numéro:</strong> <span class="member-id">${regNumber}</span></p>
+                        <p><strong>Nom:</strong> ${memberName}</p>
+                        <p><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+                    </div>
                 </div>
-                <div class="qr-container">
-                    ${document.querySelector('#qrcode').innerHTML}
+                
+                <div class="no-print" style="margin-top: 20px;">
+                    <button onclick="window.print()" class="btn btn-primary">Imprimer</button>
+                    <button onclick="window.close()" class="btn btn-secondary">Fermer</button>
                 </div>
-                <p><small>Scannez ce QR code à l'American Corner pour le suivi des présences</small></p>
-                <div class="no-print">
-                    <button onclick="window.print()" class="btn btn-primary mt-3">Imprimer</button>
-                    <button onclick="window.close()" class="btn btn-secondary mt-3 ms-2">Fermer</button>
-                </div>
+                
                 <script>
                     window.onload = function() {
-                        // Auto-print
                         setTimeout(function() { 
                             window.print(); 
                         }, 500);
@@ -221,7 +222,6 @@ class QRGenerator {
         document.getElementById('qrGeneratorForm').reset();
         document.getElementById('qrCodeSection').style.display = 'none';
         this.currentQRCode = null;
-        this.showAlert('Formulaire réinitialisé', 'info');
     }
 
     showAlert(message, type = 'info') {
