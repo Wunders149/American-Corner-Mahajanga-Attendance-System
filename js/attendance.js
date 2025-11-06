@@ -3,7 +3,6 @@ class AttendanceSystem {
     constructor() {
         this.currentSession = null;
         this.durationInterval = null;
-        this.eventListenersSetup = false;
     }
 
     initializeAttendanceSystem() {
@@ -15,21 +14,8 @@ class AttendanceSystem {
     }
 
     setupEventListeners() {
-        // Éviter de configurer les événements plusieurs fois
-        if (this.eventListenersSetup) {
-            console.log('ℹ️ Événements déjà configurés');
-            return;
-        }
-
         console.log('🔧 Configuration des événements...');
         
-        // Attendre que le DOM soit complètement chargé
-        setTimeout(() => {
-            this.attachEventListeners();
-        }, 100);
-    }
-
-    attachEventListeners() {
         // Scanner buttons
         const startScannerBtn = document.getElementById('startScannerBtn');
         const stopScannerBtn = document.getElementById('stopScannerBtn');
@@ -41,146 +27,110 @@ class AttendanceSystem {
         const cancelSessionBtn = document.getElementById('cancelSessionBtn');
         const endSessionBtn = document.getElementById('endSessionBtn');
 
-        // Vérifier et attacher les événements
+        // Attacher les événements
         if (startScannerBtn) {
-            startScannerBtn.addEventListener('click', (e) => {
+            startScannerBtn.onclick = (e) => {
                 e.preventDefault();
-                console.log('🎬 Clic sur Activer le Scanner');
                 this.startScanner();
-            });
-            console.log('✅ Événement startScannerBtn attaché');
-        } else {
-            console.error('❌ Bouton startScannerBtn non trouvé');
+            };
         }
 
         if (stopScannerBtn) {
-            stopScannerBtn.addEventListener('click', (e) => {
+            stopScannerBtn.onclick = (e) => {
                 e.preventDefault();
-                console.log('🛑 Clic sur Arrêter le Scanner');
                 this.stopScanner();
-            });
+            };
         }
 
         if (manualEntryBtn) {
-            manualEntryBtn.addEventListener('click', (e) => {
+            manualEntryBtn.onclick = (e) => {
                 e.preventDefault();
-                console.log('⌨️ Clic sur Entrée Manuelle');
                 this.startManualEntry();
-            });
+            };
         }
 
         if (processManualBtn) {
-            processManualBtn.addEventListener('click', (e) => {
+            processManualBtn.onclick = (e) => {
                 e.preventDefault();
-                console.log('✅ Clic sur Continuer (manuel)');
                 this.processManualEntry();
-            });
+            };
         }
 
         if (cancelManualBtn) {
-            cancelManualBtn.addEventListener('click', (e) => {
+            cancelManualBtn.onclick = (e) => {
                 e.preventDefault();
-                console.log('❌ Clic sur Annuler (manuel)');
                 this.cancelManualEntry();
-            });
+            };
         }
 
         if (demoMemberBtn) {
-            demoMemberBtn.addEventListener('click', (e) => {
+            demoMemberBtn.onclick = (e) => {
                 e.preventDefault();
-                console.log('🔧 Clic sur Mode Démo');
                 this.useDemoMember();
-            });
+            };
         }
 
         if (startSessionBtn) {
-            startSessionBtn.addEventListener('click', (e) => {
+            startSessionBtn.onclick = (e) => {
                 e.preventDefault();
-                console.log('🚀 Clic sur Démarrer Session');
                 this.startSession();
-            });
+            };
         }
 
         if (cancelSessionBtn) {
-            cancelSessionBtn.addEventListener('click', (e) => {
+            cancelSessionBtn.onclick = (e) => {
                 e.preventDefault();
-                console.log('❌ Clic sur Annuler Session');
                 this.cancelSession();
-            });
+            };
         }
 
         if (endSessionBtn) {
-            endSessionBtn.addEventListener('click', (e) => {
+            endSessionBtn.onclick = (e) => {
                 e.preventDefault();
-                console.log('📤 Clic sur Check-Out');
                 this.endSession();
-            });
+            };
         }
 
-        // Événement pour le formulaire de session
-        const sessionForm = document.getElementById('sessionForm');
-        if (sessionForm) {
-            sessionForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                console.log('📝 Soumission formulaire session');
-                this.startSession();
-            });
-        }
-
-        // Événement pour le formulaire d'entrée manuelle
-        const manualEntryForm = document.getElementById('manualMemberId');
-        if (manualEntryForm) {
-            manualEntryForm.addEventListener('keypress', (e) => {
+        // Enter key in manual entry
+        const manualInput = document.getElementById('manualMemberId');
+        if (manualInput) {
+            manualInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    console.log('↵ Entrée pressée dans champ manuel');
                     this.processManualEntry();
                 }
             });
         }
 
-        this.eventListenersSetup = true;
-        console.log('✅ Tous les événements configurés');
+        console.log('✅ Événements configurés');
     }
 
     // Scanner methods
     startScanner() {
-        console.log('🔍 Début de startScanner() dans AttendanceSystem');
-        
+        console.log('🔍 Démarrage du scanner...');
         if (window.qrScanner) {
-            console.log('🎯 Appel de qrScanner.startScanner()');
-            qrScanner.startScanner().catch(error => {
-                console.error('❌ Erreur dans startScanner:', error);
-                this.showAlert('Erreur lors du démarrage du scanner', 'error');
-            });
+            qrScanner.startScanner();
         } else {
-            console.error('❌ qrScanner non disponible');
-            this.showAlert('Scanner non disponible. Utilisez l\'entrée manuelle.', 'warning');
-            this.startManualEntry();
+            this.showAlert('Scanner non disponible', 'error');
         }
     }
 
     stopScanner() {
-        console.log('🛑 Arrêt du scanner depuis AttendanceSystem');
+        console.log('🛑 Arrêt du scanner...');
         if (window.qrScanner) {
             qrScanner.stopScanner();
         }
     }
 
     showAlert(message, type = 'info') {
-        console.log(`💬 Alerte [${type}]: ${message}`);
         const alertEl = document.getElementById('attendanceAlert');
-        if (!alertEl) {
-            // Fallback si l'élément d'alerte n'existe pas
-            this.showFallbackAlert(message, type);
-            return;
-        }
-        
+        if (!alertEl) return;
+
         const alertClass = type === 'error' ? 'alert-danger' : 
                          type === 'success' ? 'alert-success' :
                          type === 'warning' ? 'alert-warning' : 'alert-info';
         
-        alertEl.className = `alert alert-attendance ${alertClass}`;
+        alertEl.className = `alert ${alertClass}`;
         alertEl.innerHTML = `
             <div class="d-flex align-items-center">
                 <i class="fas fa-${this.getAlertIcon(type)} me-2"></i>
@@ -189,11 +139,9 @@ class AttendanceSystem {
         `;
         alertEl.style.display = 'block';
         
-        // Auto-masquage après 5 secondes
+        // Auto-hide après 5 secondes
         setTimeout(() => {
-            if (alertEl) {
-                alertEl.style.display = 'none';
-            }
+            alertEl.style.display = 'none';
         }, 5000);
     }
 
@@ -206,39 +154,15 @@ class AttendanceSystem {
         }
     }
 
-    showFallbackAlert(message, type) {
-        // Créer une alerte temporaire si l'élément n'existe pas
-        const tempAlert = document.createElement('div');
-        tempAlert.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
-        tempAlert.style.zIndex = '9999';
-        tempAlert.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="fas fa-${this.getAlertIcon(type)} me-2"></i>
-                <div>${message}</div>
-            </div>
-        `;
-        document.body.appendChild(tempAlert);
-        
-        setTimeout(() => {
-            if (tempAlert.parentNode) {
-                tempAlert.parentNode.removeChild(tempAlert);
-            }
-        }, 5000);
-    }
-
     startManualEntry() {
         console.log('⌨️ Démarrage entrée manuelle');
         const manualForm = document.getElementById('manualEntryForm');
         if (manualForm) {
             manualForm.style.display = 'block';
-            // Focus sur le champ de saisie
             const memberIdInput = document.getElementById('manualMemberId');
             if (memberIdInput) {
                 memberIdInput.focus();
             }
-            this.showAlert('Veuillez entrer le numéro d\'enregistrement du membre', 'info');
-        } else {
-            console.error('❌ Formulaire manuel non trouvé');
         }
     }
 
@@ -249,8 +173,6 @@ class AttendanceSystem {
         
         if (manualForm) manualForm.style.display = 'none';
         if (memberIdInput) memberIdInput.value = '';
-        
-        this.showAlert('Entrée manuelle annulée', 'warning');
     }
 
     processManualEntry() {
@@ -258,22 +180,21 @@ class AttendanceSystem {
         const memberId = document.getElementById('manualMemberId')?.value.trim();
         
         if (!memberId) {
-            this.showAlert('Veuillez entrer le numéro d\'enregistrement', 'warning');
+            this.showAlert('Veuillez entrer un numéro d\'enregistrement', 'warning');
             return;
         }
 
         console.log(`🔍 Recherche du membre: ${memberId}`);
         
-        // Vérifier si l'API service est disponible
         if (typeof apiService === 'undefined') {
-            this.showAlert('Erreur: Service non disponible', 'error');
+            this.showAlert('Erreur: service indisponible', 'error');
             return;
         }
 
         const member = apiService.getMemberByRegistrationNumber(memberId);
         
         if (!member) {
-            this.showAlert(`Membre "${memberId}" non trouvé. Vérifiez le numéro.`, 'error');
+            this.showAlert(`Membre "${memberId}" non trouvé`, 'error');
             return;
         }
 
@@ -281,7 +202,7 @@ class AttendanceSystem {
     }
 
     processMemberCheckin(member) {
-        console.log(`👤 Traitement check-in pour: ${member.registrationNumber}`);
+        console.log(`👤 Check-in pour: ${member.registrationNumber}`);
         
         // Masquer le formulaire manuel
         const manualForm = document.getElementById('manualEntryForm');
@@ -308,49 +229,38 @@ class AttendanceSystem {
     updateSessionInterface(member) {
         console.log('🖥️ Mise à jour interface session');
         
-        const elements = {
-            scannedMemberName: document.getElementById('scannedMemberName'),
-            scannedMemberId: document.getElementById('scannedMemberId'),
-            checkInTime: document.getElementById('checkInTime'),
-            sessionDetails: document.getElementById('sessionDetails')
-        };
+        const scannedMemberName = document.getElementById('scannedMemberName');
+        const scannedMemberId = document.getElementById('scannedMemberId');
+        const checkInTime = document.getElementById('checkInTime');
+        const sessionDetails = document.getElementById('sessionDetails');
 
-        // Mettre à jour les éléments s'ils existent
-        if (elements.scannedMemberName) {
-            elements.scannedMemberName.textContent = `${member.firstName} ${member.lastName}`;
-        }
-        if (elements.scannedMemberId) {
-            elements.scannedMemberId.textContent = member.registrationNumber;
-        }
-        if (elements.checkInTime) {
-            elements.checkInTime.textContent = new Date().toLocaleString();
-        }
-        if (elements.sessionDetails) {
-            elements.sessionDetails.style.display = 'block';
-        }
+        if (scannedMemberName) scannedMemberName.textContent = `${member.firstName} ${member.lastName}`;
+        if (scannedMemberId) scannedMemberId.textContent = member.registrationNumber;
+        if (checkInTime) checkInTime.textContent = new Date().toLocaleString();
+        if (sessionDetails) sessionDetails.style.display = 'block';
     }
 
     useDemoMember() {
         console.log('🔧 Utilisation membre démo');
         
-        if (!apiService || apiService.members.length === 0) {
-            // Créer un membre de démo temporaire
-            const demoMember = {
+        // Utiliser le premier membre disponible ou créer un démo
+        let demoMember;
+        if (apiService.members.length > 0) {
+            demoMember = apiService.members[0];
+        } else {
+            demoMember = {
                 id: 999,
                 registrationNumber: "ACM001",
                 firstName: "Linus",
                 lastName: "Torvalds",
                 occupation: "entrepreneur",
-                phoneNumber: "555-123-4567",
-                studyOrWorkPlace: "NY University"
+                phoneNumber: "+261 34 11 223 34",
+                studyOrWorkPlace: "Linux Foundation"
             };
-            this.processMemberCheckin(demoMember);
-            this.showAlert('🔧 Mode démo activé - Données de test', 'info');
-        } else {
-            const demoMember = apiService.members[0];
-            this.processMemberCheckin(demoMember);
-            this.showAlert(`🔧 Mode démo: ${demoMember.firstName} ${demoMember.lastName}`, 'info');
         }
+        
+        this.processMemberCheckin(demoMember);
+        this.showAlert('Mode démo activé', 'info');
     }
 
     cancelSession() {
@@ -362,7 +272,6 @@ class AttendanceSystem {
         if (sessionForm) sessionForm.reset();
         
         this.currentSession = null;
-        this.showAlert('Session annulée', 'warning');
     }
 
     startSession() {
@@ -371,7 +280,7 @@ class AttendanceSystem {
         const topic = document.getElementById('topic')?.value;
         
         if (!purpose) {
-            this.showAlert('Veuillez sélectionner le motif de la visite', 'warning');
+            this.showAlert('Veuillez sélectionner un motif de visite', 'warning');
             return;
         }
 
@@ -391,41 +300,28 @@ class AttendanceSystem {
         this.updateActiveSessionInterface(purpose, topic);
         
         // Mettre à jour la session courante
-        this.currentSession = {
-            ...this.currentSession,
-            purpose: purpose,
-            topic: topic || 'Non spécifié',
-            startTime: new Date(),
-            id: 'session-' + Date.now()
-        };
+        this.currentSession.purpose = purpose;
+        this.currentSession.topic = topic || 'Non spécifié';
+        this.currentSession.startTime = new Date();
+        this.currentSession.id = 'session-' + Date.now();
         
         // Démarrer le compteur de durée
         this.startDurationTimer();
         
-        this.showAlert(`✅ Session démarrée pour ${this.currentSession.name}`, 'success');
+        this.showAlert(`Session démarrée pour ${this.currentSession.name}`, 'success');
         this.loadAttendanceStats();
     }
 
     updateActiveSessionInterface(purpose, topic) {
-        const elements = {
-            activeMemberName: document.getElementById('activeMemberName'),
-            activePurpose: document.getElementById('activePurpose'),
-            activeStartTime: document.getElementById('activeStartTime'),
-            activeDuration: document.getElementById('activeDuration')
-        };
+        const activeMemberName = document.getElementById('activeMemberName');
+        const activePurpose = document.getElementById('activePurpose');
+        const activeStartTime = document.getElementById('activeStartTime');
+        const activeDuration = document.getElementById('activeDuration');
 
-        if (elements.activeMemberName) {
-            elements.activeMemberName.textContent = this.currentSession.name;
-        }
-        if (elements.activePurpose) {
-            elements.activePurpose.textContent = purpose;
-        }
-        if (elements.activeStartTime) {
-            elements.activeStartTime.textContent = new Date().toLocaleString();
-        }
-        if (elements.activeDuration) {
-            elements.activeDuration.textContent = '0s';
-        }
+        if (activeMemberName) activeMemberName.textContent = this.currentSession.name;
+        if (activePurpose) activePurpose.textContent = purpose;
+        if (activeStartTime) activeStartTime.textContent = new Date().toLocaleString();
+        if (activeDuration) activeDuration.textContent = '0s';
     }
 
     startDurationTimer() {
@@ -501,10 +397,10 @@ class AttendanceSystem {
         this.addToRecentSessions({
             ...this.currentSession,
             endTime: endTime.toISOString(),
-            duration: minutes + 'm'
+            duration: minutes
         });
         
-        this.showAlert(`📊 Session terminée pour ${this.currentSession.name} - Durée: ${minutes} minutes`, 'info');
+        this.showAlert(`Session terminée - Durée: ${minutes} minutes`, 'info');
         
         // Réinitialiser
         this.currentSession = null;
@@ -524,7 +420,7 @@ class AttendanceSystem {
         }
         
         localStorage.setItem('recentSessions', JSON.stringify(recentSessions));
-        console.log(`💾 Session sauvegardée. Total: ${recentSessions.length} sessions`);
+        console.log(`Session sauvegardée. Total: ${recentSessions.length}`);
     }
 
     loadAttendanceStats() {
@@ -543,7 +439,7 @@ class AttendanceSystem {
         // Calculer la durée moyenne
         if (recentSessions.length > 0) {
             const totalMinutes = recentSessions.reduce((sum, session) => {
-                return sum + (parseInt(session.duration) || 0);
+                return sum + (session.duration || 0);
             }, 0);
             const avgMinutes = Math.round(totalMinutes / recentSessions.length);
             this.updateStatElement('avgDuration', avgMinutes + 'm');
@@ -565,23 +461,25 @@ class AttendanceSystem {
         
         if (!container) return;
         
-        // Afficher le loading
         if (loadingEl) loadingEl.style.display = 'block';
         container.innerHTML = '';
         
-        // Simuler un chargement (pour l'effet visuel)
         setTimeout(() => {
             const sessions = JSON.parse(localStorage.getItem('recentSessions') || '[]');
             
-            // Masquer le loading
             if (loadingEl) loadingEl.style.display = 'none';
             
             if (sessions.length === 0) {
-                container.innerHTML = this.getNoSessionsHTML();
+                container.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-history fa-3x mb-3"></i>
+                        <p>Aucune session récente</p>
+                        <small>Les sessions apparaitront ici après utilisation du système</small>
+                    </div>
+                `;
                 return;
             }
             
-            // Afficher les sessions
             sessions.forEach(session => {
                 const sessionEl = this.createSessionElement(session);
                 container.appendChild(sessionEl);
@@ -589,20 +487,10 @@ class AttendanceSystem {
         }, 500);
     }
 
-    getNoSessionsHTML() {
-        return `
-            <div class="text-center text-muted py-4">
-                <i class="fas fa-history fa-3x mb-3"></i>
-                <p>Aucune session récente</p>
-                <small>Les sessions apparaitront ici après utilisation du système</small>
-            </div>
-        `;
-    }
-
     createSessionElement(session) {
         const sessionEl = document.createElement('div');
         const isEnded = !!session.endTime;
-        sessionEl.className = `card mb-3 ${isEnded ? 'session-ended' : 'session-active'}`;
+        sessionEl.className = `card mb-3 ${isEnded ? 'border-secondary' : 'border-success'}`;
         
         sessionEl.innerHTML = `
             <div class="card-body">
@@ -613,12 +501,12 @@ class AttendanceSystem {
                             <strong>Motif:</strong> ${session.purpose}
                         </p>
                         <p class="card-text small text-muted mb-0">
-                            ${utils.formatTime(session.startTime)} - ${isEnded ? utils.formatTime(session.endTime) : 'Active'}
+                            ${new Date(session.startTime).toLocaleTimeString()} - ${isEnded ? new Date(session.endTime).toLocaleTimeString() : 'Active'}
                         </p>
                     </div>
                     <div class="col-md-4">
                         <p class="card-text mb-1">
-                            <strong>Durée:</strong> ${session.duration || 'Active'}
+                            <strong>Durée:</strong> ${session.duration || 'Active'}m
                         </p>
                         <span class="badge ${isEnded ? 'bg-secondary' : 'bg-success'}">
                             ${isEnded ? 'Terminée' : 'Active'}
@@ -632,16 +520,6 @@ class AttendanceSystem {
         `;
         
         return sessionEl;
-    }
-
-    // Méthode utilitaire pour obtenir l'état du système
-    getSystemStatus() {
-        return {
-            currentSession: this.currentSession,
-            hasActiveSession: !!this.currentSession,
-            durationInterval: !!this.durationInterval,
-            eventListenersSetup: this.eventListenersSetup
-        };
     }
 }
 

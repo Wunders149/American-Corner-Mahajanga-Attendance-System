@@ -6,34 +6,21 @@ class AppController {
     }
 
     async init() {
-        // Effacer les données locales
-        this.clearLocalData();
+        console.log('🚀 Initialisation American Corner...');
         
         await this.loadMembers();
         this.setupEventListeners();
-        this.initializeDemoData();
-        this.showWelcomeMessage();
         
-        // Rendre disponible globalement
         window.appController = this;
-        
-        console.log('🚀 Application American Corner initialisée');
-    }
-
-    clearLocalData() {
-        // Effacer uniquement les sessions, garder les autres préférences
-        if (localStorage.getItem('recentSessions')) {
-            localStorage.removeItem('recentSessions');
-            console.log('🗑️ Données de sessions effacées');
-        }
+        console.log('✅ Application initialisée');
     }
 
     async loadMembers() {
         try {
             await apiService.fetchMembers();
-            console.log(`📊 ${apiService.members.length} membres chargés`);
+            console.log(`📊 ${apiService.members.length} membres disponibles`);
         } catch (error) {
-            console.error('❌ Erreur chargement membres:', error);
+            console.error('Erreur chargement membres:', error);
         }
     }
 
@@ -46,21 +33,6 @@ class AppController {
                 this.handleContactForm();
             });
         }
-
-        console.log('📝 Événements globaux configurés');
-    }
-
-    initializeDemoData() {
-        // Pas de données de démo préchargées
-        console.log('🔧 Mode démo disponible si nécessaire');
-    }
-
-    showWelcomeMessage() {
-        setTimeout(() => {
-            if (document.getElementById('attendanceAlert') && window.attendance) {
-                attendance.showAlert('Bienvenue au système de présence ACM! 🎉', 'info');
-            }
-        }, 1000);
     }
 
     handleContactForm() {
@@ -69,7 +41,28 @@ class AppController {
     }
 }
 
-// Page Management
+// Utility Functions
+const utils = {
+    getInitials(firstName, lastName) {
+        const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
+        const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+        return firstInitial + lastInitial;
+    },
+
+    formatOccupation(occupation) {
+        if (!occupation) return 'Non spécifié';
+        const occupations = {
+            'student': 'Étudiant',
+            'employee': 'Employé',
+            'entrepreneur': 'Entrepreneur',
+            'unemployed': 'Sans emploi',
+            'other': 'Autre'
+        };
+        return occupations[occupation] || occupation;
+    }
+};
+
+// Page Management (fonction globale)
 function showPage(pageId) {
     // Hide all pages
     document.querySelectorAll('.page-section').forEach(page => {
@@ -109,47 +102,6 @@ function showPage(pageId) {
     // Scroll to top
     window.scrollTo(0, 0);
 }
-
-// Utility Functions
-const utils = {
-    getInitials(firstName, lastName) {
-        const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
-        const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
-        return firstInitial + lastInitial;
-    },
-
-    formatOccupation(occupation) {
-        if (!occupation) return 'Non spécifié';
-        const occupations = {
-            'student': 'Étudiant',
-            'employee': 'Employé',
-            'entrepreneur': 'Entrepreneur',
-            'unemployed': 'Sans emploi',
-            'other': 'Autre'
-        };
-        return occupations[occupation] || occupation.charAt(0).toUpperCase() + occupation.slice(1);
-    },
-
-    formatDate(dateString) {
-        if (!dateString) return 'Non spécifié';
-        try {
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            return new Date(dateString).toLocaleDateString('fr-FR', options);
-        } catch (e) {
-            return dateString;
-        }
-    },
-
-    formatTime(dateString) {
-        if (!dateString) return '';
-        try {
-            const options = { hour: '2-digit', minute: '2-digit', hour12: false };
-            return new Date(dateString).toLocaleTimeString('fr-FR', options);
-        } catch (e) {
-            return '';
-        }
-    }
-};
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
