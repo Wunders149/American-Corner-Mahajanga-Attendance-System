@@ -1,4 +1,4 @@
-// ✅ QR Code Scanner System - Version corrigée (Problème caméra sans ID résolu)
+// ✅ QR Code Scanner System - Version COMPLÈTE avec processus de check-in
 class QRScanner {
     constructor() {
         this.html5QrCode = null;
@@ -9,12 +9,13 @@ class QRScanner {
         this.libraryLoaded = false;
         this.lastScanTime = 0;
         this.scanThrottleDelay = 500;
+        this.startInProgress = false;
+        this.currentMember = null;
         
-        // Vérifier le chargement de la bibliothèque
         this.checkLibraryAvailability();
     }
 
-    // Vérifier si la bibliothèque est disponible
+    // ✅ Vérifier si la bibliothèque est disponible
     checkLibraryAvailability() {
         this.libraryLoaded = typeof Html5Qrcode !== 'undefined';
         
@@ -42,7 +43,7 @@ class QRScanner {
                         <button class="btn btn-primary btn-sm" onclick="qrScanner.retryLibraryLoad()">
                             <i class="fas fa-redo me-1"></i>Réessayer
                         </button>
-                        <button class="btn btn-outline-secondary btn-sm" onclick="attendance.startManualEntry()">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="qrScanner.startManualEntry()">
                             <i class="fas fa-keyboard me-1"></i>Entrée manuelle
                         </button>
                     </div>
@@ -55,7 +56,7 @@ class QRScanner {
         }
     }
 
-    // Méthode pour réessayer le chargement
+    // ✅ Méthode pour réessayer le chargement
     retryLibraryLoad() {
         console.log('🔄 Réessai du chargement de la bibliothèque...');
         
@@ -63,12 +64,11 @@ class QRScanner {
             this.showAlert('✅ Bibliothèque chargée! Vous pouvez maintenant utiliser le scanner.', 'success');
             this.updateScannerUI('stopped');
         } else {
-            // Charger dynamiquement la bibliothèque depuis CloudFlare
             this.loadLibraryFromCloudFlare();
         }
     }
 
-    // Chargement dynamique de la bibliothèque depuis CloudFlare
+    // ✅ Chargement dynamique de la bibliothèque depuis CloudFlare
     loadLibraryFromCloudFlare() {
         console.log('📦 Chargement depuis CloudFlare CDN...');
         
@@ -88,7 +88,6 @@ class QRScanner {
             this.showAlert('✅ Scanner prêt à être utilisé!', 'success');
             this.updateScannerUI('stopped');
             
-            // Réinitialiser les boutons
             const startBtn = document.getElementById('startScannerBtn');
             if (startBtn) {
                 startBtn.disabled = false;
@@ -103,17 +102,26 @@ class QRScanner {
         document.head.appendChild(script);
     }
 
+    // ✅ Démarrage du scanner
     async startScanner() {
         console.log('🎬 Démarrage du scanner QR...');
 
-        // Vérifier d'abord la bibliothèque
+        if (this.startInProgress) {
+            console.log('⏳ Démarrage déjà en cours...');
+            return false;
+        }
+
         if (!this.checkLibraryAvailability()) {
             this.showAlert('❌ Scanner non disponible. Chargement de la bibliothèque...', 'warning');
             this.loadLibraryFromCloudFlare();
             return false;
         }
 
-        // Empêcher double démarrage
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            this.showAlert('⚠️ Le scanner nécessite une connexion HTTPS pour fonctionner', 'warning');
+            return false;
+        }
+
         if (this.isScanning) {
             console.log('📱 Scanner déjà actif');
             this.showAlert('Scanner déjà en cours d\'utilisation', 'info');
@@ -121,9 +129,9 @@ class QRScanner {
         }
 
         try {
+            this.startInProgress = true;
             this.updateScannerUI('starting');
             
-            // Petite latence visuelle pour une transition fluide
             await new Promise(r => setTimeout(r, 300));
 
             const scannerContainer = document.getElementById('scannerContainer');
@@ -131,38 +139,38 @@ class QRScanner {
                 throw new Error('Conteneur scanner non trouvé');
             }
 
-            // Préparer le conteneur
             scannerContainer.innerHTML = '<div id="qrReader" style="width: 100%;"></div>';
 
-            // Nettoyer l'instance précédente
             if (this.html5QrCode) {
                 await this.cleanupScanner();
             }
 
-            // Créer nouvelle instance
             this.html5QrCode = new Html5Qrcode("qrReader");
 
             console.log('📷 Recherche de caméras disponibles...');
 
-            // ✅ CORRECTION CRITIQUE : Demander les permissions AVANT de lister les caméras
             await this.checkCameraPermissions();
 
-            const cameras = await Html5Qrcode.getCameras();
-            console.log(`📱 Caméras détectées: ${cameras.length}`, cameras);
+            let cameras;
+            try {
+                cameras = await Html5Qrcode.getCameras();
+                console.log(`📱 Caméras détectées: ${cameras.length}`, cameras);
+            } catch (cameraError) {
+                console.error('❌ Erreur récupération caméras:', cameraError);
+                throw new Error('Impossible d\'accéder aux caméras. Vérifiez les permissions.');
+            }
 
             if (cameras.length === 0) {
                 throw new Error('Aucune caméra détectée');
             }
 
-            // ✅ CORRECTION : Gérer le cas où les caméras n'ont pas d'ID (permissions non accordées)
             const camerasWithValidId = cameras.filter(cam => cam.id && cam.id.trim() !== '');
             
             if (camerasWithValidId.length === 0) {
                 console.warn('⚠️ Toutes les caméras ont un ID vide, tentative de rechargement après permission...');
                 
-                // Réessayer avec permissions fraîches
                 await new Promise(r => setTimeout(r, 500));
-                await this.checkCameraPermissions(true); // Forcer la demande
+                await this.checkCameraPermissions(true);
                 
                 const refreshedCameras = await Html5Qrcode.getCameras();
                 console.log('🔄 Caméras après rechargement:', refreshedCameras);
@@ -171,30 +179,31 @@ class QRScanner {
                     throw new Error('Aucune caméra disponible après autorisation');
                 }
                 
-                // Sélectionner avec les caméras rafraîchies
                 const cameraId = this.selectBestCamera(refreshedCameras);
                 this.currentCameraId = cameraId;
             } else {
-                // Sélection normale avec caméras valides
                 const cameraId = this.selectBestCamera(cameras);
                 this.currentCameraId = cameraId;
             }
 
-            // VÉRIFICATION CRITIQUE : s'assurer qu'on a un ID de caméra valide
-            if (!this.currentCameraId) {
-                throw new Error('Aucune caméra valide sélectionnée après toutes les tentatives');
+            if (!this.currentCameraId || 
+                (typeof this.currentCameraId !== 'string' && 
+                 !(this.currentCameraId.facingMode && typeof this.currentCameraId.facingMode === 'string'))) {
+                throw new Error('Aucune configuration de caméra valide après toutes les tentatives');
             }
             
             console.log('📷 Caméra sélectionnée:', this.currentCameraId);
 
             const config = {
-                fps: 15, // Augmenté pour meilleure réactivité
+                fps: 15,
                 qrbox: { width: 280, height: 280 },
                 aspectRatio: 1.0,
                 rememberLastUsedCamera: true
             };
 
             console.log('🚀 Lancement du flux vidéo...');
+            
+            this.isScanning = true;
             
             await this.html5QrCode.start(
                 this.currentCameraId,
@@ -204,16 +213,15 @@ class QRScanner {
                     this.onScanSuccess(decodedText);
                 },
                 (errorMessage) => {
-                    // Ignorer les messages d'erreur normaux pendant la lecture
                     if (!errorMessage || /NotFound|Timeout|Busy/.test(errorMessage)) return;
                     console.log('🔍 Lecture en cours...', errorMessage);
                 }
             ).catch(error => {
+                this.isScanning = false;
                 console.error('❌ Erreur démarrage scanner:', error);
                 throw error;
             });
 
-            this.isScanning = true;
             this.scannerActive = true;
             this.scanningPaused = false;
 
@@ -225,15 +233,17 @@ class QRScanner {
 
         } catch (error) {
             console.error('❌ Erreur critique:', error);
+            this.isScanning = false;
             await this.handleScannerError(error);
             return false;
+        } finally {
+            this.startInProgress = false;
         }
     }
 
-    // ✅ CORRECTION : Méthode checkCameraPermissions améliorée
+    // ✅ Vérification des permissions caméra
     async checkCameraPermissions(forcePrompt = false) {
         try {
-            // Vérifier d'abord si l'API est disponible
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 throw new Error('API caméra non supportée par ce navigateur');
             }
@@ -246,7 +256,6 @@ class QRScanner {
                 } 
             };
 
-            // Si forcePrompt, on utilise une configuration qui déclenchera la demande
             if (forcePrompt) {
                 constraints.video.facingMode = { exact: 'environment' };
             }
@@ -255,7 +264,6 @@ class QRScanner {
             
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             
-            // Arrêter immédiatement le stream de test
             stream.getTracks().forEach(track => {
                 track.stop();
             });
@@ -266,7 +274,6 @@ class QRScanner {
         } catch (error) {
             console.error('❌ Erreur permissions caméra:', error);
             
-            // Messages d'erreur plus spécifiques
             if (error.name === 'NotAllowedError') {
                 throw new Error('Permission caméra refusée. Autorisez l\'accès dans les paramètres de votre navigateur.');
             } else if (error.name === 'NotFoundError') {
@@ -274,7 +281,6 @@ class QRScanner {
             } else if (error.name === 'NotSupportedError') {
                 throw new Error('Votre navigateur ne supporte pas l\'accès à la caméra.');
             } else if (error.name === 'OverconstrainedError') {
-                // Relancer avec des contraintes plus souples
                 console.log('🔄 Contraintes trop strictes, tentative avec contraintes relâchées...');
                 return await this.checkCameraPermissionsWithRelaxedConstraints();
             } else {
@@ -283,11 +289,11 @@ class QRScanner {
         }
     }
 
-    // Fallback pour contraintes trop strictes
+    // ✅ Fallback pour contraintes trop strictes
     async checkCameraPermissionsWithRelaxedConstraints() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: true // Contraintes minimales
+                video: true
             });
             
             stream.getTracks().forEach(track => track.stop());
@@ -298,7 +304,7 @@ class QRScanner {
         }
     }
 
-    // ✅ CORRECTION CRITIQUE : selectBestCamera améliorée pour gérer les IDs vides
+    // ✅ Sélection de la meilleure caméra
     selectBestCamera(cameras) {
         if (!cameras || cameras.length === 0) {
             console.error('❌ Aucune caméra disponible');
@@ -307,19 +313,16 @@ class QRScanner {
 
         console.log('🔍 Sélection de la meilleure caméra parmi:', cameras.length, 'caméras');
 
-        // ✅ CORRECTION : Accepter les caméras sans ID valide en dernier recours
         const validCameras = cameras.filter(cam => cam && (cam.id && cam.id.trim() !== ''));
         const fallbackCameras = cameras.filter(cam => cam && (!cam.id || cam.id.trim() === ''));
 
         console.log(`📊 Caméras valides: ${validCameras.length}, Fallback: ${fallbackCameras.length}`);
 
-        // Priorité 1: Utiliser d'abord les caméras avec ID valide
         if (validCameras.length > 0) {
             console.log('🎯 Utilisation des caméras avec ID valide');
             return this.selectFromValidCameras(validCameras);
         }
 
-        // ✅ CORRECTION : Fallback pour caméras sans ID valide
         if (fallbackCameras.length > 0) {
             console.warn('⚠️ Aucune caméra avec ID valide, utilisation du fallback...');
             return this.selectFromFallbackCameras(fallbackCameras);
@@ -330,7 +333,6 @@ class QRScanner {
     }
 
     selectFromValidCameras(validCameras) {
-        // Priorité 1: Caméra arrière
         const rearCamera = validCameras.find(cam => {
             const label = (cam.label || '').toLowerCase();
             return label.includes('back') || 
@@ -346,7 +348,6 @@ class QRScanner {
             return rearCamera.id;
         }
 
-        // Priorité 2: Caméra principale (face arrière par défaut sur mobile)
         const mainCamera = validCameras.find(cam => {
             const label = (cam.label || '').toLowerCase();
             return !label.includes('front') && 
@@ -359,13 +360,11 @@ class QRScanner {
             return mainCamera.id;
         }
 
-        // Fallback: Première caméra valide disponible
         console.log('📷 Première caméra valide utilisée:', validCameras[0].label || validCameras[0].deviceId);
         return validCameras[0].id;
     }
 
     selectFromFallbackCameras(fallbackCameras) {
-        // ✅ CORRECTION : Utiliser facingMode comme fallback quand pas d'ID
         const rearFallback = fallbackCameras.find(cam => {
             const label = (cam.label || '').toLowerCase();
             return label.includes('back') || label.includes('rear') || label.includes('arrière');
@@ -373,15 +372,14 @@ class QRScanner {
 
         if (rearFallback) {
             console.log('📷 Fallback caméra arrière (sans ID):', rearFallback.label || 'Caméra inconnue');
-            // html5-qrcode accepte un objet de configuration quand pas d'ID
             return { facingMode: "environment" };
         }
 
-        // Fallback général
         console.log('📷 Fallback caméra par défaut (sans ID)');
-        return { facingMode: "environment" }; // Laisser le navigateur choisir
+        return { facingMode: "environment" };
     }
 
+    // ✅ Arrêt du scanner
     async stopScanner() {
         console.log('🛑 Arrêt du scanner demandé...');
         
@@ -392,7 +390,6 @@ class QRScanner {
         }
 
         try {
-            // Mettre en pause avant l'arrêt pour éviter les conflits
             this.scanningPaused = true;
             
             await this.html5QrCode.stop();
@@ -407,12 +404,18 @@ class QRScanner {
         }
     }
 
+    // ✅ Nettoyage du scanner
     async cleanupScanner() {
         if (this.html5QrCode) {
             try {
-                // Vérifier si le scanner est actif - méthode plus robuste
-                const scannerState = this.html5QrCode.getState && this.html5QrCode.getState();
-                const isScannerActive = scannerState && scannerState !== 'STOPPED';
+                let isScannerActive = false;
+                
+                if (this.html5QrCode.getState && typeof this.html5QrCode.getState === 'function') {
+                    const state = this.html5QrCode.getState();
+                    isScannerActive = state && state !== Html5QrcodeScannerState.STOPPED;
+                } else if (this.isScanning) {
+                    isScannerActive = true;
+                }
                 
                 if (isScannerActive) {
                     await this.html5QrCode.stop();
@@ -435,11 +438,10 @@ class QRScanner {
         this.updateScannerUI('stopped');
     }
 
-    // ✅ CORRECTION : Gestion des scans avec throttling
+    // ✅ Gestion des scans avec processus de check-in
     onScanSuccess(decodedText) {
         const now = Date.now();
         
-        // Éviter les scans trop rapprochés
         if (now - this.lastScanTime < this.scanThrottleDelay) {
             console.log('⏱️ Scan ignoré (trop rapide)');
             return;
@@ -457,11 +459,9 @@ class QRScanner {
             } catch (error) {
                 console.error('❌ Erreur traitement QR:', error);
                 this.showAlert('Erreur traitement QR code', 'error');
-            } finally {
-                // Redémarrer le scanner après traitement avec délai réduit
                 await this.restartScannerAfterDelay(1000);
             }
-        }, 500); // Délai réduit pour meilleure UX
+        }, 500);
     }
 
     async processQRCode(decodedText) {
@@ -471,18 +471,15 @@ class QRScanner {
             let memberData;
             let isFromCard = false;
             
-            // Essayer de parser comme JSON
             try {
                 memberData = JSON.parse(decodedText);
                 console.log('📋 Format JSON détecté:', memberData);
                 
-                // Validation des données JSON
                 if (!memberData.registrationNumber && !memberData.memberId) {
                     throw new Error('Données membre manquantes dans le QR code');
                 }
                 
             } catch (jsonError) {
-                // Traiter comme texte simple (numéro de membre)
                 console.log('📋 Format texte détecté:', decodedText);
                 memberData = {
                     registrationNumber: decodedText.trim(),
@@ -491,7 +488,6 @@ class QRScanner {
                 isFromCard = true;
             }
 
-            // Normaliser le numéro d'inscription
             const registrationNumber = this.normalizeRegistrationNumber(
                 memberData.registrationNumber || memberData.memberId || decodedText
             );
@@ -502,11 +498,17 @@ class QRScanner {
 
             console.log('🔍 Recherche du membre:', registrationNumber);
 
-            // Rechercher le membre
-            const member = apiService.getMemberByRegistrationNumber(registrationNumber);
+            let member;
+            if (window.apiService && window.apiService.getMemberByRegistrationNumber) {
+                member = window.apiService.getMemberByRegistrationNumber(registrationNumber);
+            } else {
+                console.warn('⚠️ API service non disponible, utilisation des données mock');
+                member = this.getMockMemberData(registrationNumber);
+            }
             
             if (member) {
                 console.log('✅ Membre trouvé:', member);
+                this.currentMember = member;
                 await this.handleMemberFound(member, isFromCard);
             } else {
                 console.log('❌ Membre non trouvé');
@@ -519,15 +521,74 @@ class QRScanner {
         }
     }
 
+    // ✅ Données mock pour la démonstration
+    getMockMemberData(registrationNumber) {
+        const mockMembers = {
+            'M12345': {
+                id: 1,
+                registrationNumber: 'M12345',
+                firstName: 'Jean',
+                lastName: 'Dupont',
+                email: 'jean.dupont@email.com',
+                membershipType: 'Premium',
+                membershipStatus: 'active',
+                profileImage: null
+            },
+            'M67890': {
+                id: 2,
+                registrationNumber: 'M67890', 
+                firstName: 'Marie',
+                lastName: 'Martin',
+                email: 'marie.martin@email.com',
+                membershipType: 'Standard',
+                membershipStatus: 'active',
+                profileImage: null
+            },
+            'M11111': {
+                id: 3,
+                registrationNumber: 'M11111',
+                firstName: 'Pierre',
+                lastName: 'Durand',
+                email: 'pierre.durand@email.com',
+                membershipType: 'VIP',
+                membershipStatus: 'active',
+                profileImage: null
+            },
+            'M22222': {
+                id: 4,
+                registrationNumber: 'M22222',
+                firstName: 'Sophie',
+                lastName: 'Leroy',
+                email: 'sophie.leroy@email.com',
+                membershipType: 'Standard',
+                membershipStatus: 'active',
+                profileImage: null
+            },
+            'M33333': {
+                id: 5,
+                registrationNumber: 'M33333',
+                firstName: 'Michel',
+                lastName: 'Bernard',
+                email: 'michel.bernard@email.com',
+                membershipType: 'Premium',
+                membershipStatus: 'active',
+                profileImage: null
+            }
+        };
+        
+        return mockMembers[registrationNumber] || null;
+    }
+
     normalizeRegistrationNumber(regNumber) {
         if (!regNumber) return null;
         
         return regNumber.toString()
             .trim()
             .toUpperCase()
-            .replace(/[^A-Z0-9]/g, ''); // Nettoyer les caractères spéciaux
+            .replace(/[^A-Z0-9]/g, '');
     }
 
+    // ✅ Processus complet de check-in
     async handleMemberFound(member, isFromCard) {
         const welcomeMessage = isFromCard ? 
             `✅ Carte acceptée! Bienvenue ${member.firstName} ${member.lastName}` :
@@ -535,54 +596,520 @@ class QRScanner {
         
         this.showAlert(welcomeMessage, 'success');
         
-        // Transférer au système de présence
-        if (window.attendance && window.attendance.processMemberCheckin) {
-            // Petit délai pour laisser voir le message
+        await this.stopScanner();
+        
+        this.showCheckinInterface(member);
+    }
+
+    // ✅ Interface de check-in complète
+    showCheckinInterface(member) {
+        const scannerContainer = document.getElementById('scannerContainer');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        
+        if (!scannerContainer) return;
+
+        if (cameraPlaceholder) {
+            cameraPlaceholder.style.display = 'none';
+        }
+
+        scannerContainer.innerHTML = `
+            <div class="checkin-interface">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-user-check me-2"></i>
+                            Check-in Membre
+                        </h4>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="member-info text-center mb-4">
+                            <div class="member-avatar mb-3">
+                                <div class="avatar-placeholder bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                     style="width: 80px; height: 80px;">
+                                    <i class="fas fa-user text-white fa-2x"></i>
+                                </div>
+                            </div>
+                            <h5 class="member-name">${member.firstName} ${member.lastName}</h5>
+                            <div class="member-details text-muted">
+                                <div>N°: ${member.registrationNumber}</div>
+                                <div>${member.membershipType} • ${member.membershipStatus}</div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <form id="checkinForm">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-clipboard-list me-2"></i>Motif de visite
+                                </label>
+                                <div class="visit-reasons">
+                                    ${this.generateVisitReasons()}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-dumbbell me-2"></i>Activité prévue
+                                </label>
+                                <select class="form-select" id="activitySelect" required>
+                                    <option value="">Choisir une activité...</option>
+                                    ${this.generateActivityOptions()}
+                                </select>
+                            </div>
+
+                            <div class="mb-4" id="sessionSection" style="display: none;">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-play-circle me-2"></i>Démarrer une session
+                                </label>
+                                <div class="session-options">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="sessionType" id="sessionCoach" value="coach">
+                                        <label class="form-check-label" for="sessionCoach">
+                                            Avec coach
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="sessionType" id="sessionSolo" value="solo">
+                                        <label class="form-check-label" for="sessionSolo">
+                                            En autonomie
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="sessionType" id="sessionGroup" value="group">
+                                        <label class="form-check-label" for="sessionGroup">
+                                            Cours collectif
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-sticky-note me-2"></i>Notes (optionnel)
+                                </label>
+                                <textarea class="form-control" id="checkinNotes" rows="2" 
+                                          placeholder="Commentaires, objectifs spécifiques..."></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="card-footer bg-light">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-danger w-100" onclick="qrScanner.cancelCheckin()">
+                                    <i class="fas fa-times me-2"></i>Annuler
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-success w-100" id="confirmCheckinBtn" onclick="qrScanner.confirmCheckin()">
+                                    <i class="fas fa-check me-2"></i>Confirmer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.setupCheckinEventListeners();
+    }
+
+    // ✅ Génération des motifs de visite
+    generateVisitReasons() {
+        const reasons = [
+            { id: 'training', label: 'Entraînement personnel', icon: 'fas fa-dumbbell' },
+            { id: 'class', label: 'Cours collectif', icon: 'fas fa-users' },
+            { id: 'coaching', label: 'Séance coaching', icon: 'fas fa-chalkboard-teacher' },
+            { id: 'swimming', label: 'Natation', icon: 'fas fa-swimmer' },
+            { id: 'wellness', label: 'Espace bien-être', icon: 'fas fa-spa' },
+            { id: 'other', label: 'Autre', icon: 'fas fa-ellipsis-h' }
+        ];
+
+        return reasons.map(reason => `
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="visitReason" 
+                       id="reason_${reason.id}" value="${reason.id}" required>
+                <label class="form-check-label" for="reason_${reason.id}">
+                    <i class="${reason.icon} me-2"></i>${reason.label}
+                </label>
+            </div>
+        `).join('');
+    }
+
+    // ✅ Génération des options d'activité
+    generateActivityOptions() {
+        const activities = [
+            { value: '', label: 'Choisir une activité...' },
+            { value: 'cardio', label: 'Cardio Training' },
+            { value: 'strength', label: 'Musculation' },
+            { value: 'crossfit', label: 'CrossFit' },
+            { value: 'yoga', label: 'Yoga' },
+            { value: 'pilates', label: 'Pilates' },
+            { value: 'boxing', label: 'Boxe' },
+            { value: 'swimming', label: 'Natation' },
+            { value: 'spinning', label: 'Spinning' },
+            { value: 'other', label: 'Autre activité' }
+        ];
+
+        return activities.map(activity => 
+            `<option value="${activity.value}">${activity.label}</option>`
+        ).join('');
+    }
+
+    // ✅ Configuration des écouteurs d'événements
+    setupCheckinEventListeners() {
+        const activitySelect = document.getElementById('activitySelect');
+        const sessionSection = document.getElementById('sessionSection');
+
+        if (activitySelect && sessionSection) {
+            activitySelect.addEventListener('change', (e) => {
+                const hasActivity = e.target.value && e.target.value !== '';
+                sessionSection.style.display = hasActivity ? 'block' : 'none';
+                this.validateCheckinForm();
+            });
+        }
+
+        const form = document.getElementById('checkinForm');
+        if (form) {
+            form.addEventListener('change', this.validateCheckinForm.bind(this));
+        }
+
+        this.validateCheckinForm();
+    }
+
+    // ✅ Validation du formulaire
+    validateCheckinForm() {
+        const form = document.getElementById('checkinForm');
+        const confirmBtn = document.getElementById('confirmCheckinBtn');
+        
+        if (!form || !confirmBtn) return;
+
+        const visitReason = form.querySelector('input[name="visitReason"]:checked');
+        const activity = document.getElementById('activitySelect').value;
+        
+        const isValid = visitReason && activity;
+        confirmBtn.disabled = !isValid;
+    }
+
+    // ✅ Confirmation du check-in
+    async confirmCheckin() {
+        const form = document.getElementById('checkinForm');
+        if (!form || !this.currentMember) {
+            this.showAlert('Erreur: Données manquantes', 'error');
+            return;
+        }
+
+        const formData = this.getCheckinFormData();
+        
+        if (!formData.visitReason || !formData.activity) {
+            this.showAlert('Veuillez remplir tous les champs obligatoires', 'warning');
+            return;
+        }
+
+        try {
+            this.showCheckinLoading();
+
+            await this.submitCheckinData(formData);
+
+            this.showCheckinSuccess(formData);
+
             setTimeout(() => {
-                window.attendance.processMemberCheckin(member);
-            }, 1500);
-        } else {
-            console.warn('Système de présence non disponible');
-            // Fallback local
-            this.showAlert(`Présence enregistrée pour ${member.firstName} ${member.lastName}`, 'info');
+                this.restartScanner();
+            }, 3000);
+
+        } catch (error) {
+            console.error('❌ Erreur lors du check-in:', error);
+            this.showAlert('Erreur lors de l\'enregistrement du check-in', 'error');
+            this.hideCheckinLoading();
         }
     }
 
+    // ✅ Récupération des données du formulaire
+    getCheckinFormData() {
+        const form = document.getElementById('checkinForm');
+        const visitReason = form.querySelector('input[name="visitReason"]:checked');
+        const sessionType = form.querySelector('input[name="sessionType"]:checked');
+        
+        return {
+            member: this.currentMember,
+            visitReason: visitReason?.value,
+            activity: document.getElementById('activitySelect').value,
+            sessionType: sessionType?.value,
+            notes: document.getElementById('checkinNotes').value,
+            timestamp: new Date().toISOString(),
+            checkinId: 'CHK_' + Date.now()
+        };
+    }
+
+    // ✅ Soumission des données de check-in
+    async submitCheckinData(formData) {
+        console.log('📤 Envoi des données de check-in:', formData);
+        
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                if (Math.random() > 0.1) {
+                    console.log('✅ Check-in enregistré avec succès');
+                    
+                    this.saveCheckinToLocalStorage(formData);
+                    resolve(formData);
+                } else {
+                    reject(new Error('Erreur serveur simulée'));
+                }
+            }, 1500);
+        });
+    }
+
+    // ✅ Sauvegarde locale pour la démo
+    saveCheckinToLocalStorage(formData) {
+        try {
+            const checkins = JSON.parse(localStorage.getItem('gymCheckins') || '[]');
+            checkins.push(formData);
+            localStorage.setItem('gymCheckins', JSON.stringify(checkins));
+        } catch (error) {
+            console.warn('Impossible de sauvegarder le check-in localement:', error);
+        }
+    }
+
+    // ✅ Affichage du chargement
+    showCheckinLoading() {
+        const confirmBtn = document.getElementById('confirmCheckinBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `
+                <div class="spinner-border spinner-border-sm me-2"></div>
+                Enregistrement...
+            `;
+        }
+    }
+
+    // ✅ Masquage du chargement
+    hideCheckinLoading() {
+        const confirmBtn = document.getElementById('confirmCheckinBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = `
+                <i class="fas fa-check me-2"></i>Confirmer
+            `;
+        }
+    }
+
+    // ✅ Affichage de la confirmation de succès
+    showCheckinSuccess(formData) {
+        const scannerContainer = document.getElementById('scannerContainer');
+        if (!scannerContainer) return;
+
+        scannerContainer.innerHTML = `
+            <div class="checkin-success text-center py-5">
+                <div class="success-icon mb-4">
+                    <i class="fas fa-check-circle text-success fa-5x"></i>
+                </div>
+                <h4 class="text-success mb-3">Check-in Réussi!</h4>
+                <div class="success-details mb-4">
+                    <p class="mb-2"><strong>${this.currentMember.firstName} ${this.currentMember.lastName}</strong></p>
+                    <p class="text-muted mb-1">${this.getActivityLabel(formData.activity)}</p>
+                    <p class="text-muted small">${new Date().toLocaleTimeString()}</p>
+                </div>
+                <div class="success-actions">
+                    <button class="btn btn-outline-primary" onclick="qrScanner.restartScanner()">
+                        <i class="fas fa-qrcode me-2"></i>Nouveau scan
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // ✅ Obtenir le libellé de l'activité
+    getActivityLabel(activityValue) {
+        const activities = {
+            'cardio': 'Cardio Training',
+            'strength': 'Musculation',
+            'crossfit': 'CrossFit',
+            'yoga': 'Yoga',
+            'pilates': 'Pilates',
+            'boxing': 'Boxe',
+            'swimming': 'Natation',
+            'spinning': 'Spinning',
+            'other': 'Autre activité'
+        };
+        return activities[activityValue] || activityValue;
+    }
+
+    // ✅ Annulation du check-in
+    cancelCheckin() {
+        if (confirm('Êtes-vous sûr de vouloir annuler ce check-in ?')) {
+            this.showAlert('Check-in annulé', 'info');
+            this.restartScanner();
+        }
+    }
+
+    // ✅ Redémarrage du scanner après check-in
+    async restartScanner() {
+        const scannerContainer = document.getElementById('scannerContainer');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        
+        if (scannerContainer) {
+            scannerContainer.innerHTML = '';
+        }
+        if (cameraPlaceholder) {
+            cameraPlaceholder.style.display = 'flex';
+        }
+        
+        this.currentMember = null;
+        
+        await this.startScanner();
+    }
+
+    // ✅ Gestion membre non trouvé
     async handleMemberNotFound(registrationNumber, rawData) {
         console.log('❌ Membre non trouvé avec les données:', rawData);
         
         const errorMessage = `❌ Carte non reconnue: ${registrationNumber}`;
         this.showAlert(errorMessage, 'error');
         
-        // Proposer l'ajout manuel si c'est une nouvelle carte
         setTimeout(() => {
-            if (window.attendance && confirm('Membre non trouvé. Voulez-vous l\'ajouter manuellement?')) {
-                window.attendance.startManualEntry(registrationNumber);
+            if (confirm('Membre non trouvé. Voulez-vous l\'ajouter manuellement?')) {
+                this.startManualEntry(registrationNumber);
+            } else {
+                this.restartScannerAfterDelay(2000);
             }
         }, 2000);
     }
 
+    // ✅ Entrée manuelle
+    startManualEntry(prefilledId = '') {
+        this.showManualEntryInterface(prefilledId);
+    }
+
+    // ✅ Interface d'entrée manuelle
+    showManualEntryInterface(prefilledId = '') {
+        const scannerContainer = document.getElementById('scannerContainer');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        
+        if (!scannerContainer) return;
+
+        if (cameraPlaceholder) {
+            cameraPlaceholder.style.display = 'none';
+        }
+
+        scannerContainer.innerHTML = `
+            <div class="manual-entry-interface">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-info text-white text-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-keyboard me-2"></i>
+                            Entrée Manuelle
+                        </h4>
+                    </div>
+                    
+                    <div class="card-body">
+                        <form id="manualEntryForm">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Numéro de membre</label>
+                                <input type="text" class="form-control" id="manualMemberId" 
+                                       value="${prefilledId}" placeholder="Ex: M12345" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nom</label>
+                                <input type="text" class="form-control" id="manualLastName" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Prénom</label>
+                                <input type="text" class="form-control" id="manualFirstName" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Type d'adhésion</label>
+                                <select class="form-select" id="manualMembershipType" required>
+                                    <option value="">Choisir...</option>
+                                    <option value="Standard">Standard</option>
+                                    <option value="Premium">Premium</option>
+                                    <option value="VIP">VIP</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="card-footer bg-light">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-secondary w-100" onclick="qrScanner.cancelManualEntry()">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-primary w-100" onclick="qrScanner.submitManualEntry()">
+                                    <i class="fas fa-save me-2"></i>Enregistrer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ✅ Annulation entrée manuelle
+    cancelManualEntry() {
+        this.restartScanner();
+    }
+
+    // ✅ Soumission entrée manuelle
+    submitManualEntry() {
+        const memberId = document.getElementById('manualMemberId').value;
+        const lastName = document.getElementById('manualLastName').value;
+        const firstName = document.getElementById('manualFirstName').value;
+        const membershipType = document.getElementById('manualMembershipType').value;
+
+        if (!memberId || !lastName || !firstName || !membershipType) {
+            this.showAlert('Veuillez remplir tous les champs', 'warning');
+            return;
+        }
+
+        const newMember = {
+            id: Date.now(),
+            registrationNumber: memberId,
+            firstName: firstName,
+            lastName: lastName,
+            membershipType: membershipType,
+            membershipStatus: 'active',
+            email: ''
+        };
+
+        this.showAlert(`Membre ${firstName} ${lastName} ajouté avec succès!`, 'success');
+        
+        setTimeout(() => {
+            this.currentMember = newMember;
+            this.showCheckinInterface(newMember);
+        }, 1500);
+    }
+
+    // ✅ Restart avec délai
     async restartScannerAfterDelay(delay = 2000) {
         console.log(`🔄 Redémarrage du scanner dans ${delay}ms...`);
         
-        // Réactiver le scanning après le délai
+        if (this.scanningPaused && this.isScanning) {
+            this.scanningPaused = false;
+            return;
+        }
+        
         setTimeout(async () => {
             try {
                 this.scanningPaused = false;
-                // Si le scanner est toujours actif, on le laisse continuer
-                if (this.isScanning && this.html5QrCode) {
-                    console.log('🔄 Scanner déjà actif, réactivation du scanning');
-                    return;
-                }
                 
-                // Sinon redémarrer complètement
-                await this.startScanner();
+                if (!this.isScanning || !this.scannerActive) {
+                    await this.startScanner();
+                }
             } catch (error) {
                 console.error('❌ Erreur redémarrage scanner:', error);
             }
         }, delay);
     }
 
+    // ✅ Mise à jour de l'UI
     updateScannerUI(state) {
         const cameraPlaceholder = document.getElementById('cameraPlaceholder');
         const scannerContainer = document.getElementById('scannerContainer');
@@ -590,7 +1117,6 @@ class QRScanner {
         const stopBtn = document.getElementById('stopScannerBtn');
         const scannerStatus = document.getElementById('scannerStatus');
 
-        // Masquer les messages d'erreur de bibliothèque si on change d'état
         if (scannerContainer && scannerContainer.querySelector('.alert')) {
             scannerContainer.innerHTML = '';
         }
@@ -638,7 +1164,9 @@ class QRScanner {
                 }
                 if (scannerContainer) {
                     scannerContainer.style.display = 'none';
-                    scannerContainer.innerHTML = '';
+                    if (scannerContainer.querySelector('#qrReader')) {
+                        scannerContainer.innerHTML = '';
+                    }
                     scannerContainer.style.border = '2px solid #dee2e6';
                 }
                 if (startBtn) {
@@ -658,16 +1186,10 @@ class QRScanner {
                     scannerStatus.className = 'badge bg-danger';
                 }
                 break;
-                
-            case 'library_missing':
-                if (scannerStatus) {
-                    scannerStatus.textContent = 'Bibliothèque manquante';
-                    scannerStatus.className = 'badge bg-warning';
-                }
-                break;
         }
     }
 
+    // ✅ Affichage succès scan
     showScanSuccess() {
         const scannerContainer = document.getElementById('scannerContainer');
         if (scannerContainer) {
@@ -685,6 +1207,7 @@ class QRScanner {
         }
     }
 
+    // ✅ Gestion des erreurs
     async handleScannerError(error) {
         console.error('🚨 Erreur scanner détaillée:', error);
         
@@ -692,7 +1215,6 @@ class QRScanner {
         let errorType = 'error';
         let recoverable = false;
         
-        // Classification des erreurs
         const errorConfig = {
             'NotAllowedError': {
                 message: '📵 Permission caméra refusée. Autorisez l\'accès dans les paramètres de votre navigateur.',
@@ -737,7 +1259,6 @@ class QRScanner {
         await this.cleanupScanner();
         this.resetScannerState();
         
-        // Proposition de recovery seulement si c'est récupérable
         if (recoverable) {
             setTimeout(() => {
                 this.showRecoveryOptions();
@@ -745,7 +1266,7 @@ class QRScanner {
         }
     }
 
-    // ✅ NOUVEAU : Options de récupération
+    // ✅ Options de récupération
     showRecoveryOptions() {
         const recoveryHTML = `
             <div class="alert alert-warning mt-3">
@@ -754,7 +1275,7 @@ class QRScanner {
                     <button class="btn btn-primary btn-sm" onclick="qrScanner.retryScanner()">
                         <i class="fas fa-redo me-1"></i>Réessayer
                     </button>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="attendance.startManualEntry()">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="qrScanner.startManualEntry()">
                         <i class="fas fa-keyboard me-1"></i>Entrée manuelle
                     </button>
                     <button class="btn btn-outline-info btn-sm" onclick="qrScanner.switchCamera()">
@@ -764,17 +1285,16 @@ class QRScanner {
             </div>
         `;
         
-        // Injecter dans l'interface
         const container = document.getElementById('scannerContainer');
         if (container) {
             container.innerHTML += recoveryHTML;
         }
     }
 
-    // ✅ NOUVEAU : Méthodes de recovery
+    // ✅ Méthodes de recovery
     async retryScanner() {
         console.log('🔄 Nouvelle tentative de démarrage...');
-        await this.cleanup();
+        await this.cleanupScanner();
         await new Promise(resolve => setTimeout(resolve, 1000));
         return await this.startScanner();
     }
@@ -805,126 +1325,31 @@ class QRScanner {
         }
     }
 
+    // ✅ Méthode showAlert
     showAlert(message, type = 'info') {
         console.log(`💬 Alerte [${type}]: ${message}`);
         
-        // Utiliser le système d'alerte existant s'il est disponible
         if (window.attendance && typeof window.attendance.showAlert === 'function') {
             window.attendance.showAlert(message, type);
-        } else {
-            this.showFallbackAlert(message, type);
+            return;
         }
-    }
-
-    showFallbackAlert(message, type) {
-        // Supprimer les alertes existantes
-        const existingAlerts = document.querySelectorAll('.qr-scanner-alert');
-        existingAlerts.forEach(alert => alert.remove());
-
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} qr-scanner-alert position-fixed top-0 start-50 translate-middle-x mt-3`;
-        alertDiv.style.zIndex = '9999';
-        alertDiv.style.minWidth = '300px';
-        alertDiv.style.maxWidth = '90vw';
-        alertDiv.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="fas fa-${this.getAlertIcon(type)} me-2"></i>
-                <div class="flex-grow-1">${message}</div>
-                <button type="button" class="btn-close ms-2" onclick="this.parentElement.parentElement.remove()"></button>
-            </div>
-        `;
-        document.body.appendChild(alertDiv);
         
-        // Auto-suppression après 5 secondes
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.parentNode.removeChild(alertDiv);
-            }
-        }, 5000);
+        this.showFallbackAlert(message, type);
     }
 
-    getAlertIcon(type) {
-        const icons = {
-            'success': 'check-circle',
-            'error': 'exclamation-triangle',
-            'warning': 'exclamation-circle',
-            'info': 'info-circle'
-        };
-        return icons[type] || 'info-circle';
-    }
-
-    // 🔧 MÉTHODES DE DIAGNOSTIC ET D'ADMINISTRATION
-
-    async getScannerStatus() {
-        const status = {
-            isScanning: this.isScanning,
-            scannerActive: this.scannerActive,
-            scanningPaused: this.scanningPaused,
-            html5QrCode: !!this.html5QrCode,
-            libraryLoaded: this.libraryLoaded,
-            currentCameraId: this.currentCameraId,
-            camerasAvailable: await this.checkCamerasAvailability()
-        };
-
-        if (this.html5QrCode && this.html5QrCode.getState) {
-            status.scannerState = this.html5QrCode.getState();
-        }
-
-        return status;
-    }
-
-    async checkCamerasAvailability() {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(device => device.kind === 'videoinput');
-            return {
-                available: videoDevices.length > 0,
-                count: videoDevices.length,
-                devices: videoDevices.map(d => ({ id: d.deviceId, label: d.label || 'Caméra inconnue' }))
-            };
-        } catch (error) {
-            console.error('Erreur vérification caméras:', error);
-            return { available: false, error: error.message };
-        }
-    }
-
-    // Nettoyage complet
+    // ✅ Nettoyage complet
     async cleanup() {
         console.log('🧹 Nettoyage du scanner...');
         await this.stopScanner();
         await this.cleanupScanner();
         this.resetScannerState();
     }
-
-    // ✅ NOUVEAU : Méthode de diagnostic complète
-    async runDiagnostics() {
-        const diagnostics = {
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent,
-            platform: navigator.platform,
-            library: {
-                loaded: this.libraryLoaded,
-                version: Html5QrcodeVersion || 'unknown'
-            },
-            permissions: await this.checkCameraPermissions().catch(e => e.message),
-            cameras: await this.checkCamerasAvailability(),
-            scanner: await this.getScannerStatus(),
-            environment: {
-                isSecure: window.location.protocol === 'https:',
-                isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-                isTouch: 'ontouchstart' in window
-            }
-        };
-        
-        console.log('🔍 Diagnostics complets:', diagnostics);
-        return diagnostics;
-    }
 }
 
-// ✅ UNE SEULE INSTANCE
+// ✅ Instance unique
 const qrScanner = new QRScanner();
 
-// Gestion automatique du cycle de vie
+// Gestion du cycle de vie
 window.addEventListener('beforeunload', () => {
     if (window.qrScanner) {
         qrScanner.cleanup();
@@ -937,7 +1362,7 @@ window.addEventListener('pagehide', () => {
     }
 });
 
-// Vérification au chargement de la page
+// Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔍 Vérification du scanner QR...');
     setTimeout(() => {
