@@ -664,10 +664,15 @@ class QRScanner {
         await this.stopScanner();
         
         console.log('🖥️ Affichage de l\'interface de check-in pour:', member.firstName, member.lastName);
+        
+        // TEST : Vérifier que les éléments existent
+        const scannerContainer = document.getElementById('scannerContainer');
+        console.log('🔍 scannerContainer:', scannerContainer);
+        
         this.showCheckinInterface(member);
     }
 
-    // ✅ Interface de check-in complète avec logs de débogage
+    // ✅ Interface de check-in complète avec logs de débogage - VERSION CORRIGÉE
     showCheckinInterface(member) {
         console.log('🎨 Construction de l\'interface de check-in...');
         
@@ -685,6 +690,10 @@ class QRScanner {
         }
 
         console.log('🖼️ Injection du HTML de check-in...');
+        
+        // ✅ CORRECTION CRITIQUE : S'assurer que le conteneur est visible
+        scannerContainer.style.display = 'block';
+        
         scannerContainer.innerHTML = `
             <div class="checkin-interface">
                 <div class="card shadow-lg">
@@ -789,6 +798,15 @@ class QRScanner {
         console.log('✅ Interface de check-in injectée, configuration des événements...');
         this.setupCheckinEventListeners();
         console.log('🎉 Interface de check-in prête!');
+        
+        // ✅ CORRECTION : Mettre à jour l'UI pour refléter l'état de check-in
+        this.updateScannerUI('checkin');
+        
+        // TEST : Vérifier après injection
+        setTimeout(() => {
+            const checkinInterface = document.querySelector('.checkin-interface');
+            console.log('🔍 checkin-interface après injection:', checkinInterface);
+        }, 100);
     }
 
     // ✅ Génération des motifs de visite
@@ -1028,12 +1046,16 @@ class QRScanner {
         
         if (scannerContainer) {
             scannerContainer.innerHTML = '';
+            scannerContainer.style.border = '2px solid #dee2e6';
         }
         if (cameraPlaceholder) {
             cameraPlaceholder.style.display = 'flex';
         }
         
         this.currentMember = null;
+        
+        // ✅ Réinitialiser l'UI à l'état stopped
+        this.updateScannerUI('stopped');
         
         await this.startScanner();
     }
@@ -1186,7 +1208,7 @@ class QRScanner {
         }, delay);
     }
 
-    // ✅ Mise à jour de l'UI
+    // ✅ Mise à jour de l'UI - VERSION COMPLÈTE AVEC ÉTAT CHECKIN
     updateScannerUI(state) {
         const cameraPlaceholder = document.getElementById('cameraPlaceholder');
         const scannerContainer = document.getElementById('scannerContainer');
@@ -1254,6 +1276,22 @@ class QRScanner {
                 if (scannerStatus) {
                     scannerStatus.textContent = this.libraryLoaded ? 'Scanner arrêté' : 'Bibliothèque manquante';
                     scannerStatus.className = this.libraryLoaded ? 'badge bg-secondary' : 'badge bg-warning';
+                }
+                break;
+
+            // ✅ NOUVEAU : État pour l'interface de check-in
+            case 'checkin':
+                if (cameraPlaceholder) cameraPlaceholder.style.display = 'none';
+                if (scannerContainer) {
+                    scannerContainer.style.display = 'block';
+                    scannerContainer.style.border = '3px solid #007bff';
+                    scannerContainer.style.transition = 'border 0.3s ease';
+                }
+                if (startBtn) startBtn.style.display = 'none';
+                if (stopBtn) stopBtn.style.display = 'none';
+                if (scannerStatus) {
+                    scannerStatus.textContent = 'Check-in en cours';
+                    scannerStatus.className = 'badge bg-info';
                 }
                 break;
 
