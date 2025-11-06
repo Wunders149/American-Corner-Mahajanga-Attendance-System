@@ -5,16 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>American Corner Mahajanga - Système Complet</title>
     
-    <!-- Autres bibliothèques -->
+    <!-- Bibliothèques -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-    <!-- HTML5 QR Code Scanner -->
-        <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- QR Code Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/responsive.css">
@@ -166,7 +163,7 @@
         </div>
     </section>
 
-    <!-- Attendance System Page -->
+    <!-- Attendance System Page - MODIFIÉ POUR SCANNER.JS -->
     <section id="attendance" class="page-section py-5">
         <div class="container">
             <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
@@ -177,35 +174,16 @@
             <!-- Alerts -->
             <div id="attendanceAlert" class="alert alert-attendance" style="display: none;"></div>
             
-            <!-- Attendance Dashboard -->
+            <!-- Scanner Status -->
             <div class="row mb-4">
-                <div class="col-md-3 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalSessions">0</div>
-                        <div class="stat-label">Sessions Total</div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-number" id="activeSessions">0</div>
-                        <div class="stat-label">Sessions Actives</div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-number" id="todaySessions">0</div>
-                        <div class="stat-label">Aujourd'hui</div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <div class="stat-card">
-                        <div class="stat-number" id="avgDuration">0m</div>
-                        <div class="stat-label">Durée Moyenne</div>
+                <div class="col-12">
+                    <div class="scanner-status text-center">
+                        <span class="badge bg-secondary" id="scannerStatus">Scanner arrêté</span>
                     </div>
                 </div>
             </div>
 
-            <!-- QR Scanner Section -->
+            <!-- QR Scanner Section - STRUCTURE MODIFIÉE -->
             <div class="card attendance-card">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0"><i class="fas fa-qrcode me-2"></i>Check-in par QR Code</h4>
@@ -216,18 +194,20 @@
                             <div class="qr-scanner-container">
                                 <h5>Scannez Votre QR Code Membre</h5>
                                 
+                                <!-- Scanner Container - STRUCTURE SIMPLIFIÉE -->
                                 <div id="scannerSection">
+                                    <!-- Camera Placeholder - visible par défaut -->
                                     <div class="camera-placeholder" id="cameraPlaceholder">
-                                        <i class="fas fa-camera"></i>
-                                        <p>Cliquez pour activer le scanner</p>
-                                        <small class="text-muted mt-2">Utilisez l'entrée manuelle si le scanner ne fonctionne pas</small>
+                                        <i class="fas fa-camera fa-3x mb-3"></i>
+                                        <p>Scanner prêt</p>
+                                        <small class="text-muted mt-2">Cliquez pour activer le scanner</small>
                                     </div>
                                     
-                                    <div id="scannerContainer" style="display: none;">
-                                        <div id="qrReader" style="width: 100%;"></div>
-                                    </div>
+                                    <!-- Scanner Container - caché par défaut -->
+                                    <div id="scannerContainer" style="display: none;"></div>
                                     
-                                    <div class="mt-3">
+                                    <!-- Scanner Controls -->
+                                    <div class="scanner-controls mt-3">
                                         <button class="btn btn-primary w-100" id="startScannerBtn">
                                             <i class="fas fa-camera me-2"></i>Activer le Scanner
                                         </button>
@@ -237,7 +217,8 @@
                                     </div>
                                 </div>
                                 
-                                <button class="btn btn-outline-primary mt-3 w-100" id="manualEntryBtn">
+                                <!-- Manual Entry -->
+                                <button class="btn btn-outline-primary mt-3 w-100" onclick="qrScanner.startManualEntry()">
                                     <i class="fas fa-keyboard me-2"></i>Entrée Manuelle
                                 </button>
                                 
@@ -245,7 +226,7 @@
                                 <div class="mt-3 p-3 bg-light rounded">
                                     <h6>Mode Démo</h6>
                                     <p class="small mb-2">Testez le système avec des données locales</p>
-                                    <button class="btn btn-outline-info btn-sm w-100" id="demoMemberBtn">
+                                    <button class="btn btn-outline-info btn-sm w-100" onclick="testScannerWithDemoMember()">
                                         Utiliser ACM001 (Linus Torvalds)
                                     </button>
                                 </div>
@@ -256,27 +237,15 @@
                                 <h5>Comment Check-in</h5>
                                 <ol class="list-group list-group-numbered mb-4">
                                     <li class="list-group-item">Obtenez votre QR code personnel</li>
-                                    <li class="list-group-item">Utilisez "Entrée Manuelle" si pas de QR code</li>
+                                    <li class="list-group-item">Activez le scanner caméra</li>
+                                    <li class="list-group-item">Scannez votre QR code</li>
                                     <li class="list-group-item">Remplissez les détails de votre visite</li>
-                                    <li class="list-group-item">Cliquez "Démarrer Session"</li>
-                                    <li class="list-group-item">Check-out en partant</li>
+                                    <li class="list-group-item">Confirmez votre check-in</li>
                                 </ol>
                                 
-                                <!-- Manual Entry Form -->
-                                <div class="manual-entry-form" id="manualEntryForm" style="display: none;">
-                                    <h6 class="mb-3">Entrée Manuelle Membre</h6>
-                                    <div class="mb-3">
-                                        <label class="form-label">Numéro d'Enregistrement</label>
-                                        <input type="text" class="form-control" id="manualMemberId" placeholder="ex: ACM001, ACM002">
-                                    </div>
-                                    <div class="d-flex gap-2">
-                                        <button class="btn btn-success btn-sm" id="processManualBtn">
-                                            <i class="fas fa-check me-1"></i>Continuer
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm" id="cancelManualBtn">
-                                            Annuler
-                                        </button>
-                                    </div>
+                                <!-- Check-in Interface will be injected here by scanner.js -->
+                                <div id="checkinInterfaceContainer">
+                                    <!-- L'interface de check-in sera injectée ici dynamiquement -->
                                 </div>
                             </div>
                         </div>
@@ -284,88 +253,14 @@
                 </div>
             </div>
 
-            <!-- Session Details Form -->
-            <div id="sessionDetails" class="card attendance-card" style="display: none;">
+            <!-- Active Sessions -->
+            <div class="card attendance-card mt-4">
                 <div class="card-header bg-success text-white">
-                    <h4 class="mb-0"><i class="fas fa-user-check me-2"></i>Détails de la Session</h4>
+                    <h4 class="mb-0"><i class="fas fa-history me-2"></i>Check-ins Récents</h4>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h5>Informations Membre</h5>
-                            <p><strong>Nom:</strong> <span id="scannedMemberName">-</span></p>
-                            <p><strong>ID:</strong> <span id="scannedMemberId">-</span></p>
-                            <p><strong>Heure Check-in:</strong> <span id="checkInTime">-</span></p>
-                        </div>
-                    </div>
-                    
-                    <form id="sessionForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="purpose" class="form-label">Motif de la Visite *</label>
-                                <select class="form-select" id="purpose" required>
-                                    <option value="">Sélectionnez un motif...</option>
-                                    <option value="Study">Étude/Recherche</option>
-                                    <option value="Meeting">Réunion</option>
-                                    <option value="Event">Participation Événement</option>
-                                    <option value="Workshop">Atelier/Formation</option>
-                                    <option value="Library">Utilisation Bibliothèque</option>
-                                    <option value="Other">Autre</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="topic" class="form-label">Activité/Projet Spécifique</label>
-                                <input type="text" class="form-control" id="topic" 
-                                       placeholder="ex: Club d'Anglais, Travail de Projet">
-                            </div>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-success" id="startSessionBtn">
-                                <i class="fas fa-check me-2"></i>Démarrer Session
-                            </button>
-                            <button type="button" class="btn btn-secondary" id="cancelSessionBtn">
-                                <i class="fas fa-times me-2"></i>Annuler
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Active Session Panel -->
-            <div id="activeSession" class="card attendance-card" style="display: none;">
-                <div class="card-header bg-warning text-dark">
-                    <h4 class="mb-0"><i class="fas fa-clock me-2"></i>Session Active</h4>
-                </div>
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h5 id="activeMemberName">-</h5>
-                            <p class="mb-1"><strong>Motif:</strong> <span id="activePurpose">-</span></p>
-                            <p class="mb-1"><strong>Début:</strong> <span id="activeStartTime">-</span></p>
-                            <p class="mb-0"><strong>Durée:</strong> <span id="activeDuration">0m</span></p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <button class="btn btn-danger btn-lg" id="endSessionBtn">
-                                <i class="fas fa-sign-out-alt me-2"></i>Check-Out
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Sessions -->
-            <div class="card attendance-card">
-                <div class="card-header bg-secondary text-white">
-                    <h4 class="mb-0"><i class="fas fa-history me-2"></i>Sessions Récentes</h4>
-                </div>
-                <div class="card-body">
-                    <div id="recentSessionsLoading" class="loading-spinner">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                    <div id="recentSessionsContainer">
-                        <!-- Sessions will be loaded here -->
+                    <div id="recentCheckinsContainer">
+                        <p class="text-muted text-center">Aucun check-in récent</p>
                     </div>
                 </div>
             </div>
@@ -631,9 +526,6 @@
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    
     <!-- Custom JavaScript -->
     <script src="js/api.js"></script>
     <script src="js/scanner.js"></script>
@@ -641,5 +533,27 @@
     <script src="js/qr-generator.js"></script>
     <script src="js/members.js"></script>
     <script src="js/app.js"></script>
+
+    <script>
+        // Fonction utilitaire pour tester le scanner
+        function testScannerWithDemoMember() {
+            console.log('🧪 Test avec membre démo ACM001');
+            // Simuler un scan réussi avec ACM001
+            const demoQRData = JSON.stringify({
+                registrationNumber: "ACM001",
+                firstName: "Linus",
+                lastName: "Torvalds",
+                occupation: "entrepreneur",
+                phoneNumber: "+261 34 11 223 34",
+                studyOrWorkPlace: "Linux Foundation",
+                timestamp: new Date().toISOString()
+            });
+            
+            // Déclencher le scan manuellement
+            if (window.qrScanner && window.qrScanner.onScanSuccess) {
+                window.qrScanner.onScanSuccess(demoQRData);
+            }
+        }
+    </script>
 </body>
 </html>

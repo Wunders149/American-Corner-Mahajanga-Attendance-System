@@ -32,6 +32,7 @@ body {
 
 .page-section.active {
     display: block;
+    animation: fadeIn 0.5s ease-in-out;
 }
 
 .container {
@@ -195,7 +196,7 @@ body {
     padding: 2rem;
 }
 
-/* ===== SYSTÈME DE SCAN QR ===== */
+/* ===== SYSTÈME DE SCAN QR - STYLES AMÉLIORÉS ===== */
 .qr-scanner-container {
     text-align: center;
 }
@@ -208,6 +209,11 @@ body {
     margin-bottom: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .camera-placeholder:hover {
@@ -224,8 +230,81 @@ body {
     border-radius: 10px;
     overflow: hidden;
     margin-bottom: 1rem;
+    min-height: 300px;
+    position: relative;
 }
 
+.scanner-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.scanner-status {
+    margin-bottom: 1rem;
+}
+
+/* Interface de Check-in */
+.checkin-interface {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.member-info {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+    margin: 0 auto 1rem;
+}
+
+.member-name {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.member-details {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.visit-reasons {
+    margin-top: 0.5rem;
+}
+
+.session-options {
+    margin-top: 0.5rem;
+}
+
+/* Succès Check-in */
+.checkin-success {
+    text-align: center;
+    padding: 2rem;
+}
+
+.success-icon {
+    margin-bottom: 1.5rem;
+}
+
+.success-details {
+    margin-bottom: 2rem;
+}
+
+.success-actions {
+    margin-top: 1rem;
+}
+
+/* ===== GÉNÉRATEUR QR ===== */
 .qr-code-display {
     text-align: center;
 }
@@ -237,6 +316,14 @@ body {
     border-radius: 10px;
     padding: 10px;
     background: white;
+}
+
+.member-id-display {
+    font-family: 'Courier New', monospace;
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
 }
 
 /* ===== SYSTÈME DE MEMBRES ===== */
@@ -363,14 +450,6 @@ body {
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--dark-color);
-}
-
-.member-id-display {
-    font-family: 'Courier New', monospace;
-    background: var(--gradient-accent);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: bold;
 }
 
 .member-qr-status {
@@ -697,6 +776,15 @@ body {
     .member-qr-status {
         font-size: 0.7rem;
     }
+    
+    .camera-placeholder {
+        min-height: 250px;
+        padding: 2rem 1rem;
+    }
+    
+    #scannerContainer {
+        min-height: 250px;
+    }
 }
 
 /* ===== STYLES D'IMPRESSION ===== */
@@ -748,4 +836,33 @@ body {
 
 .profile-status .incomplete {
     color: #ffc107;
+}
+
+/* ===== STYLES SPÉCIFIQUES POUR SCANNER.JS ===== */
+.scanner-loading {
+    text-align: center;
+    padding: 2rem;
+}
+
+.checkin-interface .form-check {
+    margin-bottom: 0.5rem;
+}
+
+.checkin-interface .form-check-label {
+    cursor: pointer;
+}
+
+.manual-entry-interface {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Styles pour les alertes du scanner */
+.qr-scanner-alert {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    min-width: 300px;
+    max-width: 90vw;
 }
