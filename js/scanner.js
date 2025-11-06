@@ -652,7 +652,7 @@ class QRScanner {
             .replace(/[^A-Z0-9]/g, '');
     }
 
-    // ✅ Processus complet de check-in
+    // ✅ Processus complet de check-in avec logs de débogage
     async handleMemberFound(member, isFromCard) {
         const welcomeMessage = isFromCard ? 
             `✅ Carte acceptée! Bienvenue ${member.firstName} ${member.lastName}` :
@@ -660,22 +660,31 @@ class QRScanner {
         
         this.showAlert(welcomeMessage, 'success');
         
+        console.log('🎯 Arrêt du scanner pour afficher l\'interface de check-in...');
         await this.stopScanner();
         
+        console.log('🖥️ Affichage de l\'interface de check-in pour:', member.firstName, member.lastName);
         this.showCheckinInterface(member);
     }
 
-    // ✅ Interface de check-in complète
+    // ✅ Interface de check-in complète avec logs de débogage
     showCheckinInterface(member) {
+        console.log('🎨 Construction de l\'interface de check-in...');
+        
         const scannerContainer = document.getElementById('scannerContainer');
         const cameraPlaceholder = document.getElementById('cameraPlaceholder');
         
-        if (!scannerContainer) return;
+        if (!scannerContainer) {
+            console.error('❌ Conteneur scanner non trouvé!');
+            return;
+        }
 
+        console.log('📦 Masquage du placeholder caméra...');
         if (cameraPlaceholder) {
             cameraPlaceholder.style.display = 'none';
         }
 
+        console.log('🖼️ Injection du HTML de check-in...');
         scannerContainer.innerHTML = `
             <div class="checkin-interface">
                 <div class="card shadow-lg">
@@ -777,7 +786,9 @@ class QRScanner {
             </div>
         `;
 
+        console.log('✅ Interface de check-in injectée, configuration des événements...');
         this.setupCheckinEventListeners();
+        console.log('🎉 Interface de check-in prête!');
     }
 
     // ✅ Génération des motifs de visite
@@ -1010,6 +1021,8 @@ class QRScanner {
 
     // ✅ Redémarrage du scanner après check-in
     async restartScanner() {
+        console.log('🔄 Redémarrage du scanner...');
+        
         const scannerContainer = document.getElementById('scannerContainer');
         const cameraPlaceholder = document.getElementById('cameraPlaceholder');
         
