@@ -12,9 +12,365 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/responsive.css">
+    <style>
+        /* Styles généraux */
+        :root {
+            --primary-color: #00529b;
+            --secondary-color: #0077cc;
+            --accent-color: #ff6b00;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .page-section {
+            display: none;
+        }
+        
+        .page-section.active {
+            display: block;
+        }
+        
+        /* Navigation */
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .nav-link {
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-link:hover {
+            color: rgba(255,255,255,0.8) !important;
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, rgba(0, 82, 155, 0.85) 0%, rgba(0, 40, 85, 0.9) 100%), 
+                        url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') center/cover no-repeat;
+            color: white;
+            padding: 120px 0 80px;
+            position: relative;
+        }
+        
+        .hero-section h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .hero-section p {
+            font-size: 1.3rem;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .btn-hero {
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-hero:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* Stats Section */
+        .stats-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 80px 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        /* Services Section */
+        .section-title {
+            position: relative;
+            margin-bottom: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: center;
+        }
+        
+        .section-title:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            border-radius: 2px;
+        }
+        
+        .service-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        
+        .service-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2rem;
+        }
+        
+        /* Events Section */
+        .featured-events {
+            padding: 80px 0;
+            background-color: var(--light-color);
+        }
+        
+        .event-card {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+        
+        .event-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .event-image {
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .event-date {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            display: inline-block;
+            border-radius: 0 0 8px 0;
+            font-weight: 600;
+        }
+        
+        /* Testimonials */
+        .testimonial-section {
+            background: white;
+            padding: 80px 0;
+        }
+        
+        .testimonial-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            height: 100%;
+            position: relative;
+        }
+        
+        .testimonial-text {
+            font-style: italic;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        .testimonial-text:before {
+            content: '"';
+            font-size: 4rem;
+            color: #e9ecef;
+            position: absolute;
+            top: -20px;
+            left: -10px;
+            z-index: 0;
+        }
+        
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+        }
+        
+        .author-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        /* Quick Access */
+        .quick-access-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            height: 100%;
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+        
+        .quick-access-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .quick-access-card i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+        
+        .cta-section h2 {
+            margin-bottom: 1.5rem;
+        }
+        
+        .cta-section p {
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            font-size: 1.2rem;
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--dark-color);
+            color: white;
+            padding: 60px 0 20px;
+        }
+        
+        .footer h5 {
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .footer ul li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .social-icons a {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .social-icons a:hover {
+            background: var(--primary-color);
+            transform: translateY(-3px);
+        }
+        
+        /* Attendance System */
+        .attendance-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .scanner-status {
+            margin-bottom: 1rem;
+        }
+        
+        .qr-scanner-container {
+            padding: 20px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .camera-placeholder {
+            padding: 40px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .camera-placeholder:hover {
+            background: #e9ecef;
+        }
+        
+        .alert-attendance {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        /* QR Generator */
+        .member-id-display {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero-section h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero-section p {
+                font-size: 1.1rem;
+            }
+            
+            .stat-number {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -669,13 +1025,6 @@
     </footer>
 
     <!-- Custom JavaScript -->
-    <script src="js/api.js"></script>
-    <script src="js/scanner.js"></script>
-    <script src="js/attendance.js"></script>
-    <script src="js/qr-generator.js"></script>
-    <script src="js/members.js"></script>
-    <script src="js/app.js"></script>
-
     <script>
         // Navigation between pages
         function showPage(pageId) {
@@ -698,24 +1047,392 @@
             }
         }
         
-        // Fonction utilitaire pour tester le scanner
+        // QR Code Generator functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const qrGeneratorForm = document.getElementById('qrGeneratorForm');
+            const qrCodeSection = document.getElementById('qrCodeSection');
+            const qrcodeDiv = document.getElementById('qrcode');
+            const clearQRBtn = document.getElementById('clearQRBtn');
+            
+            // Generate QR Code
+            if (qrGeneratorForm) {
+                qrGeneratorForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Get form values
+                    const registrationNumber = document.getElementById('registrationNumber').value;
+                    const firstName = document.getElementById('firstName').value;
+                    const lastName = document.getElementById('lastName').value;
+                    const occupation = document.getElementById('occupation').value;
+                    const phoneNumber = document.getElementById('phoneNumber').value;
+                    const studyWorkPlace = document.getElementById('studyWorkPlace').value;
+                    
+                    // Create QR data object
+                    const qrData = {
+                        registrationNumber: registrationNumber,
+                        firstName: firstName,
+                        lastName: lastName,
+                        occupation: occupation,
+                        phoneNumber: phoneNumber,
+                        studyOrWorkPlace: studyWorkPlace,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    // Generate QR Code
+                    const qrDataString = JSON.stringify(qrData);
+                    qrcodeDiv.innerHTML = '';
+                    
+                    const qrcode = new QRCode(qrcodeDiv, {
+                        text: qrDataString,
+                        width: 200,
+                        height: 200,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    
+                    // Update display information
+                    document.getElementById('displayRegNumber').textContent = registrationNumber;
+                    document.getElementById('displayName').textContent = `${firstName} ${lastName}`;
+                    document.getElementById('displayOccupation').textContent = occupation;
+                    document.getElementById('displayPhone').textContent = phoneNumber || 'Non fourni';
+                    document.getElementById('displayStudyWork').textContent = studyWorkPlace || 'Non fourni';
+                    document.getElementById('displayTimestamp').textContent = new Date().toLocaleString();
+                    document.getElementById('jsonPreview').textContent = JSON.stringify(qrData, null, 2);
+                    
+                    // Show QR code section
+                    qrCodeSection.style.display = 'block';
+                    
+                    // Scroll to QR code section
+                    qrCodeSection.scrollIntoView({ behavior: 'smooth' });
+                });
+            }
+            
+            // Clear QR Code
+            if (clearQRBtn) {
+                clearQRBtn.addEventListener('click', function() {
+                    qrGeneratorForm.reset();
+                    qrcodeDiv.innerHTML = '';
+                    qrCodeSection.style.display = 'none';
+                });
+            }
+            
+            // Download QR Code
+            const downloadQRBtn = document.getElementById('downloadQRBtn');
+            if (downloadQRBtn) {
+                downloadQRBtn.addEventListener('click', function() {
+                    const canvas = qrcodeDiv.querySelector('canvas');
+                    if (canvas) {
+                        const link = document.createElement('a');
+                        link.download = `QRCode-${document.getElementById('registrationNumber').value}.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    }
+                });
+            }
+            
+            // Print QR Code
+            const printQRBtn = document.getElementById('printQRBtn');
+            if (printQRBtn) {
+                printQRBtn.addEventListener('click', function() {
+                    const printWindow = window.open('', '_blank');
+                    const registrationNumber = document.getElementById('registrationNumber').value;
+                    const firstName = document.getElementById('firstName').value;
+                    const lastName = document.getElementById('lastName').value;
+                    
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                                <title>QR Code - ${registrationNumber}</title>
+                                <style>
+                                    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+                                    .qr-container { margin: 20px auto; }
+                                    .member-info { margin-top: 20px; }
+                                </style>
+                            </head>
+                            <body>
+                                <h2>American Corner Mahajanga</h2>
+                                <h3>QR Code Membre</h3>
+                                <div class="qr-container">${qrcodeDiv.innerHTML}</div>
+                                <div class="member-info">
+                                    <p><strong>Numéro:</strong> ${registrationNumber}</p>
+                                    <p><strong>Nom:</strong> ${firstName} ${lastName}</p>
+                                    <p><strong>Date de génération:</strong> ${new Date().toLocaleDateString()}</p>
+                                </div>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                    printWindow.print();
+                });
+            }
+            
+            // Load sample members for QR generator
+            loadSampleMembers();
+            
+            // Load members for members page
+            loadMembers();
+        });
+        
+        // Load sample members for QR generator
+        function loadSampleMembers() {
+            const sampleMembers = [
+                {
+                    registrationNumber: "ACM001",
+                    firstName: "Linus",
+                    lastName: "Torvalds",
+                    occupation: "entrepreneur",
+                    phoneNumber: "+261 34 11 223 34",
+                    studyWorkPlace: "Linux Foundation"
+                },
+                {
+                    registrationNumber: "ACM002",
+                    firstName: "Marie",
+                    lastName: "Curie",
+                    occupation: "student",
+                    phoneNumber: "+261 32 22 334 45",
+                    studyWorkPlace: "Université de Mahajanga"
+                },
+                {
+                    registrationNumber: "ACM003",
+                    firstName: "Thomas",
+                    lastName: "Edison",
+                    occupation: "employee",
+                    phoneNumber: "+261 33 33 445 56",
+                    studyWorkPlace: "Electric Company"
+                }
+            ];
+            
+            const sampleMembersContainer = document.getElementById('sampleMembers');
+            if (sampleMembersContainer) {
+                sampleMembersContainer.innerHTML = '';
+                
+                sampleMembers.forEach(member => {
+                    const memberCard = document.createElement('div');
+                    memberCard.className = 'col-md-4';
+                    memberCard.innerHTML = `
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <i class="fas fa-user-circle fa-3x text-primary"></i>
+                                </div>
+                                <h5>${member.firstName} ${member.lastName}</h5>
+                                <p class="text-muted">${member.registrationNumber}</p>
+                                <p><small>${member.occupation} - ${member.studyWorkPlace}</small></p>
+                                <button class="btn btn-sm btn-outline-primary" onclick="fillMemberForm('${member.registrationNumber}', '${member.firstName}', '${member.lastName}', '${member.occupation}', '${member.phoneNumber}', '${member.studyWorkPlace}')">
+                                    Générer QR Code
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    sampleMembersContainer.appendChild(memberCard);
+                });
+            }
+        }
+        
+        // Fill member form with sample data
+        function fillMemberForm(regNumber, firstName, lastName, occupation, phone, studyWork) {
+            document.getElementById('registrationNumber').value = regNumber;
+            document.getElementById('firstName').value = firstName;
+            document.getElementById('lastName').value = lastName;
+            document.getElementById('occupation').value = occupation;
+            document.getElementById('phoneNumber').value = phone;
+            document.getElementById('studyWorkPlace').value = studyWork;
+            
+            // Scroll to form
+            document.getElementById('qrGeneratorForm').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Load members for members page
+        function loadMembers() {
+            const members = [
+                {
+                    id: "ACM001",
+                    name: "Linus Torvalds",
+                    role: "Membre Fondateur",
+                    description: "Entrepreneur et développeur passionné par la technologie open source.",
+                    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                },
+                {
+                    id: "ACM002",
+                    name: "Marie Curie",
+                    role: "Étudiante en Médecine",
+                    description: "Étudiante motivée souhaitant poursuivre ses études aux États-Unis.",
+                    image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80"
+                },
+                {
+                    id: "ACM003",
+                    name: "Thomas Edison",
+                    role: "Ingénieur Électricien",
+                    description: "Professionnel cherchant à améliorer ses compétences en anglais.",
+                    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80"
+                },
+                {
+                    id: "ACM004",
+                    name: "Ada Lovelace",
+                    role: "Développeuse Web",
+                    description: "Passionnée par la programmation et les échanges culturels.",
+                    image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                },
+                {
+                    id: "ACM005",
+                    name: "Albert Einstein",
+                    role: "Professeur de Physique",
+                    description: "Enseignant partageant sa passion pour les sciences avec la communauté.",
+                    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80"
+                },
+                {
+                    id: "ACM006",
+                    name: "Rosalind Franklin",
+                    role: "Chercheuse en Biologie",
+                    description: "Scientifique participant aux programmes de recherche collaborative.",
+                    image: "https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?ixlib=rb-1.2.1&auto=format&fit=crop&w=634&q=80"
+                }
+            ];
+            
+            const membersContainer = document.getElementById('membersContainer');
+            if (membersContainer) {
+                membersContainer.innerHTML = '';
+                
+                members.forEach(member => {
+                    const memberCard = document.createElement('div');
+                    memberCard.className = 'col-md-6 col-lg-4';
+                    memberCard.innerHTML = `
+                        <div class="card h-100">
+                            <img src="${member.image}" class="card-img-top" alt="${member.name}" style="height: 200px; object-fit: cover;">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">${member.name}</h5>
+                                <p class="text-primary">${member.role}</p>
+                                <p class="card-text">${member.description}</p>
+                                <span class="badge bg-light text-dark">${member.id}</span>
+                            </div>
+                        </div>
+                    `;
+                    membersContainer.appendChild(memberCard);
+                });
+            }
+        }
+        
+        // Manual entry for attendance
+        function startManualEntry() {
+            const checkinInterface = `
+                <div class="manual-entry-form">
+                    <h5>Entrée Manuelle</h5>
+                    <div class="mb-3">
+                        <label for="manualRegNumber" class="form-label">Numéro d'Enregistrement</label>
+                        <input type="text" class="form-control" id="manualRegNumber" placeholder="ex: ACM001">
+                    </div>
+                    <div class="mb-3">
+                        <label for="manualFirstName" class="form-label">Prénom</label>
+                        <input type="text" class="form-control" id="manualFirstName" placeholder="ex: Linus">
+                    </div>
+                    <div class="mb-3">
+                        <label for="manualLastName" class="form-label">Nom</label>
+                        <input type="text" class="form-control" id="manualLastName" placeholder="ex: Torvalds">
+                    </div>
+                    <div class="mb-3">
+                        <label for="manualPurpose" class="form-label">Raison de la Visite</label>
+                        <select class="form-select" id="manualPurpose">
+                            <option value="study">Études/Recherche</option>
+                            <option value="event">Événement</option>
+                            <option value="consultation">Consultation</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-success w-100" onclick="processManualCheckin()">
+                        <i class="fas fa-check me-2"></i>Confirmer le Check-in
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('checkinInterfaceContainer').innerHTML = checkinInterface;
+        }
+        
+        // Process manual check-in
+        function processManualCheckin() {
+            const regNumber = document.getElementById('manualRegNumber').value;
+            const firstName = document.getElementById('manualFirstName').value;
+            const lastName = document.getElementById('manualLastName').value;
+            const purpose = document.getElementById('manualPurpose').value;
+            
+            if (!regNumber || !firstName || !lastName) {
+                showAttendanceAlert('Veuillez remplir tous les champs obligatoires', 'danger');
+                return;
+            }
+            
+            // Simulate successful check-in
+            showAttendanceAlert(`Check-in réussi pour ${firstName} ${lastName} (${regNumber})`, 'success');
+            
+            // Add to recent check-ins
+            addRecentCheckin({
+                registrationNumber: regNumber,
+                firstName: firstName,
+                lastName: lastName,
+                purpose: purpose,
+                timestamp: new Date().toLocaleString()
+            });
+            
+            // Clear form
+            document.getElementById('checkinInterfaceContainer').innerHTML = '';
+        }
+        
+        // Show attendance alert
+        function showAttendanceAlert(message, type) {
+            const alertDiv = document.getElementById('attendanceAlert');
+            alertDiv.textContent = message;
+            alertDiv.className = `alert alert-${type} alert-attendance`;
+            alertDiv.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Add recent check-in
+        function addRecentCheckin(checkin) {
+            const container = document.getElementById('recentCheckinsContainer');
+            
+            // If it's the first check-in, clear the placeholder
+            if (container.querySelector('p.text-muted')) {
+                container.innerHTML = '';
+            }
+            
+            const checkinElement = document.createElement('div');
+            checkinElement.className = 'checkin-item mb-3 p-3 border rounded';
+            checkinElement.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <strong>${checkin.firstName} ${checkin.lastName}</strong>
+                        <br>
+                        <small class="text-muted">${checkin.registrationNumber}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-primary">${checkin.purpose}</span>
+                        <br>
+                        <small class="text-muted">${checkin.timestamp}</small>
+                    </div>
+                </div>
+            `;
+            
+            container.prepend(checkinElement);
+        }
+        
+        // Test scanner with demo member
         function testScannerWithDemoMember() {
             console.log('🧪 Test avec membre démo ACM001');
-            // Simuler un scan réussi avec ACM001
-            const demoQRData = JSON.stringify({
+            
+            // Simulate a successful scan
+            const demoCheckin = {
                 registrationNumber: "ACM001",
                 firstName: "Linus",
                 lastName: "Torvalds",
-                occupation: "entrepreneur",
-                phoneNumber: "+261 34 11 223 34",
-                studyOrWorkPlace: "Linux Foundation",
-                timestamp: new Date().toISOString()
-            });
+                purpose: "study",
+                timestamp: new Date().toLocaleString()
+            };
             
-            // Déclencher le scan manuellement
-            if (window.qrScanner && window.qrScanner.onScanSuccess) {
-                window.qrScanner.onScanSuccess(demoQRData);
-            }
+            showAttendanceAlert(`Scan réussi pour ${demoCheckin.firstName} ${demoCheckin.lastName} (${demoCheckin.registrationNumber})`, 'success');
+            addRecentCheckin(demoCheckin);
         }
     </script>
 </body>
