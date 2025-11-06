@@ -1,4 +1,4 @@
-// ✅ QR Code Scanner System - Version COMPLÈTE avec processus de check-in
+// ✅ QR Code Scanner System - Version COMPLÈTE et CORRIGÉE
 class QRScanner {
     constructor() {
         this.html5QrCode = null;
@@ -13,6 +13,60 @@ class QRScanner {
         this.currentMember = null;
         
         this.checkLibraryAvailability();
+    }
+
+    // ✅ CORRECTION: Méthode showAlert complète avec showFallbackAlert
+    showAlert(message, type = 'info') {
+        console.log(`💬 Alerte [${type}]: ${message}`);
+        
+        // Utiliser le système d'alerte existant s'il est disponible
+        if (window.attendance && typeof window.attendance.showAlert === 'function') {
+            window.attendance.showAlert(message, type);
+            return;
+        }
+        
+        // Fallback avec gestion améliorée
+        this.showFallbackAlert(message, type);
+    }
+
+    // ✅ CORRECTION: Méthode showFallbackAlert définie
+    showFallbackAlert(message, type) {
+        // Supprimer les alertes existantes
+        const existingAlerts = document.querySelectorAll('.qr-scanner-alert');
+        existingAlerts.forEach(alert => alert.remove());
+
+        const alertDiv = document.createElement('div');
+        const alertClass = type === 'error' ? 'danger' : type;
+        alertDiv.className = `alert alert-${alertClass} qr-scanner-alert position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '300px';
+        alertDiv.style.maxWidth = '90vw';
+        alertDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-${this.getAlertIcon(type)} me-2"></i>
+                <div class="flex-grow-1">${message}</div>
+                <button type="button" class="btn-close ms-2" onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        // Auto-suppression après 5 secondes
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 5000);
+    }
+
+    // ✅ CORRECTION: Méthode getAlertIcon définie
+    getAlertIcon(type) {
+        const icons = {
+            'success': 'check-circle',
+            'error': 'exclamation-triangle',
+            'warning': 'exclamation-circle',
+            'info': 'info-circle'
+        };
+        return icons[type] || 'info-circle';
     }
 
     // ✅ Vérifier si la bibliothèque est disponible
@@ -571,6 +625,16 @@ class QRScanner {
                 lastName: 'Bernard',
                 email: 'michel.bernard@email.com',
                 membershipType: 'Premium',
+                membershipStatus: 'active',
+                profileImage: null
+            },
+            'ACM001': {
+                id: 6,
+                registrationNumber: 'ACM001',
+                firstName: 'Linus',
+                lastName: 'Torvalds',
+                email: 'linus@linux.org',
+                membershipType: 'VIP',
                 membershipStatus: 'active',
                 profileImage: null
             }
@@ -1323,18 +1387,6 @@ class QRScanner {
             this.showAlert('Erreur changement de caméra', 'error');
             return false;
         }
-    }
-
-    // ✅ Méthode showAlert
-    showAlert(message, type = 'info') {
-        console.log(`💬 Alerte [${type}]: ${message}`);
-        
-        if (window.attendance && typeof window.attendance.showAlert === 'function') {
-            window.attendance.showAlert(message, type);
-            return;
-        }
-        
-        this.showFallbackAlert(message, type);
     }
 
     // ✅ Nettoyage complet
