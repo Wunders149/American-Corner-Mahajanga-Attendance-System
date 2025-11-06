@@ -1,4 +1,4 @@
-// API Configuration and Functions - Version corrigée pour les profils
+// api.js - Version COMPLÈTE et CORRIGÉE
 const API_CONFIG = {
     BASE_URL: "https://acm-backend-iwde.onrender.com/api/member/",
     PROFILE_IMAGE_BASE_URL: "https://acm-backend-iwde.onrender.com/uploads/"
@@ -35,7 +35,6 @@ class ApiService {
             console.log('📦 Données API reçues:', data);
             
             if (data.success && data.data) {
-                // 🧩 CORRECTION: Nettoyer et valider les données des membres
                 this.members = this.cleanMemberData(data.data);
                 this.useDemoData = false;
                 console.log(`✅ ${this.members.length} membres chargés depuis l'API`);
@@ -58,10 +57,8 @@ class ApiService {
         }
     }
 
-    // 🧩 NOUVELLE MÉTHODE: Nettoyer et valider les données des membres
     cleanMemberData(members) {
         return members.map(member => {
-            // Assurer que tous les champs requis existent
             const cleanedMember = {
                 id: member.id || this.generateId(),
                 registrationNumber: member.registrationNumber || `ACM${this.generateRandomId()}`,
@@ -73,11 +70,9 @@ class ApiService {
                 address: member.address || null,
                 studyOrWorkPlace: member.studyOrWorkPlace || null,
                 joinDate: member.joinDate || new Date().toISOString(),
-                // 🧩 CORRECTION: Gérer le champ profileImage qui peut être manquant
                 profileImage: member.profileImage || null
             };
 
-            // Validation supplémentaire
             if (!cleanedMember.registrationNumber.startsWith('ACM')) {
                 cleanedMember.registrationNumber = `ACM${cleanedMember.registrationNumber}`;
             }
@@ -107,7 +102,7 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Linux Foundation",
                 joinDate: new Date('2023-01-15').toISOString(),
-                profileImage: "profile1.jpg" // Image de démo
+                profileImage: "profiles/linus.jpg"
             },
             {
                 id: 2,
@@ -120,7 +115,7 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Université de Mahajanga",
                 joinDate: new Date('2023-03-20').toISOString(),
-                profileImage: null // Pas d'image de profil
+                profileImage: "profiles/marie.jpg"
             },
             {
                 id: 3,
@@ -133,7 +128,7 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Société ABC",
                 joinDate: new Date('2023-02-10').toISOString(),
-                profileImage: "profile3.jpg"
+                profileImage: "profiles/jean.jpg"
             },
             {
                 id: 4,
@@ -146,15 +141,41 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Campus Universitaire",
                 joinDate: new Date('2023-04-05').toISOString(),
-                profileImage: null
+                profileImage: "profiles/sarah.jpg"
+            },
+            {
+                id: 5,
+                registrationNumber: "M12345",
+                firstName: "John",
+                lastName: "Doe",
+                occupation: "employee",
+                phoneNumber: "+261 34 11 222 33",
+                email: "john.doe@company.mg",
+                address: "Mahajanga, Madagascar",
+                studyOrWorkPlace: "Company XYZ",
+                joinDate: new Date('2023-05-15').toISOString(),
+                profileImage: "profiles/john.jpg"
+            },
+            {
+                id: 6,
+                registrationNumber: "MEM1001",
+                firstName: "Paul",
+                lastName: "Martin",
+                occupation: "entrepreneur",
+                phoneNumber: "+261 32 44 556 67",
+                email: "paul.martin@startup.mg",
+                address: "Mahajanga, Madagascar",
+                studyOrWorkPlace: "Startup Inc",
+                joinDate: new Date('2023-06-20').toISOString(),
+                profileImage: "profiles/paul.jpg"
             }
         ];
     }
 
     getMemberByRegistrationNumber(registrationNumber) {
-        const cleanRegNumber = registrationNumber.toString().trim().toUpperCase();
+        const cleanRegNumber = this.normalizeRegistrationNumber(registrationNumber);
         const member = this.members.find(m => {
-            const memberReg = m.registrationNumber ? m.registrationNumber.toString().toUpperCase() : '';
+            const memberReg = m.registrationNumber ? this.normalizeRegistrationNumber(m.registrationNumber) : '';
             return memberReg === cleanRegNumber;
         });
         
@@ -162,6 +183,30 @@ class ApiService {
             return this.createTemporaryDemoMember(registrationNumber);
         }
         return member;
+    }
+
+    normalizeRegistrationNumber(regNumber) {
+        if (!regNumber) return null;
+        
+        let normalized = regNumber.toString()
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '');
+        
+        // Ajouter le préfixe ACM si manquant et c'est un nombre
+        if (/^\d+$/.test(normalized)) {
+            normalized = 'ACM' + normalized;
+        }
+        
+        // Standardiser les formats
+        if (normalized.startsWith('M') && normalized.length > 1) {
+            const numberPart = normalized.substring(1);
+            if (/^\d+$/.test(numberPart)) {
+                normalized = 'M' + numberPart;
+            }
+        }
+        
+        return normalized;
     }
 
     createTemporaryDemoMember(registrationNumber) {
@@ -193,18 +238,15 @@ class ApiService {
         return this.members.find(m => m.id === id);
     }
 
-    // 🧩 CORRECTION: Méthode améliorée pour les URLs de profil
     getProfileImageUrl(profileImage) {
         if (!profileImage) {
             return null;
         }
 
-        // Si c'est déjà une URL complète
         if (profileImage.startsWith('http')) {
             return profileImage;
         }
 
-        // Si c'est un chemin relatif, construire l'URL complète
         let imagePath = profileImage;
         if (!imagePath.startsWith('/')) {
             imagePath = '/' + imagePath;
@@ -216,7 +258,6 @@ class ApiService {
         return fullUrl;
     }
 
-    // 🧩 NOUVELLE MÉTHODE: Vérifier si une image existe
     async checkProfileImageExists(profileImage) {
         if (!profileImage) return false;
         
@@ -230,7 +271,6 @@ class ApiService {
         }
     }
 
-    // 🧩 NOUVELLE MÉTHODE: Obtenir les statistiques des membres
     getMembersStats() {
         const stats = {
             total: this.members.length,
@@ -239,17 +279,14 @@ class ApiService {
             recentMembers: 0
         };
 
-        // Compter par occupation
         this.members.forEach(member => {
             const occupation = member.occupation || 'other';
             stats.byOccupation[occupation] = (stats.byOccupation[occupation] || 0) + 1;
             
-            // Compter les membres avec image de profil
             if (member.profileImage) {
                 stats.withProfileImage++;
             }
             
-            // Compter les membres récents (moins de 30 jours)
             const joinDate = new Date(member.joinDate);
             const daysSinceJoin = (new Date() - joinDate) / (1000 * 60 * 60 * 24);
             if (daysSinceJoin <= 30) {
@@ -264,7 +301,6 @@ class ApiService {
         return this.useDemoData;
     }
 
-    // 🧩 NOUVELLE MÉTHODE: Recherche avancée
     searchMembers(query) {
         if (!query) return this.members;
         

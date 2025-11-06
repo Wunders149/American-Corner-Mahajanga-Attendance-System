@@ -1,4 +1,4 @@
-// ✅ QR Code Scanner System - Version COMPLÈTE et CORRIGÉE
+// scanner.js - Version COMPLÈTE et CORRIGÉE
 class QRScanner {
     constructor() {
         this.html5QrCode = null;
@@ -15,23 +15,18 @@ class QRScanner {
         this.checkLibraryAvailability();
     }
 
-    // ✅ CORRECTION: Méthode showAlert complète avec showFallbackAlert
     showAlert(message, type = 'info') {
         console.log(`💬 Alerte [${type}]: ${message}`);
         
-        // Utiliser le système d'alerte existant s'il est disponible
         if (window.attendance && typeof window.attendance.showAlert === 'function') {
             window.attendance.showAlert(message, type);
             return;
         }
         
-        // Fallback avec gestion améliorée
         this.showFallbackAlert(message, type);
     }
 
-    // ✅ CORRECTION: Méthode showFallbackAlert définie
     showFallbackAlert(message, type) {
-        // Supprimer les alertes existantes
         const existingAlerts = document.querySelectorAll('.qr-scanner-alert');
         existingAlerts.forEach(alert => alert.remove());
 
@@ -50,7 +45,6 @@ class QRScanner {
         `;
         document.body.appendChild(alertDiv);
         
-        // Auto-suppression après 5 secondes
         setTimeout(() => {
             if (alertDiv.parentNode) {
                 alertDiv.parentNode.removeChild(alertDiv);
@@ -58,7 +52,6 @@ class QRScanner {
         }, 5000);
     }
 
-    // ✅ CORRECTION: Méthode getAlertIcon définie
     getAlertIcon(type) {
         const icons = {
             'success': 'check-circle',
@@ -69,7 +62,6 @@ class QRScanner {
         return icons[type] || 'info-circle';
     }
 
-    // ✅ Vérifier si la bibliothèque est disponible
     checkLibraryAvailability() {
         this.libraryLoaded = typeof Html5Qrcode !== 'undefined';
         
@@ -110,7 +102,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Méthode pour réessayer le chargement
     retryLibraryLoad() {
         console.log('🔄 Réessai du chargement de la bibliothèque...');
         
@@ -122,7 +113,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Chargement dynamique de la bibliothèque depuis CloudFlare
     loadLibraryFromCloudFlare() {
         console.log('📦 Chargement depuis CloudFlare CDN...');
         
@@ -156,7 +146,6 @@ class QRScanner {
         document.head.appendChild(script);
     }
 
-    // ✅ Démarrage du scanner
     async startScanner() {
         console.log('🎬 Démarrage du scanner QR...');
 
@@ -295,7 +284,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Vérification des permissions caméra
     async checkCameraPermissions(forcePrompt = false) {
         try {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -343,7 +331,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Fallback pour contraintes trop strictes
     async checkCameraPermissionsWithRelaxedConstraints() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -358,7 +345,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Sélection de la meilleure caméra
     selectBestCamera(cameras) {
         if (!cameras || cameras.length === 0) {
             console.error('❌ Aucune caméra disponible');
@@ -433,7 +419,6 @@ class QRScanner {
         return { facingMode: "environment" };
     }
 
-    // ✅ Arrêt du scanner
     async stopScanner() {
         console.log('🛑 Arrêt du scanner demandé...');
         
@@ -458,7 +443,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Nettoyage du scanner
     async cleanupScanner() {
         if (this.html5QrCode) {
             try {
@@ -492,7 +476,6 @@ class QRScanner {
         this.updateScannerUI('stopped');
     }
 
-    // ✅ Gestion des scans avec processus de check-in
     onScanSuccess(decodedText) {
         const now = Date.now();
         
@@ -575,84 +558,149 @@ class QRScanner {
         }
     }
 
-    // ✅ Données mock pour la démonstration
     getMockMemberData(registrationNumber) {
+        const normalizedReg = this.normalizeRegistrationNumber(registrationNumber);
+        
         const mockMembers = {
-            'M12345': {
-                id: 1,
-                registrationNumber: 'M12345',
-                firstName: 'Jean',
-                lastName: 'Dupont',
-                email: 'jean.dupont@email.com',
-                membershipType: 'Premium',
-                membershipStatus: 'active',
-                profileImage: null
-            },
-            'M67890': {
-                id: 2,
-                registrationNumber: 'M67890', 
-                firstName: 'Marie',
-                lastName: 'Martin',
-                email: 'marie.martin@email.com',
-                membershipType: 'Standard',
-                membershipStatus: 'active',
-                profileImage: null
-            },
-            'M11111': {
-                id: 3,
-                registrationNumber: 'M11111',
-                firstName: 'Pierre',
-                lastName: 'Durand',
-                email: 'pierre.durand@email.com',
-                membershipType: 'VIP',
-                membershipStatus: 'active',
-                profileImage: null
-            },
-            'M22222': {
-                id: 4,
-                registrationNumber: 'M22222',
-                firstName: 'Sophie',
-                lastName: 'Leroy',
-                email: 'sophie.leroy@email.com',
-                membershipType: 'Standard',
-                membershipStatus: 'active',
-                profileImage: null
-            },
-            'M33333': {
-                id: 5,
-                registrationNumber: 'M33333',
-                firstName: 'Michel',
-                lastName: 'Bernard',
-                email: 'michel.bernard@email.com',
-                membershipType: 'Premium',
-                membershipStatus: 'active',
-                profileImage: null
-            },
             'ACM001': {
-                id: 6,
+                id: 1,
                 registrationNumber: 'ACM001',
                 firstName: 'Linus',
                 lastName: 'Torvalds',
                 email: 'linus@linux.org',
-                membershipType: 'VIP',
-                membershipStatus: 'active',
-                profileImage: null
+                occupation: 'entrepreneur',
+                phoneNumber: '+261 34 11 223 34',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Linux Foundation',
+                joinDate: new Date('2023-01-15').toISOString(),
+                profileImage: 'profiles/linus.jpg'
+            },
+            'ACM002': {
+                id: 2,
+                registrationNumber: 'ACM002',
+                firstName: 'Marie',
+                lastName: 'Curie', 
+                email: 'marie.curie@univ-mg.mg',
+                occupation: 'student',
+                phoneNumber: '+261 34 55 667 78',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Université de Mahajanga',
+                joinDate: new Date('2023-03-20').toISOString(),
+                profileImage: 'profiles/marie.jpg'
+            },
+            'ACM003': {
+                id: 3,
+                registrationNumber: 'ACM003',
+                firstName: 'Jean',
+                lastName: 'Rakoto',
+                email: 'jean.rakoto@entreprise.mg',
+                occupation: 'employee',
+                phoneNumber: '+261 32 12 345 67',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Société ABC',
+                joinDate: new Date('2023-02-10').toISOString(),
+                profileImage: 'profiles/jean.jpg'
+            },
+            'M12345': {
+                id: 4,
+                registrationNumber: 'M12345',
+                firstName: 'Jean',
+                lastName: 'Dupont',
+                email: 'jean.dupont@email.com',
+                occupation: 'employee',
+                phoneNumber: '+261 32 11 223 34',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Société ABC',
+                joinDate: new Date('2023-02-10').toISOString(),
+                profileImage: 'profiles/jean.jpg'
+            },
+            'M67890': {
+                id: 5,
+                registrationNumber: 'M67890',
+                firstName: 'Marie',
+                lastName: 'Martin',
+                email: 'marie.martin@email.com',
+                occupation: 'student',
+                phoneNumber: '+261 33 55 667 78',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Université de Mahajanga',
+                joinDate: new Date('2023-04-05').toISOString(),
+                profileImage: 'profiles/marie.jpg'
+            },
+            'MEM1001': {
+                id: 6,
+                registrationNumber: 'MEM1001',
+                firstName: 'Paul',
+                lastName: 'Rakoto',
+                email: 'paul.rakoto@example.mg',
+                occupation: 'entrepreneur',
+                phoneNumber: '+261 34 77 889 90',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Startup XYZ',
+                joinDate: new Date('2023-05-12').toISOString(),
+                profileImage: 'profiles/paul.jpg'
+            },
+            'MEM1002': {
+                id: 7,
+                registrationNumber: 'MEM1002',
+                firstName: 'Sophie',
+                lastName: 'Randria',
+                email: 'sophie.randria@example.mg',
+                occupation: 'employee',
+                phoneNumber: '+261 32 44 556 67',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Entreprise DEF',
+                joinDate: new Date('2023-06-18').toISOString(),
+                profileImage: 'profiles/sarah.jpg'
             }
         };
         
-        return mockMembers[registrationNumber] || null;
+        if (mockMembers[normalizedReg]) {
+            return mockMembers[normalizedReg];
+        }
+        
+        for (const [key, member] of Object.entries(mockMembers)) {
+            if (this.areRegistrationNumbersSimilar(normalizedReg, key)) {
+                console.log(`🔄 Numéro ${registrationNumber} reconnu comme ${key}`);
+                return member;
+            }
+        }
+        
+        console.log(`❌ Aucun membre trouvé pour: ${registrationNumber} (normalisé: ${normalizedReg})`);
+        return null;
+    }
+
+    areRegistrationNumbersSimilar(reg1, reg2) {
+        if (!reg1 || !reg2) return false;
+        
+        const cleanReg1 = reg1.replace(/^(ACM|M|MEM)/i, '');
+        const cleanReg2 = reg2.replace(/^(ACM|M|MEM)/i, '');
+        
+        return cleanReg1 === cleanReg2;
     }
 
     normalizeRegistrationNumber(regNumber) {
         if (!regNumber) return null;
         
-        return regNumber.toString()
+        let normalized = regNumber.toString()
             .trim()
             .toUpperCase()
             .replace(/[^A-Z0-9]/g, '');
+        
+        if (/^\d+$/.test(normalized)) {
+            normalized = 'ACM' + normalized;
+        }
+        
+        if (normalized.startsWith('M') && normalized.length > 1) {
+            const numberPart = normalized.substring(1);
+            if (/^\d+$/.test(numberPart)) {
+                normalized = 'M' + numberPart;
+            }
+        }
+        
+        return normalized;
     }
 
-    // ✅ Processus complet de check-in avec logs de débogage
     async handleMemberFound(member, isFromCard) {
         const welcomeMessage = isFromCard ? 
             `✅ Carte acceptée! Bienvenue ${member.firstName} ${member.lastName}` :
@@ -665,14 +713,9 @@ class QRScanner {
         
         console.log('🖥️ Affichage de l\'interface de check-in pour:', member.firstName, member.lastName);
         
-        // TEST : Vérifier que les éléments existent
-        const scannerContainer = document.getElementById('scannerContainer');
-        console.log('🔍 scannerContainer:', scannerContainer);
-        
         this.showCheckinInterface(member);
     }
 
-    // ✅ Interface de check-in complète avec logs de débogage - VERSION CORRIGÉE
     showCheckinInterface(member) {
         console.log('🎨 Construction de l\'interface de check-in...');
         
@@ -691,7 +734,6 @@ class QRScanner {
 
         console.log('🖼️ Injection du HTML de check-in...');
         
-        // ✅ CORRECTION CRITIQUE : S'assurer que le conteneur est visible
         scannerContainer.style.display = 'block';
         
         scannerContainer.innerHTML = `
@@ -707,15 +749,13 @@ class QRScanner {
                     <div class="card-body">
                         <div class="member-info text-center mb-4">
                             <div class="member-avatar mb-3">
-                                <div class="avatar-placeholder bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" 
-                                     style="width: 80px; height: 80px;">
-                                    <i class="fas fa-user text-white fa-2x"></i>
-                                </div>
+                                ${this.getMemberAvatarHTML(member)}
                             </div>
                             <h5 class="member-name">${member.firstName} ${member.lastName}</h5>
                             <div class="member-details text-muted">
                                 <div>N°: ${member.registrationNumber}</div>
-                                <div>${member.membershipType} • ${member.membershipStatus}</div>
+                                <div>${member.occupation} • Actif</div>
+                                ${member.email ? `<div class="small">${member.email}</div>` : ''}
                             </div>
                         </div>
 
@@ -799,17 +839,37 @@ class QRScanner {
         this.setupCheckinEventListeners();
         console.log('🎉 Interface de check-in prête!');
         
-        // ✅ CORRECTION : Mettre à jour l'UI pour refléter l'état de check-in
         this.updateScannerUI('checkin');
-        
-        // TEST : Vérifier après injection
-        setTimeout(() => {
-            const checkinInterface = document.querySelector('.checkin-interface');
-            console.log('🔍 checkin-interface après injection:', checkinInterface);
-        }, 100);
     }
 
-    // ✅ Génération des motifs de visite
+    getMemberAvatarHTML(member) {
+        if (member.profileImage) {
+            const imageUrl = window.apiService ? window.apiService.getProfileImageUrl(member.profileImage) : member.profileImage;
+            return `
+                <img src="${imageUrl}" 
+                     alt="${member.firstName} ${member.lastName}"
+                     class="rounded-circle"
+                     style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #007bff;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                <div class="avatar-placeholder bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                     style="width: 80px; height: 80px; display: none;">
+                    <i class="fas fa-user text-white fa-2x"></i>
+                </div>
+            `;
+        }
+        
+        const initials = (member.firstName?.[0] || '') + (member.lastName?.[0] || '');
+        const colors = ['primary', 'success', 'warning', 'danger', 'info'];
+        const colorIndex = (member.id || 0) % colors.length;
+        
+        return `
+            <div class="avatar-initials bg-${colors[colorIndex]} rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold"
+                 style="width: 80px; height: 80px; font-size: 1.5rem;">
+                ${initials}
+            </div>
+        `;
+    }
+
     generateVisitReasons() {
         const reasons = [
             { id: 'training', label: 'Entraînement personnel', icon: 'fas fa-dumbbell' },
@@ -831,7 +891,6 @@ class QRScanner {
         `).join('');
     }
 
-    // ✅ Génération des options d'activité
     generateActivityOptions() {
         const activities = [
             { value: '', label: 'Choisir une activité...' },
@@ -851,7 +910,6 @@ class QRScanner {
         ).join('');
     }
 
-    // ✅ Configuration des écouteurs d'événements
     setupCheckinEventListeners() {
         const activitySelect = document.getElementById('activitySelect');
         const sessionSection = document.getElementById('sessionSection');
@@ -872,7 +930,6 @@ class QRScanner {
         this.validateCheckinForm();
     }
 
-    // ✅ Validation du formulaire
     validateCheckinForm() {
         const form = document.getElementById('checkinForm');
         const confirmBtn = document.getElementById('confirmCheckinBtn');
@@ -886,7 +943,6 @@ class QRScanner {
         confirmBtn.disabled = !isValid;
     }
 
-    // ✅ Confirmation du check-in
     async confirmCheckin() {
         const form = document.getElementById('checkinForm');
         if (!form || !this.currentMember) {
@@ -919,7 +975,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Récupération des données du formulaire
     getCheckinFormData() {
         const form = document.getElementById('checkinForm');
         const visitReason = form.querySelector('input[name="visitReason"]:checked');
@@ -936,7 +991,6 @@ class QRScanner {
         };
     }
 
-    // ✅ Soumission des données de check-in
     async submitCheckinData(formData) {
         console.log('📤 Envoi des données de check-in:', formData);
         
@@ -954,7 +1008,6 @@ class QRScanner {
         });
     }
 
-    // ✅ Sauvegarde locale pour la démo
     saveCheckinToLocalStorage(formData) {
         try {
             const checkins = JSON.parse(localStorage.getItem('gymCheckins') || '[]');
@@ -965,7 +1018,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Affichage du chargement
     showCheckinLoading() {
         const confirmBtn = document.getElementById('confirmCheckinBtn');
         if (confirmBtn) {
@@ -977,7 +1029,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Masquage du chargement
     hideCheckinLoading() {
         const confirmBtn = document.getElementById('confirmCheckinBtn');
         if (confirmBtn) {
@@ -988,7 +1039,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Affichage de la confirmation de succès
     showCheckinSuccess(formData) {
         const scannerContainer = document.getElementById('scannerContainer');
         if (!scannerContainer) return;
@@ -1013,7 +1063,6 @@ class QRScanner {
         `;
     }
 
-    // ✅ Obtenir le libellé de l'activité
     getActivityLabel(activityValue) {
         const activities = {
             'cardio': 'Cardio Training',
@@ -1029,7 +1078,6 @@ class QRScanner {
         return activities[activityValue] || activityValue;
     }
 
-    // ✅ Annulation du check-in
     cancelCheckin() {
         if (confirm('Êtes-vous sûr de vouloir annuler ce check-in ?')) {
             this.showAlert('Check-in annulé', 'info');
@@ -1037,7 +1085,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Redémarrage du scanner après check-in
     async restartScanner() {
         console.log('🔄 Redémarrage du scanner...');
         
@@ -1054,13 +1101,11 @@ class QRScanner {
         
         this.currentMember = null;
         
-        // ✅ Réinitialiser l'UI à l'état stopped
         this.updateScannerUI('stopped');
         
         await this.startScanner();
     }
 
-    // ✅ Gestion membre non trouvé
     async handleMemberNotFound(registrationNumber, rawData) {
         console.log('❌ Membre non trouvé avec les données:', rawData);
         
@@ -1076,21 +1121,30 @@ class QRScanner {
         }, 2000);
     }
 
-    // ✅ Entrée manuelle
     startManualEntry(prefilledId = '') {
+        console.log('⌨️ Démarrage entrée manuelle avec ID:', prefilledId);
+        
+        if (this.isScanning) {
+            this.stopScanner().catch(console.error);
+        }
+        
         this.showManualEntryInterface(prefilledId);
     }
 
-    // ✅ Interface d'entrée manuelle
     showManualEntryInterface(prefilledId = '') {
         const scannerContainer = document.getElementById('scannerContainer');
         const cameraPlaceholder = document.getElementById('cameraPlaceholder');
         
-        if (!scannerContainer) return;
+        if (!scannerContainer) {
+            console.error('❌ Conteneur scanner non trouvé pour entrée manuelle');
+            return;
+        }
 
         if (cameraPlaceholder) {
             cameraPlaceholder.style.display = 'none';
         }
+
+        this.updateScannerUI('manual');
 
         scannerContainer.innerHTML = `
             <div class="manual-entry-interface">
@@ -1105,42 +1159,69 @@ class QRScanner {
                     <div class="card-body">
                         <form id="manualEntryForm">
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Numéro de membre</label>
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-id-card me-2"></i>Numéro de membre
+                                </label>
                                 <input type="text" class="form-control" id="manualMemberId" 
-                                       value="${prefilledId}" placeholder="Ex: M12345" required>
+                                       value="${prefilledId}" 
+                                       placeholder="Ex: ACM001, M12345, MEM1001" 
+                                       required
+                                       oninput="qrScanner.validateManualForm()">
+                                <div class="form-text">Formats acceptés: ACM001, M12345, MEM1001</div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Nom</label>
-                                <input type="text" class="form-control" id="manualLastName" required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Prénom</label>
-                                <input type="text" class="form-control" id="manualFirstName" required>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Nom</label>
+                                        <input type="text" class="form-control" id="manualLastName" 
+                                               required oninput="qrScanner.validateManualForm()">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Prénom</label>
+                                        <input type="text" class="form-control" id="manualFirstName" 
+                                               required oninput="qrScanner.validateManualForm()">
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Type d'adhésion</label>
-                                <select class="form-select" id="manualMembershipType" required>
+                                <select class="form-select" id="manualMembershipType" 
+                                        required onchange="qrScanner.validateManualForm()">
                                     <option value="">Choisir...</option>
-                                    <option value="Standard">Standard</option>
-                                    <option value="Premium">Premium</option>
-                                    <option value="VIP">VIP</option>
+                                    <option value="student">Étudiant</option>
+                                    <option value="employee">Employé</option>
+                                    <option value="entrepreneur">Entrepreneur</option>
+                                    <option value="other">Autre</option>
                                 </select>
                             </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Email</label>
+                                <input type="email" class="form-control" id="manualEmail" 
+                                       placeholder="optionnel@email.com">
+                            </div>
                         </form>
+                        
+                        <div id="manualEntryFeedback" class="mt-3" style="display: none;"></div>
                     </div>
                     
                     <div class="card-footer bg-light">
                         <div class="row g-2">
                             <div class="col-6">
-                                <button type="button" class="btn btn-outline-secondary w-100" onclick="qrScanner.cancelManualEntry()">
+                                <button type="button" class="btn btn-outline-secondary w-100" 
+                                        onclick="qrScanner.cancelManualEntry()">
                                     <i class="fas fa-arrow-left me-2"></i>Retour
                                 </button>
                             </div>
                             <div class="col-6">
-                                <button type="button" class="btn btn-primary w-100" onclick="qrScanner.submitManualEntry()">
+                                <button type="button" class="btn btn-primary w-100" 
+                                        id="submitManualBtn" 
+                                        onclick="qrScanner.submitManualEntry()"
+                                        disabled>
                                     <i class="fas fa-save me-2"></i>Enregistrer
                                 </button>
                             </div>
@@ -1149,44 +1230,112 @@ class QRScanner {
                 </div>
             </div>
         `;
+
+        setTimeout(() => {
+            const memberIdField = document.getElementById('manualMemberId');
+            if (memberIdField && !prefilledId) {
+                memberIdField.focus();
+            } else if (prefilledId) {
+                document.getElementById('manualFirstName')?.focus();
+            }
+        }, 100);
     }
 
-    // ✅ Annulation entrée manuelle
+    validateManualForm() {
+        const memberId = document.getElementById('manualMemberId')?.value.trim();
+        const lastName = document.getElementById('manualLastName')?.value.trim();
+        const firstName = document.getElementById('manualFirstName')?.value.trim();
+        const membershipType = document.getElementById('manualMembershipType')?.value;
+        
+        const submitBtn = document.getElementById('submitManualBtn');
+        const feedbackDiv = document.getElementById('manualEntryFeedback');
+        
+        if (!submitBtn) return;
+        
+        const isValid = memberId && lastName && firstName && membershipType;
+        submitBtn.disabled = !isValid;
+        
+        if (feedbackDiv) {
+            if (memberId && !this.isValidRegistrationNumber(memberId)) {
+                feedbackDiv.innerHTML = `
+                    <div class="alert alert-warning py-2">
+                        <small><i class="fas fa-exclamation-triangle me-1"></i>
+                        Format recommandé: ACM001, M12345, MEM1001</small>
+                    </div>
+                `;
+                feedbackDiv.style.display = 'block';
+            } else {
+                feedbackDiv.style.display = 'none';
+            }
+        }
+    }
+
+    isValidRegistrationNumber(regNumber) {
+        if (!regNumber) return false;
+        
+        const patterns = [
+            /^ACM\d{3,}$/i,
+            /^M\d{4,}$/i,
+            /^MEM\d{3,}$/i,
+            /^\d+$/
+        ];
+        
+        return patterns.some(pattern => pattern.test(regNumber));
+    }
+
+    submitManualEntry() {
+        const memberId = document.getElementById('manualMemberId')?.value.trim();
+        const lastName = document.getElementById('manualLastName')?.value.trim();
+        const firstName = document.getElementById('manualFirstName')?.value.trim();
+        const membershipType = document.getElementById('manualMembershipType')?.value;
+        const email = document.getElementById('manualEmail')?.value.trim();
+
+        if (!memberId || !lastName || !firstName || !membershipType) {
+            this.showAlert('Veuillez remplir tous les champs obligatoires', 'warning');
+            return;
+        }
+
+        const normalizedId = this.normalizeRegistrationNumber(memberId);
+        
+        let existingMember = null;
+        if (window.apiService && window.apiService.getMemberByRegistrationNumber) {
+            existingMember = window.apiService.getMemberByRegistrationNumber(normalizedId);
+        }
+
+        if (existingMember && !existingMember.isTemporary) {
+            if (!confirm(`Membre ${existingMember.firstName} ${existingMember.lastName} existe déjà. Continuer le check-in?`)) {
+                return;
+            }
+            this.currentMember = existingMember;
+        } else {
+            this.currentMember = {
+                id: Date.now(),
+                registrationNumber: normalizedId,
+                firstName: firstName,
+                lastName: lastName,
+                occupation: membershipType,
+                email: email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.mg`,
+                phoneNumber: null,
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Non spécifié',
+                joinDate: new Date().toISOString(),
+                profileImage: null,
+                isTemporary: true,
+                isManualEntry: true
+            };
+            
+            this.showAlert(`Membre ${firstName} ${lastName} ajouté avec succès!`, 'success');
+        }
+
+        setTimeout(() => {
+            this.showCheckinInterface(this.currentMember);
+        }, 1000);
+    }
+
     cancelManualEntry() {
         this.restartScanner();
     }
 
-    // ✅ Soumission entrée manuelle
-    submitManualEntry() {
-        const memberId = document.getElementById('manualMemberId').value;
-        const lastName = document.getElementById('manualLastName').value;
-        const firstName = document.getElementById('manualFirstName').value;
-        const membershipType = document.getElementById('manualMembershipType').value;
-
-        if (!memberId || !lastName || !firstName || !membershipType) {
-            this.showAlert('Veuillez remplir tous les champs', 'warning');
-            return;
-        }
-
-        const newMember = {
-            id: Date.now(),
-            registrationNumber: memberId,
-            firstName: firstName,
-            lastName: lastName,
-            membershipType: membershipType,
-            membershipStatus: 'active',
-            email: ''
-        };
-
-        this.showAlert(`Membre ${firstName} ${lastName} ajouté avec succès!`, 'success');
-        
-        setTimeout(() => {
-            this.currentMember = newMember;
-            this.showCheckinInterface(newMember);
-        }, 1500);
-    }
-
-    // ✅ Restart avec délai
     async restartScannerAfterDelay(delay = 2000) {
         console.log(`🔄 Redémarrage du scanner dans ${delay}ms...`);
         
@@ -1208,7 +1357,6 @@ class QRScanner {
         }, delay);
     }
 
-    // ✅ Mise à jour de l'UI - VERSION COMPLÈTE AVEC ÉTAT CHECKIN
     updateScannerUI(state) {
         const cameraPlaceholder = document.getElementById('cameraPlaceholder');
         const scannerContainer = document.getElementById('scannerContainer');
@@ -1279,7 +1427,6 @@ class QRScanner {
                 }
                 break;
 
-            // ✅ NOUVEAU : État pour l'interface de check-in
             case 'checkin':
                 if (cameraPlaceholder) cameraPlaceholder.style.display = 'none';
                 if (scannerContainer) {
@@ -1295,6 +1442,20 @@ class QRScanner {
                 }
                 break;
 
+            case 'manual':
+                if (cameraPlaceholder) cameraPlaceholder.style.display = 'none';
+                if (scannerContainer) {
+                    scannerContainer.style.display = 'block';
+                    scannerContainer.style.border = '3px solid #17a2b8';
+                }
+                if (startBtn) startBtn.style.display = 'none';
+                if (stopBtn) stopBtn.style.display = 'none';
+                if (scannerStatus) {
+                    scannerStatus.textContent = 'Entrée manuelle';
+                    scannerStatus.className = 'badge bg-info';
+                }
+                break;
+
             case 'error':
                 if (scannerStatus) {
                     scannerStatus.textContent = 'Erreur scanner';
@@ -1304,7 +1465,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Affichage succès scan
     showScanSuccess() {
         const scannerContainer = document.getElementById('scannerContainer');
         if (scannerContainer) {
@@ -1322,7 +1482,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Gestion des erreurs
     async handleScannerError(error) {
         console.error('🚨 Erreur scanner détaillée:', error);
         
@@ -1381,7 +1540,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Options de récupération
     showRecoveryOptions() {
         const recoveryHTML = `
             <div class="alert alert-warning mt-3">
@@ -1406,7 +1564,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Méthodes de recovery
     async retryScanner() {
         console.log('🔄 Nouvelle tentative de démarrage...');
         await this.cleanupScanner();
@@ -1440,7 +1597,6 @@ class QRScanner {
         }
     }
 
-    // ✅ Nettoyage complet
     async cleanup() {
         console.log('🧹 Nettoyage du scanner...');
         await this.stopScanner();
@@ -1449,7 +1605,7 @@ class QRScanner {
     }
 }
 
-// ✅ Instance unique
+// Create global instance
 const qrScanner = new QRScanner();
 
 // Gestion du cycle de vie
