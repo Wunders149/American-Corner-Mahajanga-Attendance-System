@@ -1,0 +1,61 @@
+/* Styles spécifiques à la page profil */
+.profile-card {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+    background: var(--card-gradient);
+}
+
+.stat-item {
+    padding: 1rem;
+}
+
+.stat-item .stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.stat-item .stat-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive pour la page profil */
+@media (max-width: 768px) {
+    .profile-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .member-avatar-container[style*="width: 150px"] {
+        width: 120px !important;
+        height: 120px !important;
+        margin-bottom: 2rem;
+    }
+    
+    .member-avatar-container[style*="width: 150px"] .avatar-initials {
+        font-size: 2.5rem;
+    }
+    
+    .display-5 {
+        font-size: 2rem;
+    }
+}
+
+/* Animation d'entrée pour la page profil */
+@keyframes profileFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.profile-card {
+    animation: profileFadeIn 0.6s ease-out;
+}

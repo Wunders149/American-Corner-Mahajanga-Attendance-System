@@ -1263,9 +1263,32 @@ class MembersSystem {
     viewMemberDetails(memberId) {
         const member = this.members.find(m => m.id === memberId);
         if (member) {
-            this.showMemberModal(member);
+            this.navigateToProfilePage(member);
         } else {
             this.showNotification('Membre non trouvé', 'error');
+        }
+    }
+
+    /**
+     * Navigue vers la page de profil du membre
+     * @param {Object} member - Données du membre
+     */
+    navigateToProfilePage(member) {
+        console.log('🧭 Navigation vers le profil de:', member.registrationNumber);
+        
+        // Stocker les données du membre pour la page de profil
+        sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
+        
+        if (window.appController && typeof window.appController.loadPage === 'function') {
+            // Utiliser le contrôleur d'application existant
+            window.appController.loadPage('profile');
+            this.showNotification(`Chargement du profil de ${member.firstName} ${member.lastName}`, 'info');
+        } else if (window.router && typeof window.router.navigate === 'function') {
+            // Utiliser un routeur alternatif
+            window.router.navigate('profile');
+        } else {
+            // Redirection directe vers profile.html
+            window.location.href = 'profile.html';
         }
     }
 
