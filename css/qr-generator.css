@@ -1,0 +1,331 @@
+/* qr-generator.css - Styles améliorés pour la liaison */
+
+/* Animation pour les cartes membres */
+.sample-member-card,
+.recent-qr-card {
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.sample-member-card:hover,
+.recent-qr-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Styles pour les avatars membres */
+.member-avatar.small {
+    width: 60px;
+    height: 60px;
+    position: relative;
+}
+
+.profile-image.small {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.initials-avatar.small {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.occupation-badge.small {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #28a745;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+}
+
+.occupation-badge.small i {
+    color: white;
+    font-size: 0.6rem;
+}
+
+/* Badges de statut */
+.member-qr-status {
+    font-size: 0.75rem;
+}
+
+/* Boutons améliorés */
+.btn-group .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.quick-generate-btn:hover .fa-bolt {
+    animation: flash 0.5s ease-in-out;
+}
+
+@keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Section QR code généré */
+#qrCodeSection {
+    transition: all 0.3s ease;
+}
+
+.qr-code-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sample-member-card .btn-group,
+    .recent-qr-card .btn-group {
+        flex-direction: column;
+    }
+    
+    .sample-member-card .btn-group .btn,
+    .recent-qr-card .btn-group .btn {
+        margin-bottom: 0.25rem;
+    }
+    
+    .member-avatar.small {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .initials-avatar.small {
+        font-size: 0.8rem;
+    }
+}
+
+/* Animation de chargement */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Indicateur de pré-remplissage */
+.prefill-indicator {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+}
+
+/* qr-generator.css - Styles spécifiques pour le générateur QR */
+
+/* Animation pour les cartes membres */
+.sample-member-card,
+.recent-qr-card {
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.sample-member-card:hover,
+.recent-qr-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Styles pour les avatars membres */
+.member-avatar.small {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    margin: 0 auto 1rem;
+}
+
+.profile-image.small {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.initials-avatar.small {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.9rem;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.occupation-badge.small {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #28a745;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.occupation-badge.small i {
+    color: white;
+    font-size: 0.7rem;
+}
+
+/* Badges de statut */
+.member-qr-status {
+    font-size: 0.75rem;
+    background: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 15px;
+    display: inline-block;
+}
+
+/* Boutons améliorés */
+.btn-group .btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.quick-generate-btn:hover .fa-bolt {
+    animation: flash 0.5s ease-in-out;
+}
+
+@keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Section QR code généré */
+#qrCodeSection {
+    transition: all 0.3s ease;
+}
+
+.qr-code-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Indicateur de pré-remplissage */
+.prefill-indicator {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    animation: slideInDown 0.5s ease;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sample-member-card .btn-group,
+    .recent-qr-card .btn-group {
+        flex-direction: column;
+    }
+    
+    .sample-member-card .btn-group .btn,
+    .recent-qr-card .btn-group .btn {
+        margin-bottom: 0.25rem;
+        font-size: 0.75rem;
+    }
+    
+    .member-avatar.small {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .initials-avatar.small {
+        font-size: 0.8rem;
+    }
+    
+    .occupation-badge.small {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .occupation-badge.small i {
+        font-size: 0.6rem;
+    }
+}
+
+/* Animation de chargement améliorée */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Styles pour les cartes de statut */
+.card.border-success {
+    border-width: 2px !important;
+}
+
+/* Amélioration de l'accessibilité */
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #007bff;
+}
+
+/* Styles pour les états de chargement */
+.loading-state {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}

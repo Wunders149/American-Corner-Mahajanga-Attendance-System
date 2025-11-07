@@ -1,4 +1,4 @@
-// members.js - Système complet de gestion des membres American Corner Mahajanga - VERSION CORRIGÉE
+// members.js - Système complet de gestion des membres American Corner Mahajanga - VERSION AVEC LIAISON QR
 class MembersSystem {
     constructor() {
         this.members = [];
@@ -14,7 +14,13 @@ class MembersSystem {
         this.maxRetries = 3;
         this.isOnline = navigator.onLine;
         this.isMobile = this.detectMobile();
+        
         this.init();
+        
+        // Initialiser la liaison QR
+        setTimeout(() => {
+            this.initializeQRLinkage();
+        }, 2000);
     }
 
     detectMobile() {
@@ -69,6 +75,212 @@ class MembersSystem {
             document.body.classList.add('network-offline');
         });
     }
+
+    // ==================== LIAISON AVEC GÉNÉRATEUR QR ====================
+
+    /**
+     * Vérifie et initialise la liaison QR
+     */
+    initializeQRLinkage() {
+        console.log('🔗 Initialisation de la liaison QR...');
+        
+        // Vérifier périodiquement que le générateur QR est disponible
+        const qrCheckInterval = setInterval(() => {
+            if (window.qrGenerator) {
+                clearInterval(qrCheckInterval);
+                this.setupQRLinkage();
+                console.log('🎯 Générateur QR détecté, liaison activée');
+            }
+        }, 500);
+        
+        // Timeout après 10 secondes
+        setTimeout(() => {
+            clearInterval(qrCheckInterval);
+            if (!window.qrGenerator) {
+                console.warn('⚠️ Générateur QR non détecté après 10s');
+            }
+        }, 10000);
+    }
+
+    /**
+     * Système de liaison entre les membres et le générateur QR
+     */
+    setupQRLinkage() {
+        console.log('🔗 Configuration de la liaison QR...');
+        
+        // Exposer les méthodes globalement pour les appels depuis HTML
+        window.generateMemberQR = (registrationNumber) => {
+            this.generateMemberQR(registrationNumber);
+        };
+        
+        window.generateQuickQR = (registrationNumber) => {
+            this.generateQuickQR(registrationNumber);
+        };
+        
+        console.log('✅ Liaison QR configurée');
+    }
+
+    /**
+     * Génère un QR code pour un membre avec redirection vers la page QR
+     * @param {string} registrationNumber - Numéro d'enregistrement du membre
+     */
+    generateMemberQR(registrationNumber) {
+        const member = this.members.find(m => m.registrationNumber === registrationNumber);
+        if (!member) {
+            this.showNotification('Membre non trouvé', 'error');
+            return;
+        }
+
+        console.log('🎯 Génération QR pour:', member.firstName, member.lastName);
+
+        // Vérifier si nous sommes déjà sur la page QR
+        const currentPage = this.getCurrentPage();
+        
+        if (currentPage === 'qr-generator') {
+            // Nous sommes déjà sur la page QR, pré-remplir le formulaire
+            if (window.qrGenerator && typeof window.qrGenerator.prefillForm === 'function') {
+                window.qrGenerator.prefillForm(member);
+            } else {
+                this.prefillForm(member);
+            }
+        } else {
+            // Rediriger vers la page QR
+            this.navigateToQRGenerator(member);
+        }
+    }
+
+    /**
+     * Génère directement un QR code pour un membre (méthode rapide)
+     * @param {string} registrationNumber - Numéro d'enregistrement du membre
+     */
+    generateQuickQR(registrationNumber) {
+        console.log('⚡ Génération QR rapide pour:', registrationNumber);
+        
+        const member = this.members.find(m => m.registrationNumber === registrationNumber);
+        if (!member) {
+            this.showNotification('Membre non trouvé', 'error');
+            return;
+        }
+
+        if (window.qrGenerator && typeof window.qrGenerator.quickGenerateQR === 'function') {
+            // Utiliser la méthode rapide du générateur QR
+            window.qrGenerator.quickGenerateQR(registrationNumber);
+            
+            // Vérifier si on doit rediriger
+            const currentPage = this.getCurrentPage();
+            if (currentPage !== 'qr-generator') {
+                this.navigateToQRGenerator(member);
+            }
+        } else {
+            // Fallback: redirection vers la page QR avec pré-remplissage
+            this.prefillForm(member);
+        }
+    }
+
+    /**
+     * Pré-remplit le formulaire QR avec les données du membre
+     * @param {Object} member - Données du membre
+     */
+    prefillForm(member) {
+        console.log('📝 Pré-remplissage du formulaire QR pour:', member.registrationNumber);
+        
+        if (!member) {
+            console.error('❌ Aucun membre fourni pour le pré-remplissage');
+            return;
+        }
+
+        try {
+            // Attendre que le générateur QR soit initialisé
+            const waitForQRGenerator = setInterval(() => {
+                if (window.qrGenerator && typeof window.qrGenerator.fillFormFields === 'function') {
+                    clearInterval(waitForQRGenerator);
+                    
+                    // Pré-remplir les champs du formulaire
+                    window.qrGenerator.fillFormFields({
+                        registrationNumber: member.registrationNumber,
+                        firstName: member.firstName,
+                        lastName: member.lastName,
+                        occupation: member.occupation || 'student',
+                        phoneNumber: member.phoneNumber || '',
+                        studyWorkPlace: member.studyOrWorkPlace || ''
+                    });
+                    
+                    console.log('✅ Formulaire QR pré-rempli avec succès');
+                    
+                    // Optionnel: Générer automatiquement le QR code
+                    setTimeout(() => {
+                        if (window.qrGenerator.generateQRCode) {
+                            window.qrGenerator.generateQRCode();
+                        }
+                    }, 500);
+                    
+                }
+            }, 100);
+
+            // Timeout après 5 secondes
+            setTimeout(() => {
+                clearInterval(waitForQRGenerator);
+                console.warn('⚠️ Timeout attente générateur QR');
+            }, 5000);
+
+        } catch (error) {
+            console.error('❌ Erreur pré-remplissage formulaire:', error);
+            this.showNotification('Erreur lors du pré-remplissage du formulaire QR', 'error');
+        }
+    }
+
+    /**
+     * Navigue vers la page QR Generator avec les données du membre
+     * @param {Object} member - Données du membre
+     */
+    navigateToQRGenerator(member) {
+        console.log('🧭 Navigation vers QR Generator pour:', member.registrationNumber);
+        
+        if (window.appController && typeof window.appController.loadPage === 'function') {
+            // Utiliser le contrôleur d'application existant
+            sessionStorage.setItem('qrPrefillData', JSON.stringify(member));
+            window.appController.loadPage('qr-generator');
+            this.showNotification(`Redirection vers le générateur QR pour ${member.firstName} ${member.lastName}`, 'info');
+        } else if (window.router && typeof window.router.navigate === 'function') {
+            // Utiliser un routeur alternatif
+            sessionStorage.setItem('qrPrefillData', JSON.stringify(member));
+            window.router.navigate('qr-generator');
+        } else {
+            // Fallback basique avec hash
+            sessionStorage.setItem('qrPrefillData', JSON.stringify(member));
+            window.location.hash = 'qr-generator';
+            this.showNotification('Chargement du générateur QR...', 'info');
+            
+            // Pré-remplir après un délai
+            setTimeout(() => {
+                this.prefillForm(member);
+            }, 1000);
+        }
+    }
+
+    /**
+     * Détecte la page actuellement affichée
+     * @returns {string|null} ID de la page actuelle
+     */
+    getCurrentPage() {
+        // Méthode pour détecter la page actuelle
+        const pages = document.querySelectorAll('.page-section');
+        for (let page of pages) {
+            if (page.style.display === 'block' || page.classList.contains('active')) {
+                return page.id;
+            }
+        }
+        
+        // Vérifier aussi par l'URL hash
+        const hash = window.location.hash.replace('#', '');
+        if (hash) {
+            return hash;
+        }
+        
+        return null;
+    }
+
+    // ==================== FONCTIONS EXISTANTES (AVEC MISES À JOUR) ====================
 
     async loadMembers() {
         this.isLoading = true;
@@ -942,17 +1154,25 @@ class MembersSystem {
                         </div>
                     </div>
                     
-                    <!-- Actions -->
+                    <!-- Actions AVEC BOUTONS QR AMÉLIORÉS -->
                     <div class="card-footer bg-transparent border-top-0 pt-0 member-actions">
                         <div class="d-grid gap-2">
                             <button class="btn btn-primary btn-sm" 
                                     onclick="membersSystem.viewMemberDetails(${member.id})">
                                 <i class="fas fa-eye me-1"></i>Voir le Profil
                             </button>
-                            <button class="btn btn-outline-secondary btn-sm" 
-                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}')">
-                                <i class="fas fa-qrcode me-1"></i>Carte QR
-                            </button>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-outline-success btn-sm" 
+                                        onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
+                                        title="Générer QR Code personnalisé">
+                                    <i class="fas fa-qrcode me-1"></i>QR Code
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" 
+                                        onclick="membersSystem.generateQuickQR('${member.registrationNumber}')"
+                                        title="Génération rapide">
+                                    <i class="fas fa-bolt me-1"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1012,13 +1232,18 @@ class MembersSystem {
                                                     title="Voir le profil">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button class="btn btn-outline-secondary" 
+                                            <button class="btn btn-outline-success" 
                                                     onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
                                                     title="Générer QR Code">
                                                 <i class="fas fa-qrcode"></i>
                                             </button>
-                                            ${member.email || member.phoneNumber ? `
                                             <button class="btn btn-outline-info" 
+                                                    onclick="membersSystem.generateQuickQR('${member.registrationNumber}')"
+                                                    title="Génération rapide">
+                                                <i class="fas fa-bolt"></i>
+                                            </button>
+                                            ${member.email || member.phoneNumber ? `
+                                            <button class="btn btn-outline-secondary" 
                                                     onclick="membersSystem.quickContact(${member.id})"
                                                     title="Contacter">
                                                 <i class="fas fa-envelope"></i>
@@ -1035,7 +1260,6 @@ class MembersSystem {
         `;
     }
 
-    // CORRECTION 1: Méthode viewMemberDetails corrigée pour l'accessibilité
     viewMemberDetails(memberId) {
         const member = this.members.find(m => m.id === memberId);
         if (member) {
@@ -1045,7 +1269,7 @@ class MembersSystem {
         }
     }
 
-    // CORRECTION 2: Méthode showMemberModal complètement corrigée
+    // CORRECTION: Méthode showMemberModal complètement corrigée
     showMemberModal(member) {
         const initials = this.getInitials(member.firstName, member.lastName);
         const profileImageUrl = window.apiService ? 
@@ -1242,28 +1466,6 @@ class MembersSystem {
         modal.show();
     }
 
-    generateMemberQR(registrationNumber) {
-        const member = this.members.find(m => m.registrationNumber === registrationNumber);
-        if (!member) {
-            this.showNotification('Membre non trouvé', 'error');
-            return;
-        }
-
-        // Rediriger vers le générateur QR
-        if (window.appController) {
-            window.appController.loadPage('qr-generator');
-            // Pré-remplir le formulaire
-            setTimeout(() => {
-                if (window.qrGenerator && typeof window.qrGenerator.prefillForm === 'function') {
-                    window.qrGenerator.prefillForm(member);
-                }
-            }, 500);
-        } else {
-            this.showNotification('Redirection vers le générateur QR...', 'info');
-        }
-    }
-
-    // CORRECTION: Méthode quickContact corrigée pour l'accessibilité
     quickContact(memberId) {
         const member = this.members.find(m => m.id === memberId);
         if (!member) return;
@@ -1636,5 +1838,5 @@ window.membersSystem = membersSystem;
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('👥 Système membres prêt');
+    console.log('👥 Système membres prêt avec liaison QR');
 });

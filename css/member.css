@@ -701,3 +701,59 @@ mark.search-highlight {
         border: 2px solid currentColor;
     }
 }
+
+/* Ajouter dans member.css */
+.btn-group .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.member-actions .btn-group {
+    width: 100%;
+}
+
+.member-actions .btn-group .btn {
+    flex: 1;
+}
+
+/* Styles pour les boutons QR code */
+.btn-outline-success {
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.btn-outline-success:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-outline-info {
+    border-color: #17a2b8;
+    color: #17a2b8;
+}
+
+.btn-outline-info:hover {
+    background-color: #17a2b8;
+    color: white;
+}
+
+/* Animation pour le bouton rapide */
+.btn-outline-info:hover .fa-bolt {
+    animation: flash 0.5s ease-in-out;
+}
+
+@keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Responsive pour les boutons */
+@media (max-width: 768px) {
+    .member-actions .btn-group {
+        flex-direction: column;
+    }
+    
+    .member-actions .btn-group .btn {
+        margin-bottom: 0.25rem;
+    }
+}

@@ -1,10 +1,11 @@
-// QR Generator System - Version améliorée et robuste
+// QR Generator System - Version améliorée avec liaison membres
 class QRGenerator {
     constructor() {
         this.currentQRCode = null;
         this.recentQRCodes = this.loadRecentQRCodes();
         this.quickActionsSetup = false;
         this.isGenerating = false;
+        this.prefillData = null;
     }
 
     async initializeQRGenerator() {
@@ -25,6 +26,9 @@ class QRGenerator {
             this.renderRecentQRCodes();
             this.setupQuickActions();
             
+            // Vérifier les données de pré-remplissage
+            this.checkForPrefillData();
+            
             console.log('✅ Générateur QR initialisé avec succès');
             return true;
             
@@ -32,6 +36,54 @@ class QRGenerator {
             console.error('❌ Erreur lors de l\'initialisation:', error);
             this.showAlert('Erreur lors de l\'initialisation du générateur QR', 'error');
             return false;
+        }
+    }
+
+    /**
+     * Vérifie et applique les données de pré-remplissage au chargement de la page
+     */
+    checkForPrefillData() {
+        try {
+            // Vérifier sessionStorage d'abord (pour la liaison depuis les membres)
+            const prefillData = sessionStorage.getItem('qrPrefillData');
+            if (prefillData) {
+                const member = JSON.parse(prefillData);
+                console.log('📦 Données de pré-remplissage trouvées:', member.registrationNumber);
+                
+                // Appliquer après un court délai pour s'assurer que le DOM est prêt
+                setTimeout(() => {
+                    this.prefillForm(member);
+                }, 500);
+                
+                // Nettoyer les données après utilisation
+                sessionStorage.removeItem('qrPrefillData');
+                return;
+            }
+
+            // Vérifier aussi l'URL pour les paramètres
+            this.checkURLParameters();
+            
+        } catch (error) {
+            console.error('❌ Erreur traitement données pré-remplissage:', error);
+            sessionStorage.removeItem('qrPrefillData');
+        }
+    }
+
+    /**
+     * Vérifie les paramètres d'URL pour le pré-remplissage
+     */
+    checkURLParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const regNumber = urlParams.get('registration');
+        
+        if (regNumber && window.apiService) {
+            console.log('🔗 Paramètre URL détecté:', regNumber);
+            const member = window.apiService.getMemberByRegistrationNumber(regNumber);
+            if (member) {
+                setTimeout(() => {
+                    this.prefillForm(member);
+                }, 1000);
+            }
         }
     }
 
@@ -70,6 +122,25 @@ class QRGenerator {
             e.preventDefault();
             this.generateQRCode();
         });
+
+        // Événements pour les actions rapides
+        this.setupQuickActionListeners();
+    }
+
+    setupQuickActionListeners() {
+        // Écouter les événements de génération rapide depuis d'autres pages
+        window.addEventListener('quickQRGenerate', (event) => {
+            if (event.detail && event.detail.registrationNumber) {
+                this.quickGenerateQR(event.detail.registrationNumber);
+            }
+        });
+
+        // Écouter les événements de pré-remplissage
+        window.addEventListener('prefillQRForm', (event) => {
+            if (event.detail) {
+                this.prefillForm(event.detail);
+            }
+        });
     }
 
     attachEvent(elementId, event, handler) {
@@ -85,219 +156,111 @@ class QRGenerator {
         if (this.quickActionsSetup) return;
         
         console.log('⚡ Configuration des actions rapides...');
+        
+        // Exposer les méthodes globalement pour la liaison
+        window.qrGenerator = this;
+        
         this.quickActionsSetup = true;
+    }
+
+    // ==================== MÉTHODES DE LIAISON AVEC MEMBRES ====================
+
+    /**
+     * Pré-remplit le formulaire avec les données d'un membre
+     * @param {Object} member - Données du membre
+     */
+    prefillForm(member) {
+        console.log('📝 Pré-remplissage formulaire avec:', member.registrationNumber);
+        
+        if (!member) {
+            console.error('❌ Aucun membre fourni');
+            this.showAlert('Aucune donnée de membre fournie', 'warning');
+            return;
+        }
+
+        try {
+            this.fillFormFields({
+                registrationNumber: member.registrationNumber,
+                firstName: member.firstName,
+                lastName: member.lastName,
+                occupation: member.occupation || 'student',
+                phoneNumber: member.phoneNumber || '',
+                studyWorkPlace: member.studyOrWorkPlace || ''
+            });
+
+            // Stocker les données pour référence
+            this.prefillData = member;
+
+            // Scroll vers le formulaire
+            const formElement = document.getElementById('qrGeneratorForm');
+            if (formElement) {
+                formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            this.showAlert(`📝 Formulaire rempli pour ${member.firstName} ${member.lastName}`, 'info');
+            
+            // Optionnel: Générer automatiquement après pré-remplissage
+            setTimeout(() => {
+                if (this.shouldAutoGenerate()) {
+                    this.generateQRCode();
+                }
+            }, 1000);
+            
+        } catch (error) {
+            console.error('❌ Erreur pré-remplissage:', error);
+            this.showAlert('Erreur lors du pré-remplissage du formulaire', 'error');
+        }
+    }
+
+    /**
+     * Détermine si la génération automatique doit être déclenchée
+     */
+    shouldAutoGenerate() {
+        // Générer automatiquement si c'est une action rapide
+        return this.prefillData && this.prefillData.quickGenerate === true;
+    }
+
+    /**
+     * Remplit les champs du formulaire avec les données fournies
+     * @param {Object} fields - Champs à remplir
+     */
+    fillFormFields(fields) {
+        Object.keys(fields).forEach(field => {
+            const element = document.getElementById(field);
+            if (element && fields[field] !== undefined && fields[field] !== null) {
+                element.value = fields[field];
+                
+                // Déclencher les événements de changement si nécessaire
+                if (field === 'registrationNumber') {
+                    this.autoFillFromExistingMember(fields[field]);
+                }
+            }
+        });
     }
 
     autoFillFromExistingMember(registrationNumber) {
         if (!registrationNumber || registrationNumber.length < 3) return;
         
         try {
-            const member = apiService.getMemberByRegistrationNumber(registrationNumber.trim());
-            if (member) {
-                this.fillFormFields({
-                    firstName: member.firstName,
-                    lastName: member.lastName,
-                    occupation: member.occupation || 'student',
-                    phoneNumber: member.phoneNumber || '',
-                    studyWorkPlace: member.studyOrWorkPlace || ''
-                });
-                
-                this.showAlert(`Membre ${member.firstName} ${member.lastName} trouvé!`, 'success');
+            // Utiliser le service API pour trouver le membre
+            if (window.apiService && typeof window.apiService.getMemberByRegistrationNumber === 'function') {
+                const member = window.apiService.getMemberByRegistrationNumber(registrationNumber.trim());
+                if (member && !this.prefillData) {
+                    // Auto-remplir seulement si pas déjà pré-rempli
+                    this.fillFormFields({
+                        firstName: member.firstName,
+                        lastName: member.lastName,
+                        occupation: member.occupation || 'student',
+                        phoneNumber: member.phoneNumber || '',
+                        studyWorkPlace: member.studyOrWorkPlace || ''
+                    });
+                    
+                    this.showAlert(`Membre ${member.firstName} ${member.lastName} trouvé!`, 'success');
+                }
             }
         } catch (error) {
             console.warn('Erreur lors de l\'auto-remplissage:', error);
         }
-    }
-
-    fillFormFields(fields) {
-        Object.keys(fields).forEach(field => {
-            const element = document.getElementById(field);
-            if (element && fields[field] !== undefined) {
-                element.value = fields[field];
-            }
-        });
-    }
-
-    async loadSampleMembers() {
-        const container = document.getElementById('sampleMembers');
-        if (!container) {
-            console.warn('Conteneur sampleMembers non trouvé');
-            return;
-        }
-
-        console.log('👥 Chargement des membres pour QR...');
-
-        try {
-            // Attendre que les membres soient chargés
-            if (!apiService.members || apiService.members.length === 0) {
-                await apiService.fetchMembers();
-            }
-
-            if (!apiService.members || apiService.members.length === 0) {
-                container.innerHTML = this.getNoMembersHTML();
-                return;
-            }
-
-            container.innerHTML = '';
-            
-            // Afficher les membres avec indicateur de statut
-            const sampleMembers = this.getMembersForQRGeneration();
-            
-            sampleMembers.forEach((member, index) => {
-                const memberCol = this.createSampleMemberCard(member, index);
-                container.appendChild(memberCol);
-            });
-
-            console.log(`✅ ${sampleMembers.length} membres affichés pour QR`);
-            
-        } catch (error) {
-            console.error('Erreur lors du chargement des membres:', error);
-            container.innerHTML = this.getErrorMembersHTML();
-        }
-    }
-
-    getMembersForQRGeneration() {
-        if (!apiService.members || apiService.members.length === 0) {
-            return [];
-        }
-        
-        const members = [...apiService.members];
-        return members
-            .sort((a, b) => new Date(b.joinDate || 0) - new Date(a.joinDate || 0))
-            .slice(0, 12);
-    }
-
-    getNoMembersHTML() {
-        return `
-            <div class="col-12">
-                <div class="text-center py-4">
-                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">Aucun membre disponible</h5>
-                    <p class="text-muted">Les membres apparaîtront ici une fois chargés</p>
-                    <button class="btn btn-primary" onclick="qrGenerator.retryLoadMembers()">
-                        <i class="fas fa-sync me-1"></i>Actualiser
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    getErrorMembersHTML() {
-        return `
-            <div class="col-12">
-                <div class="text-center py-4">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                    <h5 class="text-warning">Erreur de chargement</h5>
-                    <p class="text-muted">Impossible de charger les membres</p>
-                    <button class="btn btn-warning" onclick="qrGenerator.retryLoadMembers()">
-                        <i class="fas fa-redo me-1"></i>Réessayer
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    async retryLoadMembers() {
-        await this.loadSampleMembers();
-    }
-
-    createSampleMemberCard(member, index) {
-        const memberCol = document.createElement('div');
-        memberCol.className = 'col-md-6 col-lg-4 col-xl-3 mb-3';
-        
-        const initials = utils.getInitials(member.firstName, member.lastName);
-        const profileImageUrl = apiService.getProfileImageUrl(member.profileImage);
-        const occupationIcon = this.getOccupationIcon(member.occupation);
-        const hasRecentQR = this.hasRecentQRCode(member.registrationNumber);
-        
-        memberCol.innerHTML = `
-            <div class="card sample-member-card h-100 ${hasRecentQR ? 'border-success' : ''}">
-                <div class="card-body text-center">
-                    ${hasRecentQR ? `
-                        <div class="position-absolute top-0 end-0 m-2">
-                            <span class="badge bg-success" title="QR code généré récemment">
-                                <i class="fas fa-check-circle me-1"></i>Récent
-                            </span>
-                        </div>
-                    ` : ''}
-                    
-                    <div class="member-avatar small position-relative mx-auto mb-2">
-                        ${profileImageUrl ? 
-                            `<img src="${profileImageUrl}" alt="${member.firstName} ${member.lastName}" 
-                                  class="profile-image small"
-                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                            ''
-                        }
-                        <div class="initials-avatar small ${profileImageUrl ? 'd-none' : ''}">
-                            ${initials}
-                        </div>
-                        <div class="occupation-badge small">
-                            <i class="fas ${occupationIcon}"></i>
-                        </div>
-                    </div>
-                    
-                    <h6 class="card-title mb-1">${member.firstName} ${member.lastName}</h6>
-                    <span class="badge bg-primary mb-2">${utils.formatOccupation(member.occupation)}</span>
-                    <p class="card-text">
-                        <small class="text-muted member-id-display">${member.registrationNumber}</small>
-                    </p>
-                    
-                    <div class="member-qr-status small text-muted mb-2">
-                        <i class="fas fa-qrcode me-1"></i>
-                        ${this.getQRStatusText(member.registrationNumber)}
-                    </div>
-                    
-                    <div class="btn-group w-100" role="group">
-                        <button class="btn btn-outline-primary btn-sm quick-generate-btn" 
-                                data-registration="${member.registrationNumber}">
-                            <i class="fas fa-bolt me-1"></i>Rapide
-                        </button>
-                        <button class="btn btn-outline-success btn-sm customize-btn" 
-                                data-registration="${member.registrationNumber}">
-                            <i class="fas fa-edit me-1"></i>Personnaliser
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Ajouter les événements après la création de l'élément
-        this.attachMemberCardEvents(memberCol, member);
-        
-        return memberCol;
-    }
-
-    attachMemberCardEvents(memberCol, member) {
-        const quickGenerateBtn = memberCol.querySelector('.quick-generate-btn');
-        const customizeBtn = memberCol.querySelector('.customize-btn');
-        
-        if (quickGenerateBtn) {
-            quickGenerateBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.quickGenerateQR(member.registrationNumber);
-            });
-        }
-        
-        if (customizeBtn) {
-            customizeBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.generateMemberQR(member.registrationNumber);
-            });
-        }
-    }
-
-    hasRecentQRCode(registrationNumber) {
-        return this.recentQRCodes.some(qr => 
-            qr.registrationNumber === registrationNumber
-        );
-    }
-
-    getQRStatusText(registrationNumber) {
-        const recentQR = this.recentQRCodes.find(qr => qr.registrationNumber === registrationNumber);
-        if (!recentQR) return 'Jamais généré';
-        
-        const generatedDate = new Date(recentQR.generatedAt);
-        return `Généré ${generatedDate.toLocaleDateString('fr-FR')}`;
     }
 
     // 🎯 GÉNÉRATION RAPIDE
@@ -309,7 +272,7 @@ class QRGenerator {
 
         console.log('⚡ Génération QR rapide pour:', registrationNumber);
         
-        const member = apiService.getMemberByRegistrationNumber(registrationNumber);
+        const member = this.getMemberByRegistrationNumber(registrationNumber);
         if (member) {
             const memberData = {
                 registrationNumber: member.registrationNumber,
@@ -328,25 +291,33 @@ class QRGenerator {
         }
     }
 
+    /**
+     * Obtient un membre par son numéro d'enregistrement
+     */
+    getMemberByRegistrationNumber(registrationNumber) {
+        if (window.apiService && typeof window.apiService.getMemberByRegistrationNumber === 'function') {
+            return window.apiService.getMemberByRegistrationNumber(registrationNumber);
+        }
+        
+        // Fallback: chercher dans les membres chargés
+        if (window.membersSystem && window.membersSystem.members) {
+            return window.membersSystem.members.find(m => 
+                m.registrationNumber === registrationNumber
+            );
+        }
+        
+        return null;
+    }
+
     // 🎯 GÉNÉRATION AVEC PERSONNALISATION
     generateMemberQR(registrationNumber) {
         console.log('🎨 Génération QR personnalisé pour:', registrationNumber);
         
-        const member = apiService.getMemberByRegistrationNumber(registrationNumber);
+        const member = this.getMemberByRegistrationNumber(registrationNumber);
         if (member) {
-            this.fillFormFields({
-                registrationNumber: member.registrationNumber,
-                firstName: member.firstName,
-                lastName: member.lastName,
-                occupation: member.occupation || 'student',
-                phoneNumber: member.phoneNumber || '',
-                studyWorkPlace: member.studyOrWorkPlace || ''
-            });
-            
-            // Scroll vers le formulaire
-            document.getElementById('qrGeneratorForm').scrollIntoView({ behavior: 'smooth' });
-            
-            this.showAlert(`📝 Formulaire rempli pour ${member.firstName} ${member.lastName}`, 'info');
+            this.prefillForm(member);
+        } else {
+            this.showAlert('Membre non trouvé', 'error');
         }
     }
 
@@ -396,19 +367,32 @@ class QRGenerator {
             return false;
         }
         
+        // Validation du format du numéro d'inscription
+        if (!this.isValidRegistrationNumber(registrationNumber)) {
+            this.showAlert('Format de numéro d\'inscription invalide', 'warning');
+            return false;
+        }
+        
         return true;
+    }
+
+    isValidRegistrationNumber(regNumber) {
+        // Accepter les formats: ACM123, M123, 123
+        const regex = /^(ACM)?\d+$/i;
+        return regex.test(regNumber);
     }
 
     prepareMemberData(formData) {
         const memberData = {
-            registrationNumber: formData.registrationNumber,
+            registrationNumber: this.normalizeRegistrationNumber(formData.registrationNumber),
             firstName: formData.firstName,
             lastName: formData.lastName,
             occupation: formData.occupation,
             phoneNumber: formData.phoneNumber || undefined,
             studyOrWorkPlace: formData.studyWorkPlace || undefined,
             timestamp: new Date().toISOString(),
-            generatedBy: 'ACM System'
+            generatedBy: 'ACM System',
+            source: this.prefillData ? 'prefilled' : 'manual'
         };
 
         // Nettoyer les données
@@ -419,6 +403,24 @@ class QRGenerator {
         });
 
         return memberData;
+    }
+
+    normalizeRegistrationNumber(regNumber) {
+        if (!regNumber) return regNumber;
+        
+        // Standardiser le format: ACM + numéro
+        let normalized = regNumber.toUpperCase().trim();
+        
+        if (normalized.startsWith('M') && normalized.length > 1) {
+            const numberPart = normalized.substring(1);
+            if (/^\d+$/.test(numberPart)) {
+                normalized = 'ACM' + numberPart;
+            }
+        } else if (/^\d+$/.test(normalized)) {
+            normalized = 'ACM' + normalized;
+        }
+        
+        return normalized;
     }
 
     // 🎯 MÉTHODE PRINCIPALE DE GÉNÉRATION
@@ -470,6 +472,9 @@ class QRGenerator {
             // Sauvegarder dans les récents
             this.saveToRecentQRCodes(memberData);
             
+            // Réinitialiser les données de pré-remplissage
+            this.prefillData = null;
+            
             console.log('🎉 QR code affiché avec succès');
             
         } catch (error) {
@@ -482,9 +487,12 @@ class QRGenerator {
 
     getLoadingHTML() {
         return `
-            <div class="text-center">
-                <div class="spinner-border text-primary mb-2"></div>
-                <p>Génération du QR code...</p>
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+                <p class="text-muted">Génération du QR code en cours...</p>
+                <div class="progress mt-2" style="height: 4px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                </div>
             </div>
         `;
     }
@@ -495,7 +503,8 @@ class QRGenerator {
             qrcodeContainer.innerHTML = `
                 <div class="alert alert-danger text-center">
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    Erreur lors de la génération du QR code: ${error.message}
+                    <strong>Erreur de génération</strong><br>
+                    <small>${error.message}</small>
                 </div>
             `;
         }
@@ -519,7 +528,7 @@ class QRGenerator {
         // Mettre à jour seulement les éléments existants
         if (elements.displayRegNumber) elements.displayRegNumber.textContent = memberData.registrationNumber;
         if (elements.displayName) elements.displayName.textContent = `${memberData.firstName} ${memberData.lastName}`;
-        if (elements.displayOccupation) elements.displayOccupation.textContent = utils.formatOccupation(memberData.occupation);
+        if (elements.displayOccupation) elements.displayOccupation.textContent = this.formatOccupation(memberData.occupation);
         if (elements.displayPhone) elements.displayPhone.textContent = memberData.phoneNumber || 'Non fourni';
         if (elements.displayStudyWork) elements.displayStudyWork.textContent = memberData.studyOrWorkPlace || 'Non fourni';
         if (elements.displayTimestamp) elements.displayTimestamp.textContent = new Date().toLocaleString('fr-FR');
@@ -530,6 +539,17 @@ class QRGenerator {
         
         this.currentQRCode = memberData;
         this.showAlert('🎉 QR code généré avec succès!', 'success');
+    }
+
+    formatOccupation(occupation) {
+        const occupations = {
+            'student': 'Étudiant',
+            'employee': 'Employé',
+            'entrepreneur': 'Entrepreneur',
+            'unemployed': 'Sans emploi',
+            'other': 'Autre'
+        };
+        return occupations[occupation] || occupation;
     }
 
     showQRCodeSection() {
@@ -581,6 +601,248 @@ class QRGenerator {
         }
     }
 
+    // ==================== GESTION DES MEMBRES POUR QR ====================
+
+    async loadSampleMembers() {
+        const container = document.getElementById('sampleMembers');
+        if (!container) {
+            console.warn('Conteneur sampleMembers non trouvé');
+            return;
+        }
+
+        console.log('👥 Chargement des membres pour QR...');
+
+        try {
+            // Afficher le loading
+            container.innerHTML = this.getMembersLoadingHTML();
+
+            // Attendre que les membres soient chargés
+            if (!this.hasMembersData()) {
+                await this.waitForMembersData();
+            }
+
+            if (!this.hasMembersData()) {
+                container.innerHTML = this.getNoMembersHTML();
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            // Afficher les membres avec indicateur de statut
+            const sampleMembers = this.getMembersForQRGeneration();
+            
+            sampleMembers.forEach((member, index) => {
+                const memberCol = this.createSampleMemberCard(member, index);
+                container.appendChild(memberCol);
+            });
+
+            console.log(`✅ ${sampleMembers.length} membres affichés pour QR`);
+            
+        } catch (error) {
+            console.error('Erreur lors du chargement des membres:', error);
+            container.innerHTML = this.getErrorMembersHTML();
+        }
+    }
+
+    hasMembersData() {
+        return (window.apiService && window.apiService.members && window.apiService.members.length > 0) ||
+               (window.membersSystem && window.membersSystem.members && window.membersSystem.members.length > 0);
+    }
+
+    async waitForMembersData() {
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const checkInterval = setInterval(() => {
+                attempts++;
+                
+                if (this.hasMembersData() || attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 500);
+        });
+    }
+
+    getMembersForQRGeneration() {
+        let members = [];
+        
+        if (window.apiService && window.apiService.members) {
+            members = window.apiService.members;
+        } else if (window.membersSystem && window.membersSystem.members) {
+            members = window.membersSystem.members;
+        }
+        
+        if (members.length === 0) {
+            return [];
+        }
+        
+        return members
+            .sort((a, b) => new Date(b.joinDate || 0) - new Date(a.joinDate || 0))
+            .slice(0, 12);
+    }
+
+    getMembersLoadingHTML() {
+        return `
+            <div class="col-12">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary mb-3"></div>
+                    <p class="text-muted">Chargement des membres...</p>
+                </div>
+            </div>
+        `;
+    }
+
+    getNoMembersHTML() {
+        return `
+            <div class="col-12">
+                <div class="text-center py-4">
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucun membre disponible</h5>
+                    <p class="text-muted">Les membres apparaîtront ici une fois chargés</p>
+                    <button class="btn btn-primary" onclick="qrGenerator.retryLoadMembers()">
+                        <i class="fas fa-sync me-1"></i>Actualiser
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    getErrorMembersHTML() {
+        return `
+            <div class="col-12">
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-warning">Erreur de chargement</h5>
+                    <p class="text-muted">Impossible de charger les membres</p>
+                    <button class="btn btn-warning" onclick="qrGenerator.retryLoadMembers()">
+                        <i class="fas fa-redo me-1"></i>Réessayer
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    async retryLoadMembers() {
+        await this.loadSampleMembers();
+    }
+
+    createSampleMemberCard(member, index) {
+        const memberCol = document.createElement('div');
+        memberCol.className = 'col-md-6 col-lg-4 col-xl-3 mb-3';
+        
+        const initials = this.getInitials(member.firstName, member.lastName);
+        const profileImageUrl = this.getProfileImageUrl(member);
+        const occupationIcon = this.getOccupationIcon(member.occupation);
+        const hasRecentQR = this.hasRecentQRCode(member.registrationNumber);
+        
+        memberCol.innerHTML = `
+            <div class="card sample-member-card h-100 ${hasRecentQR ? 'border-success' : ''}" 
+                 style="animation-delay: ${index * 0.1}s">
+                <div class="card-body text-center">
+                    ${hasRecentQR ? `
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge bg-success" title="QR code généré récemment">
+                                <i class="fas fa-check-circle me-1"></i>Récent
+                            </span>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="member-avatar small position-relative mx-auto mb-2">
+                        ${profileImageUrl ? 
+                            `<img src="${profileImageUrl}" alt="${member.firstName} ${member.lastName}" 
+                                  class="profile-image small"
+                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                            ''
+                        }
+                        <div class="initials-avatar small ${profileImageUrl ? 'd-none' : ''}">
+                            ${initials}
+                        </div>
+                        <div class="occupation-badge small">
+                            <i class="fas ${occupationIcon}"></i>
+                        </div>
+                    </div>
+                    
+                    <h6 class="card-title mb-1">${member.firstName} ${member.lastName}</h6>
+                    <span class="badge bg-primary mb-2">${this.formatOccupation(member.occupation)}</span>
+                    <p class="card-text">
+                        <small class="text-muted member-id-display">${member.registrationNumber}</small>
+                    </p>
+                    
+                    <div class="member-qr-status small text-muted mb-2">
+                        <i class="fas fa-qrcode me-1"></i>
+                        ${this.getQRStatusText(member.registrationNumber)}
+                    </div>
+                    
+                    <div class="btn-group w-100" role="group">
+                        <button class="btn btn-outline-primary btn-sm quick-generate-btn" 
+                                data-registration="${member.registrationNumber}"
+                                title="Génération rapide">
+                            <i class="fas fa-bolt me-1"></i>Rapide
+                        </button>
+                        <button class="btn btn-outline-success btn-sm customize-btn" 
+                                data-registration="${member.registrationNumber}"
+                                title="Personnaliser et générer">
+                            <i class="fas fa-edit me-1"></i>Personnaliser
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Ajouter les événements après la création de l'élément
+        this.attachMemberCardEvents(memberCol, member);
+        
+        return memberCol;
+    }
+
+    getInitials(firstName, lastName) {
+        const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
+        const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+        return (firstInitial + lastInitial).substring(0, 2);
+    }
+
+    getProfileImageUrl(member) {
+        if (window.apiService && typeof window.apiService.getProfileImageUrl === 'function') {
+            return window.apiService.getProfileImageUrl(member.profileImage);
+        }
+        return member.profileImage;
+    }
+
+    attachMemberCardEvents(memberCol, member) {
+        const quickGenerateBtn = memberCol.querySelector('.quick-generate-btn');
+        const customizeBtn = memberCol.querySelector('.customize-btn');
+        
+        if (quickGenerateBtn) {
+            quickGenerateBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.quickGenerateQR(member.registrationNumber);
+            });
+        }
+        
+        if (customizeBtn) {
+            customizeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.generateMemberQR(member.registrationNumber);
+            });
+        }
+    }
+
+    hasRecentQRCode(registrationNumber) {
+        return this.recentQRCodes.some(qr => 
+            qr.registrationNumber === registrationNumber
+        );
+    }
+
+    getQRStatusText(registrationNumber) {
+        const recentQR = this.recentQRCodes.find(qr => qr.registrationNumber === registrationNumber);
+        if (!recentQR) return 'Jamais généré';
+        
+        const generatedDate = new Date(recentQR.generatedAt);
+        return `Généré ${generatedDate.toLocaleDateString('fr-FR')}`;
+    }
+
     renderRecentQRCodes() {
         const container = document.getElementById('recentQRCodesContainer');
         if (!container) return;
@@ -592,8 +854,8 @@ class QRGenerator {
         
         container.innerHTML = '';
         
-        this.recentQRCodes.forEach(qrCode => {
-            const qrItem = this.createRecentQRItem(qrCode);
+        this.recentQRCodes.forEach((qrCode, index) => {
+            const qrItem = this.createRecentQRItem(qrCode, index);
             container.appendChild(qrItem);
         });
     }
@@ -608,7 +870,7 @@ class QRGenerator {
         `;
     }
 
-    createRecentQRItem(qrCode) {
+    createRecentQRItem(qrCode, index) {
         const col = document.createElement('div');
         col.className = 'col-md-6 col-lg-4 mb-3';
         
@@ -618,7 +880,7 @@ class QRGenerator {
         });
         
         col.innerHTML = `
-            <div class="card recent-qr-card h-100">
+            <div class="card recent-qr-card h-100" style="animation-delay: ${index * 0.1}s">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h6 class="card-title mb-0">${qrCode.firstName} ${qrCode.lastName}</h6>
@@ -632,7 +894,7 @@ class QRGenerator {
                     <div class="member-details small text-muted mb-3">
                         <div class="d-flex justify-content-between mb-1">
                             <span>Occupation:</span>
-                            <span>${utils.formatOccupation(qrCode.occupation)}</span>
+                            <span>${this.formatOccupation(qrCode.occupation)}</span>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span>Généré à:</span>
@@ -642,12 +904,14 @@ class QRGenerator {
                     
                     <div class="btn-group w-100" role="group">
                         <button class="btn btn-outline-primary btn-sm regenerate-btn" 
-                                data-registration="${qrCode.registrationNumber}">
+                                data-registration="${qrCode.registrationNumber}"
+                                title="Regénérer le QR code">
                             <i class="fas fa-redo me-1"></i>Regénérer
                         </button>
                         <button class="btn btn-outline-success btn-sm template-btn" 
-                                data-registration="${qrCode.registrationNumber}">
-                            <i class="fas fa-copy me-1"></i>Modifier
+                                data-registration="${qrCode.registrationNumber}"
+                                title="Utiliser comme modèle">
+                            <i class="fas fa-copy me-1"></i>Modèle
                         </button>
                     </div>
                 </div>
@@ -688,17 +952,7 @@ class QRGenerator {
     useAsTemplate(registrationNumber) {
         const qrCode = this.recentQRCodes.find(qr => qr.registrationNumber === registrationNumber);
         if (qrCode) {
-            this.fillFormFields({
-                registrationNumber: qrCode.registrationNumber,
-                firstName: qrCode.firstName,
-                lastName: qrCode.lastName,
-                occupation: qrCode.occupation,
-                phoneNumber: qrCode.phoneNumber || '',
-                studyWorkPlace: qrCode.studyOrWorkPlace || ''
-            });
-            
-            document.getElementById('qrGeneratorForm').scrollIntoView({ behavior: 'smooth' });
-            this.showAlert('Formulaire rempli avec le modèle sélectionné', 'info');
+            this.prefillForm(qrCode);
         }
     }
 
@@ -746,6 +1000,7 @@ class QRGenerator {
         }
         
         this.currentQRCode = null;
+        this.prefillData = null;
         this.showAlert('Formulaire réinitialisé', 'info');
     }
 
@@ -766,6 +1021,8 @@ class QRGenerator {
         // Utiliser le système d'alerte existant s'il est disponible
         if (window.attendance && typeof window.attendance.showAlert === 'function') {
             window.attendance.showAlert(message, type);
+        } else if (window.appController && typeof window.appController.showNotification === 'function') {
+            window.appController.showNotification(message, type);
         } else {
             this.showFallbackAlert(message, type);
         }
@@ -811,11 +1068,21 @@ class QRGenerator {
         this.recentQRCodes = [];
         this.quickActionsSetup = false;
         this.isGenerating = false;
+        this.prefillData = null;
     }
 }
 
 // Create global instance
 const qrGenerator = new QRGenerator();
 
-// Exposer globalement pour le débogage
+// Exposer globalement pour le débogage et la liaison
 window.qrGenerator = qrGenerator;
+
+// Initialisation automatique si on est sur la page QR Generator
+document.addEventListener('DOMContentLoaded', function() {
+    const qrPage = document.getElementById('qr-generator');
+    if (qrPage && (qrPage.style.display === 'block' || qrPage.classList.contains('active'))) {
+        console.log('🚀 Initialisation automatique du générateur QR');
+        qrGenerator.initializeQRGenerator();
+    }
+});
