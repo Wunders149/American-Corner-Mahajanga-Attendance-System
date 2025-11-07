@@ -23,6 +23,10 @@ class AppController {
             
             this.isInitialized = true;
             console.log('✅ Application initialisée avec succès');
+            
+            // Afficher le statut système
+            this.showSystemStatus();
+            
         } catch (error) {
             console.error('❌ Erreur lors de l\'initialisation:', error);
             this.showErrorPage('Erreur lors du démarrage de l\'application');
@@ -30,18 +34,43 @@ class AppController {
     }
 
     async initializeApp() {
-        // Load members data
-        await this.loadMembers();
-        
-        // Initialize modules
-        await this.initializeModules();
-        
-        // Initialize based on current URL
-        const hash = window.location.hash.substring(1);
-        if (hash && this.validPages.includes(hash)) {
-            await this.loadPage(hash);
-        } else {
-            await this.loadPage('home');
+        try {
+            console.log('🔄 Initialisation des services...');
+            
+            // 1. Charger les membres (ne pas attendre si l'API est lente)
+            this.loadMembers().then(() => {
+                console.log('✅ Chargement des membres terminé');
+            }).catch(error => {
+                console.warn('⚠️ Chargement des membres en arrière-plan:', error);
+            });
+            
+            // 2. Initialiser les modules
+            await this.initializeModules();
+            
+            // 3. Charger la page initiale
+            const hash = window.location.hash.substring(1);
+            const initialPage = hash && this.validPages.includes(hash) ? hash : 'home';
+            await this.loadPage(initialPage);
+            
+        } catch (error) {
+            console.error('❌ Erreur initialisation app:', error);
+            throw error;
+        }
+    }
+
+    // Méthode loadMembers améliorée
+    async loadMembers() {
+        try {
+            if (typeof apiService !== 'undefined') {
+                console.log('⏳ Chargement des données membres...');
+                await apiService.fetchMembers();
+                console.log(`📊 ${apiService.members.length} membres disponibles`);
+            } else {
+                console.warn('⚠️ Service API non disponible');
+            }
+        } catch (error) {
+            console.warn('⚠️ Avertissement chargement membres:', error);
+            // Continuer avec les données démo
         }
     }
 
@@ -126,21 +155,15 @@ class AppController {
         window.addEventListener('error', (event) => {
             console.error('Erreur globale:', event.error);
         });
-    }
 
-    async loadMembers() {
-        try {
-            if (typeof apiService !== 'undefined') {
-                // Attendre que l'API charge les membres
-                if (apiService.members.length === 0) {
-                    console.log('⏳ Chargement des membres depuis API...');
-                    await apiService.fetchMembers();
-                }
-                console.log(`📊 ${apiService.members.length} membres chargés`);
-            }
-        } catch (error) {
-            console.warn('Avertissement chargement membres:', error);
-        }
+        // Online/offline detection
+        window.addEventListener('online', () => {
+            this.showNotification('Connexion rétablie', 'success');
+        });
+
+        window.addEventListener('offline', () => {
+            this.showNotification('Connexion perdue - Mode hors ligne', 'warning');
+        });
     }
 
     // Main page loading function
@@ -151,6 +174,9 @@ class AppController {
             }
 
             console.log(`📄 Chargement de la page: ${pageId}`);
+            
+            // Afficher un indicateur de chargement
+            this.showLoadingIndicator();
             
             const response = await fetch(`pages/${pageId}.html`);
             if (!response.ok) {
@@ -163,10 +189,23 @@ class AppController {
             this.showPage(pageId);
             await this.initializePage(pageId);
             
+            // Masquer l'indicateur de chargement
+            this.hideLoadingIndicator();
+            
         } catch (error) {
             console.error(`Erreur chargement page ${pageId}:`, error);
+            this.hideLoadingIndicator();
             this.showErrorPage(`Impossible de charger la page ${pageId}`);
         }
+    }
+
+    showLoadingIndicator() {
+        // Vous pouvez ajouter un indicateur de chargement global ici
+        document.documentElement.style.cursor = 'wait';
+    }
+
+    hideLoadingIndicator() {
+        document.documentElement.style.cursor = 'default';
     }
 
     // Show page and update navigation
@@ -199,7 +238,22 @@ class AppController {
             
             // Scroll to top
             window.scrollTo(0, 0);
+            
+            // Update document title
+            document.title = this.getPageTitle(pageId) + ' - American Corner Mahajanga';
         }
+    }
+
+    getPageTitle(pageId) {
+        const titles = {
+            'home': 'Accueil',
+            'about': 'À Propos',
+            'attendance': 'Présence',
+            'qr-generator': 'Générateur QR',
+            'members': 'Membres',
+            'contact': 'Contact'
+        };
+        return titles[pageId] || 'American Corner Mahajanga';
     }
 
     // Initialize page-specific functionality
@@ -346,6 +400,7 @@ class AppController {
             } catch (error) {
                 console.error('❌ Erreur initialisation members:', error);
                 this.showNotification('Erreur lors du chargement des membres', 'error');
+                this.showMembersFallback();
             }
         } else {
             console.warn('⚠️ Gestionnaire de membres non disponible');
@@ -395,7 +450,7 @@ class AppController {
     animateKPICounters() {
         const kpiCounters = document.querySelectorAll('.kpi-counter');
         kpiCounters.forEach(counter => {
-            const target = parseInt(counter.getAttribute('data-target'));
+            const target = parseInt(counter.getAttribute('data-target')) || 0;
             const duration = 2000;
             const step = target / (duration / 16);
             
@@ -469,10 +524,22 @@ class AppController {
             right: 20px;
             z-index: 9999;
             min-width: 300px;
+            max-width: 500px;
         `;
+        
+        const icons = {
+            'success': 'fa-check-circle',
+            'error': 'fa-exclamation-circle',
+            'warning': 'fa-exclamation-triangle',
+            'info': 'fa-info-circle'
+        };
+        
         notification.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="d-flex align-items-center">
+                <i class="fas ${icons[type] || 'fa-info-circle'} me-2"></i>
+                <div class="flex-grow-1">${message}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         `;
         
         // Add to page
@@ -506,9 +573,59 @@ class AppController {
             console.warn('QR Scanner non disponible pour le test');
         }
     }
+
+    // Nouvelle méthode pour surveiller l'état du système
+    showSystemStatus() {
+        const status = {
+            api: typeof apiService !== 'undefined',
+            members: apiService ? apiService.members.length : 0,
+            demoMode: apiService ? apiService.useDemoData : true,
+            modules: Object.keys(this.modules).length,
+            online: navigator.onLine
+        };
+        
+        console.log('📊 Statut système:', status);
+        
+        if (status.demoMode) {
+            setTimeout(() => {
+                this.showNotification('Mode démo actif - Données locales utilisées', 'info');
+            }, 2000);
+        }
+        
+        if (!status.online) {
+            this.showNotification('Mode hors ligne - Fonctionnalités limitées', 'warning');
+        }
+    }
+
+    // Méthode pour rafraîchir toutes les données
+    async refreshAllData() {
+        console.log('🔄 Rafraîchissement de toutes les données...');
+        
+        if (window.apiService && typeof apiService.refreshData === 'function') {
+            await apiService.refreshData();
+        }
+        
+        if (this.modules.members && typeof this.modules.members.refreshData === 'function') {
+            await this.modules.members.refreshData();
+        }
+        
+        this.showNotification('Données mises à jour', 'success');
+    }
 }
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new AppController();
 });
+
+// Quick start function for immediate feedback
+(function() {
+    // Masquer immédiatement l'indicateur de chargement initial
+    const loadingElement = document.querySelector('.spinner-border');
+    if (loadingElement) {
+        setTimeout(() => {
+            loadingElement.style.display = 'none';
+            loadingElement.nextElementSibling.style.display = 'none';
+        }, 500);
+    }
+})();

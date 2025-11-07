@@ -6,6 +6,9 @@
     <meta name="description" content="American Corner Mahajanga - Système complet de gestion des membres et présence par QR code">
     <title>American Corner Mahajanga - Système Complet</title>
     
+    <!-- Favicon inline pour éviter l'erreur 404 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇺🇸</text></svg>">
+    
     <!-- Bibliothèques -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -107,12 +110,12 @@
         </div>
     </footer>
 
-    <!-- Custom JavaScript -->
+    <!-- Custom JavaScript - NOUVEL ORDRE CORRECT -->
     <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
     <script src="js/members.js"></script>
     <script src="js/scanner.js"></script>
     <script src="js/attendance.js"></script>
     <script src="js/qr-generator.js"></script>
+    <script src="js/app.js"></script> <!-- App.js en DERNIER -->
 </body>
 </html>

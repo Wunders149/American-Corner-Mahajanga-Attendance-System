@@ -1,40 +1,56 @@
 // api.js - Version COMPLÈTE et CORRIGÉE
 const API_CONFIG = {
-    BASE_URL: "https://acm-backend-iwde.onrender.com/api/member/",
-    PROFILE_IMAGE_BASE_URL: "https://acm-backend-iwde.onrender.com/uploads/"
+    BASE_URL: "https://acm-backend-iwde.onrender.com/api/member/", // Correct Endpoint
+    PROFILE_IMAGE_BASE_URL: "https://acm-backend-iwde.onrender.com/uploads/",
+    TIMEOUT: 15000
 };
 
 class ApiService {
     constructor() {
         this.members = [];
         this.useDemoData = false;
+        this.isLoading = false;
+        this.lastError = null;
     }
 
     async fetchMembers() {
+        // Éviter les requêtes multiples
+        if (this.isLoading) {
+            console.log('⏳ Chargement déjà en cours...');
+            return this.members;
+        }
+
+        this.isLoading = true;
+        this.lastError = null;
+        
         try {
             console.log('🔗 Tentative de connexion à l\'API...');
             
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const timeoutId = setTimeout(() => {
+                console.log('⏰ Timeout API atteint (15s)');
+                controller.abort();
+            }, API_CONFIG.TIMEOUT);
             
             const response = await fetch(API_CONFIG.BASE_URL, {
                 signal: controller.signal,
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
-                }
+                },
+                mode: 'cors'
             });
             
             clearTimeout(timeoutId);
             
             if (!response.ok) {
-                throw new Error(`Erreur HTTP: ${response.status}`);
+                throw new Error(`Erreur HTTP: ${response.status} - ${response.statusText}`);
             }
             
             const data = await response.json();
             console.log('📦 Données API reçues:', data);
             
-            if (data.success && data.data) {
+            if (data.success && Array.isArray(data.data)) {
                 this.members = this.cleanMemberData(data.data);
                 this.useDemoData = false;
                 console.log(`✅ ${this.members.length} membres chargés depuis l'API`);
@@ -43,17 +59,29 @@ class ApiService {
                 throw new Error(data.message || 'Format de données invalide');
             }
         } catch (error) {
+            this.lastError = error.message;
             console.warn('❌ API indisponible, utilisation du mode démo:', error.message);
             this.members = this.getDemoMembers();
             this.useDemoData = true;
             
+            // Notification différée
             setTimeout(() => {
-                if (window.attendance) {
-                    window.attendance.showAlert('Mode démo activé - Connexion API temporairement indisponible', 'warning');
-                }
+                this.showDemoModeNotification();
             }, 1000);
             
             return this.members;
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    showDemoModeNotification() {
+        if (window.attendance && typeof window.attendance.showAlert === 'function') {
+            window.attendance.showAlert('Mode démo activé - Connexion API temporairement indisponible', 'warning');
+        } else if (window.appController && typeof window.appController.showNotification === 'function') {
+            window.appController.showNotification('Mode démo activé - Données locales utilisées', 'warning');
+        } else {
+            console.log('💡 Mode démo activé - Données locales');
         }
     }
 
@@ -73,6 +101,7 @@ class ApiService {
                 profileImage: member.profileImage || null
             };
 
+            // Standardiser le format du numéro d'enregistrement
             if (!cleanedMember.registrationNumber.startsWith('ACM')) {
                 cleanedMember.registrationNumber = `ACM${cleanedMember.registrationNumber}`;
             }
@@ -86,7 +115,7 @@ class ApiService {
     }
 
     generateRandomId() {
-        return Math.random().toString(36).substr(2, 9).toUpperCase();
+        return Math.floor(1000 + Math.random() * 9000); // 4 chiffres
     }
 
     getDemoMembers() {
@@ -102,7 +131,7 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Linux Foundation",
                 joinDate: new Date('2023-01-15').toISOString(),
-                profileImage: "profiles/linus.jpg"
+                profileImage: null
             },
             {
                 id: 2,
@@ -115,7 +144,7 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Université de Mahajanga",
                 joinDate: new Date('2023-03-20').toISOString(),
-                profileImage: "profiles/marie.jpg"
+                profileImage: null
             },
             {
                 id: 3,
@@ -128,7 +157,7 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Société ABC",
                 joinDate: new Date('2023-02-10').toISOString(),
-                profileImage: "profiles/jean.jpg"
+                profileImage: null
             },
             {
                 id: 4,
@@ -141,11 +170,11 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Campus Universitaire",
                 joinDate: new Date('2023-04-05').toISOString(),
-                profileImage: "profiles/sarah.jpg"
+                profileImage: null
             },
             {
                 id: 5,
-                registrationNumber: "M12345",
+                registrationNumber: "ACM005",
                 firstName: "John",
                 lastName: "Doe",
                 occupation: "employee",
@@ -154,11 +183,11 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Company XYZ",
                 joinDate: new Date('2023-05-15').toISOString(),
-                profileImage: "profiles/john.jpg"
+                profileImage: null
             },
             {
                 id: 6,
-                registrationNumber: "MEM1001",
+                registrationNumber: "ACM006",
                 firstName: "Paul",
                 lastName: "Martin",
                 occupation: "entrepreneur",
@@ -167,7 +196,7 @@ class ApiService {
                 address: "Mahajanga, Madagascar",
                 studyOrWorkPlace: "Startup Inc",
                 joinDate: new Date('2023-06-20').toISOString(),
-                profileImage: "profiles/paul.jpg"
+                profileImage: null
             }
         ];
     }
@@ -202,7 +231,7 @@ class ApiService {
         if (normalized.startsWith('M') && normalized.length > 1) {
             const numberPart = normalized.substring(1);
             if (/^\d+$/.test(numberPart)) {
-                normalized = 'M' + numberPart;
+                normalized = 'ACM' + numberPart;
             }
         }
         
@@ -213,14 +242,16 @@ class ApiService {
         const demoNames = [
             { firstName: "John", lastName: "Doe", email: "john.doe@example.mg" },
             { firstName: "Jane", lastName: "Smith", email: "jane.smith@example.mg" },
-            { firstName: "Paul", lastName: "Martin", email: "paul.martin@example.mg" }
+            { firstName: "Paul", lastName: "Martin", email: "paul.martin@example.mg" },
+            { firstName: "Marie", lastName: "Curie", email: "marie.curie@example.mg" }
         ];
         
         const randomName = demoNames[Math.floor(Math.random() * demoNames.length)];
+        const normalizedReg = this.normalizeRegistrationNumber(registrationNumber);
         
         return {
             id: Date.now(),
-            registrationNumber: registrationNumber,
+            registrationNumber: normalizedReg,
             firstName: randomName.firstName,
             lastName: randomName.lastName,
             occupation: "student",
@@ -276,7 +307,8 @@ class ApiService {
             total: this.members.length,
             byOccupation: {},
             withProfileImage: 0,
-            recentMembers: 0
+            recentMembers: 0,
+            demoMode: this.useDemoData
         };
 
         this.members.forEach(member => {
@@ -301,6 +333,10 @@ class ApiService {
         return this.useDemoData;
     }
 
+    getLastError() {
+        return this.lastError;
+    }
+
     searchMembers(query) {
         if (!query) return this.members;
         
@@ -315,7 +351,14 @@ class ApiService {
             (member.address && member.address.toLowerCase().includes(searchTerm))
         );
     }
+
+    // Nouvelle méthode pour rafraîchir les données
+    async refreshData() {
+        console.log('🔄 Rafraîchissement des données...');
+        return await this.fetchMembers();
+    }
 }
 
-// Create global instance
-const apiService = new ApiService();
+// Créer l'instance globale IMMÉDIATEMENT
+window.apiService = new ApiService();
+console.log('✅ Service API initialisé');

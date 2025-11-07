@@ -7,12 +7,14 @@ class MembersSystem {
         this.currentSort = 'name';
         this.searchQuery = '';
         this.searchTimeout = null;
+        this.isInitialized = false;
         this.init();
     }
 
     async init() {
         console.log('👥 Initialisation du système des membres...');
         await this.loadMembers();
+        this.isInitialized = true;
     }
 
     async loadMembers() {
@@ -140,9 +142,20 @@ class MembersSystem {
                     <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
                     <h4 class="text-primary">Chargement des membres...</h4>
                     <p class="text-muted">Récupération des profils en cours</p>
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.retryLoad()">
+                            <i class="fas fa-sync me-1"></i>Réessayer
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
+    }
+
+    async retryLoad() {
+        console.log('🔄 Nouvelle tentative de chargement...');
+        await this.loadMembers();
+        await this.loadMembersPage();
     }
 
     getNoMembersHTML() {
@@ -154,7 +167,7 @@ class MembersSystem {
                         <h3 class="text-muted">Aucun membre disponible</h3>
                         <p class="text-muted mb-4">Les membres apparaîtront ici une fois chargés depuis le système</p>
                         <div class="d-flex gap-2 justify-content-center flex-wrap">
-                            <button class="btn btn-primary" onclick="membersSystem.loadMembersPage()">
+                            <button class="btn btn-primary" onclick="membersSystem.retryLoad()">
                                 <i class="fas fa-sync me-2"></i>Actualiser
                             </button>
                             <button class="btn btn-outline-secondary" onclick="appController?.loadPage('home')">
@@ -180,6 +193,7 @@ class MembersSystem {
         const container = document.getElementById('membersContainer');
         if (!container) return;
         
+        const stats = this.getStats();
         const controlsHTML = `
             <div class="col-12 mb-4">
                 <div class="card">
@@ -191,6 +205,7 @@ class MembersSystem {
                                     <i class="fas fa-users me-2 text-primary"></i>
                                     Nos Membres
                                     <span class="badge bg-primary ms-2" id="membersCount">${this.filteredMembers.length}/${this.members.length}</span>
+                                    ${stats.demoMode ? '<span class="badge bg-warning ms-1">Démo</span>' : ''}
                                 </h5>
                             </div>
                             <div class="col-md-6 text-md-end">
@@ -213,7 +228,7 @@ class MembersSystem {
                                            id="membersSearch" 
                                            placeholder="Rechercher un membre par nom, numéro, téléphone..."
                                            value="${this.searchQuery}">
-                                    <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">
+                                    <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn" ${!this.searchQuery ? 'disabled' : ''}>
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -231,8 +246,11 @@ class MembersSystem {
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="d-flex justify-content-md-end">
+                                <div class="d-flex justify-content-md-end gap-2">
                                     ${this.renderSortDropdown()}
+                                    <button class="btn btn-outline-success btn-sm" onclick="membersSystem.refreshData()" title="Rafraîchir les données">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -256,45 +274,54 @@ class MembersSystem {
         }
     }
 
+    getStats() {
+        return {
+            demoMode: window.apiService ? window.apiService.isUsingDemoData() : true,
+            total: this.members.length,
+            filtered: this.filteredMembers.length
+        };
+    }
+
     renderFilterButtons() {
         const filters = [
-            { value: 'all', label: 'Tous' },
-            { value: 'student', label: 'Étudiants' },
-            { value: 'employee', label: 'Employés' },
-            { value: 'entrepreneur', label: 'Entrepreneurs' },
-            { value: 'other', label: 'Autres' }
+            { value: 'all', label: 'Tous', icon: 'fa-users' },
+            { value: 'student', label: 'Étudiants', icon: 'fa-graduation-cap' },
+            { value: 'employee', label: 'Employés', icon: 'fa-briefcase' },
+            { value: 'entrepreneur', label: 'Entrepreneurs', icon: 'fa-lightbulb' },
+            { value: 'other', label: 'Autres', icon: 'fa-user' }
         ];
         
         return filters.map(filter => `
             <button type="button" 
                     class="btn btn-sm ${this.currentFilter === filter.value ? 'btn-primary' : 'btn-outline-primary'}" 
-                    data-filter="${filter.value}">
-                ${filter.label}
+                    data-filter="${filter.value}"
+                    title="${filter.label}">
+                <i class="fas ${filter.icon} me-1"></i>${filter.label}
             </button>
         `).join('');
     }
 
     renderSortDropdown() {
         const sortOptions = [
-            { value: 'name', label: 'Nom A-Z' },
-            { value: 'name-desc', label: 'Nom Z-A' },
-            { value: 'recent', label: 'Récents' },
-            { value: 'oldest', label: 'Anciens' }
+            { value: 'name', label: 'Nom A-Z', icon: 'fa-sort-alpha-down' },
+            { value: 'name-desc', label: 'Nom Z-A', icon: 'fa-sort-alpha-down-alt' },
+            { value: 'recent', label: 'Récents', icon: 'fa-calendar-plus' },
+            { value: 'oldest', label: 'Anciens', icon: 'fa-calendar-minus' }
         ];
         
-        const currentSortLabel = sortOptions.find(opt => opt.value === this.currentSort)?.label || 'Trier';
+        const currentSortOption = sortOptions.find(opt => opt.value === this.currentSort) || sortOptions[0];
         
         return `
             <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-sort me-1"></i>${currentSortLabel}
+                    <i class="fas ${currentSortOption.icon} me-1"></i>${currentSortOption.label}
                 </button>
                 <ul class="dropdown-menu">
                     ${sortOptions.map(option => `
                         <li>
                             <a class="dropdown-item ${this.currentSort === option.value ? 'active' : ''}" 
                                href="#" data-sort="${option.value}">
-                                ${option.label}
+                                <i class="fas ${option.icon} me-2"></i>${option.label}
                             </a>
                         </li>
                     `).join('')}
@@ -312,6 +339,12 @@ class MembersSystem {
             searchInput.addEventListener('input', (e) => {
                 this.handleSearch(e.target.value);
             });
+            
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.handleSearch(e.target.value);
+                }
+            });
         }
         
         if (clearSearchBtn) {
@@ -323,7 +356,7 @@ class MembersSystem {
         // Filtres
         document.querySelectorAll('[data-filter]').forEach(button => {
             button.addEventListener('click', (e) => {
-                const filter = e.target.getAttribute('data-filter');
+                const filter = e.target.closest('[data-filter]').getAttribute('data-filter');
                 this.setFilter(filter);
             });
         });
@@ -332,14 +365,20 @@ class MembersSystem {
         document.querySelectorAll('[data-sort]').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const sort = e.target.getAttribute('data-sort');
+                const sort = e.target.closest('[data-sort]').getAttribute('data-sort');
                 this.setSort(sort);
             });
         });
     }
 
     handleSearch(query) {
-        this.searchQuery = query.trim().toLowerCase();
+        this.searchQuery = query.trim();
+        
+        // Mettre à jour le bouton clear
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        if (clearSearchBtn) {
+            clearSearchBtn.disabled = !this.searchQuery;
+        }
         
         clearTimeout(this.searchTimeout);
         this.searchTimeout = setTimeout(() => {
@@ -354,6 +393,12 @@ class MembersSystem {
             searchInput.value = '';
             searchInput.focus();
         }
+        
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        if (clearSearchBtn) {
+            clearSearchBtn.disabled = true;
+        }
+        
         this.applyFilters();
     }
 
@@ -388,7 +433,8 @@ class MembersSystem {
             (member.registrationNumber && member.registrationNumber.toLowerCase().includes(query)) ||
             (member.email && member.email.toLowerCase().includes(query)) ||
             (member.phoneNumber && member.phoneNumber.toLowerCase().includes(query)) ||
-            (member.studyOrWorkPlace && member.studyOrWorkPlace.toLowerCase().includes(query))
+            (member.studyOrWorkPlace && member.studyOrWorkPlace.toLowerCase().includes(query)) ||
+            (member.address && member.address.toLowerCase().includes(query))
         );
     }
 
@@ -435,9 +481,15 @@ class MembersSystem {
         });
         
         // Mettre à jour le texte d'information
-        const infoElement = document.querySelector('.text-muted i').parentElement;
+        const infoElement = document.querySelector('.text-muted i')?.parentElement;
         if (infoElement) {
             infoElement.innerHTML = `<i class="fas fa-info-circle me-1"></i>${this.getFilteredMembersText()}`;
+        }
+        
+        // Mettre à jour le bouton clear search
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        if (clearSearchBtn) {
+            clearSearchBtn.disabled = !this.searchQuery;
         }
     }
 
@@ -480,16 +532,41 @@ class MembersSystem {
     getNoResultsHTML() {
         let message = 'Aucun membre trouvé';
         let suggestion = 'Vérifiez les filtres ou la recherche';
+        let actions = '';
         
         if (this.searchQuery && this.currentFilter !== 'all') {
             message = `Aucun résultat pour "${this.searchQuery}" parmi les ${this.getFilterLabel(this.currentFilter).toLowerCase()}`;
             suggestion = 'Essayez de modifier votre recherche ou les filtres';
+            actions = `
+                <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.clearSearch()">
+                    <i class="fas fa-times me-1"></i>Effacer la recherche
+                </button>
+                <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.setFilter('all')">
+                    <i class="fas fa-users me-1"></i>Voir tous les membres
+                </button>
+            `;
         } else if (this.searchQuery) {
             message = `Aucun résultat pour "${this.searchQuery}"`;
             suggestion = 'Vérifiez l\'orthographe ou essayez d\'autres termes';
+            actions = `
+                <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.clearSearch()">
+                    <i class="fas fa-times me-1"></i>Effacer la recherche
+                </button>
+            `;
         } else if (this.currentFilter !== 'all') {
             message = `Aucun ${this.getFilterLabel(this.currentFilter).toLowerCase()} trouvé`;
             suggestion = 'Essayez un autre filtre ou affichez tous les membres';
+            actions = `
+                <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.setFilter('all')">
+                    <i class="fas fa-users me-1"></i>Voir tous les membres
+                </button>
+            `;
+        } else {
+            actions = `
+                <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.retryLoad()">
+                    <i class="fas fa-sync me-1"></i>Actualiser
+                </button>
+            `;
         }
         
         return `
@@ -499,21 +576,7 @@ class MembersSystem {
                     <h4 class="text-muted">${message}</h4>
                     <p class="text-muted mb-4">${suggestion}</p>
                     <div class="d-flex gap-2 justify-content-center flex-wrap">
-                        ${this.searchQuery ? 
-                            `<button class="btn btn-outline-primary btn-sm" onclick="membersSystem.clearSearch()">
-                                <i class="fas fa-times me-1"></i>Effacer la recherche
-                            </button>` : 
-                            ''
-                        }
-                        ${this.currentFilter !== 'all' ? 
-                            `<button class="btn btn-outline-primary btn-sm" onclick="membersSystem.setFilter('all')">
-                                <i class="fas fa-users me-1"></i>Voir tous les membres
-                            </button>` : 
-                            ''
-                        }
-                        <button class="btn btn-outline-secondary btn-sm" onclick="membersSystem.loadMembersPage()">
-                            <i class="fas fa-sync me-1"></i>Actualiser
-                        </button>
+                        ${actions}
                     </div>
                 </div>
             </div>
@@ -529,7 +592,8 @@ class MembersSystem {
         // Mise en évidence de la recherche
         const highlightText = (text) => {
             if (!this.searchQuery || !text) return text;
-            const regex = new RegExp(`(${this.searchQuery})`, 'gi');
+            const escapedQuery = this.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapedQuery})`, 'gi');
             return text.replace(regex, '<mark class="bg-warning px-1 rounded">$1</mark>');
         };
 
@@ -538,7 +602,7 @@ class MembersSystem {
                 <div class="card member-card h-100 shadow-sm">
                     <div class="card-body text-center p-4">
                         <!-- Photo de profil -->
-                        <div class="member-avatar mb-3 position-relative">
+                        <div class="member-avatar mb-3 position-relative mx-auto" style="width: 80px;">
                             ${profileImage}
                             <div class="occupation-icon position-absolute bottom-0 end-0 bg-white rounded-circle p-1 shadow-sm">
                                 <i class="fas ${occupationIcon} text-primary small"></i>
@@ -556,14 +620,17 @@ class MembersSystem {
                         
                         <!-- Informations de contact -->
                         <div class="member-contact text-muted small mb-3">
-                            ${member.email ? `<div><i class="fas fa-envelope me-1"></i>${highlightText(member.email)}</div>` : ''}
+                            ${member.email ? `<div class="text-truncate" title="${member.email}"><i class="fas fa-envelope me-1"></i>${highlightText(member.email)}</div>` : ''}
                             ${member.phoneNumber ? `<div><i class="fas fa-phone me-1"></i>${highlightText(member.phoneNumber)}</div>` : ''}
                         </div>
                         
                         <!-- Lieu d'étude/travail -->
                         ${member.studyOrWorkPlace ? `
                             <div class="member-location text-muted small mb-3">
-                                <i class="fas fa-building me-1"></i>${highlightText(member.studyOrWorkPlace)}
+                                <i class="fas fa-building me-1"></i>
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${member.studyOrWorkPlace}">
+                                    ${highlightText(member.studyOrWorkPlace)}
+                                </span>
                             </div>
                         ` : ''}
                         
@@ -602,37 +669,47 @@ class MembersSystem {
                 imageUrl = member.profileImage;
             }
             
+            // Encoder les initiales pour l'image de fallback SVG
+            const initials = this.getInitials(member.firstName, member.lastName);
+            const svgFallback = this.generateAvatarSVG(initials, '#6C7580');
+            
             return `
                 <img src="${imageUrl}" 
                      alt="${member.firstName} ${member.lastName}"
-                     class="rounded-circle member-photo"
-                     style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #f8f9fa;"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                     onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
-                <div class="avatar-placeholder rounded-circle d-none align-items-center justify-content-center bg-secondary text-white"
-                     style="width: 80px; height: 80px; border: 3px solid #f8f9fa;">
-                    <i class="fas fa-user fa-lg"></i>
-                </div>
+                     class="rounded-circle member-photo w-100 h-100"
+                     style="object-fit: cover; border: 3px solid #f8f9fa;"
+                     onerror="this.onerror=null; this.src='${svgFallback}';"
+                     onload="this.style.display='block';">
             `;
         }
         
-        // Avatar avec initiales si pas de photo
-        const colors = ['primary', 'success', 'info', 'warning', 'danger'];
+        // Avatar SVG avec initiales si pas de photo
+        const colors = ['#007bff', '#28a745', '#17a2b8', '#ffc107', '#dc3545'];
         const colorIndex = (member.id || Math.floor(Math.random() * colors.length)) % colors.length;
         const bgColor = colors[colorIndex];
+        const initials = this.getInitials(member.firstName, member.lastName);
         
-        return `
-            <div class="avatar-initials bg-${bgColor} rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-                 style="width: 80px; height: 80px; font-size: 1.5rem; border: 3px solid #f8f9fa;">
-                ${this.getInitials(member.firstName, member.lastName)}
-            </div>
+        return this.generateAvatarSVG(initials, bgColor);
+    }
+
+    generateAvatarSVG(initials, backgroundColor) {
+        const svg = `
+            <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                <rect width="80" height="80" fill="${backgroundColor}" rx="40"/>
+                <text x="40" y="45" text-anchor="middle" fill="white" font-size="24" font-family="Arial, sans-serif" font-weight="bold">
+                    ${initials}
+                </text>
+            </svg>
         `;
+        return `data:image/svg+xml;base64,${btoa(svg)}`;
     }
 
     viewMemberDetails(memberId) {
         const member = this.members.find(m => m.id === memberId);
         if (member) {
             this.showMemberModal(member);
+        } else {
+            this.showNotification('Membre non trouvé', 'error');
         }
     }
 
@@ -657,6 +734,13 @@ class MembersSystem {
         }
     }
 
+    async refreshData() {
+        console.log('🔄 Rafraîchissement des données membres...');
+        await this.loadMembers();
+        await this.loadMembersPage();
+        this.showNotification('Données mises à jour', 'success');
+    }
+
     showMemberModal(member) {
         const initials = this.getInitials(member.firstName, member.lastName);
         const profileImageUrl = window.apiService ? 
@@ -666,14 +750,17 @@ class MembersSystem {
         const occupation = this.formatOccupation(member.occupation);
         const hasProfileImage = !!member.profileImage && member.profileImage.trim() !== '';
         
-        const imageHtml = hasProfileImage ? 
+        // Générer l'image de profil pour la modal
+        const profileImageHTML = hasProfileImage ? 
             `<img src="${profileImageUrl}" 
                   alt="${member.firstName} ${member.lastName}" 
-                  class="rounded-circle"
-                  style="width: 100px; height: 100px; object-fit: cover;"
-                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                  class="rounded-circle w-100 h-100"
+                  style="object-fit: cover;"
+                  onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
                   onload="this.style.display='block'; this.nextElementSibling.style.display='none';">` : 
             '';
+        
+        const avatarSVG = this.generateAvatarSVG(initials, '#6C7580');
         
         const modalHTML = `
             <div class="modal fade" id="memberProfileModal" tabindex="-1" aria-hidden="true">
@@ -690,10 +777,10 @@ class MembersSystem {
                             <!-- En-tête du profil -->
                             <div class="row align-items-center mb-4">
                                 <div class="col-md-3 text-center">
-                                    <div class="position-relative mx-auto">
-                                        ${imageHtml}
-                                        <div class="avatar-initials bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold ${hasProfileImage ? 'd-none' : ''}"
-                                             style="width: 100px; height: 100px; font-size: 2rem;">
+                                    <div class="position-relative mx-auto" style="width: 100px; height: 100px;">
+                                        ${profileImageHTML}
+                                        <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center text-white fw-bold ${hasProfileImage ? 'd-none' : ''}"
+                                             style="width: 100px; height: 100px; font-size: 2rem; background-color: #6C7580;">
                                             ${initials}
                                         </div>
                                     </div>
@@ -777,6 +864,11 @@ class MembersSystem {
         
         const memberModal = new bootstrap.Modal(document.getElementById('memberProfileModal'));
         memberModal.show();
+        
+        // Nettoyer la modal après fermeture
+        document.getElementById('memberProfileModal').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
     }
 
     async loadMockMembers() {
@@ -816,6 +908,25 @@ class MembersSystem {
             window.appController.showNotification(message, type);
         } else {
             console.log(`💬 ${type.toUpperCase()}: ${message}`);
+            // Fallback simple
+            const alertClass = type === 'error' ? 'alert-danger' : 
+                             type === 'success' ? 'alert-success' : 
+                             type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+            alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
         }
     }
 }
