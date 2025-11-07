@@ -1269,8 +1269,9 @@ class MembersSystem {
         }
     }
 
-    // CORRECTION: Méthode showMemberModal complètement corrigée
-    showMemberModal(member) {
+    // Dans la méthode showMemberModal - Remplacer toute la gestion des modals par :
+
+showMemberModal(member) {
         const initials = this.getInitials(member.firstName, member.lastName);
         const profileImageUrl = window.apiService ? 
             window.apiService.getProfileImageUrl(member.profileImage) : 
@@ -1281,15 +1282,14 @@ class MembersSystem {
         const hasProfileImage = !!member.profileImage && member.profileImage.trim() !== '';
         const bgColor = this.getAvatarColor(member);
         
-        // Avatar pour la modal utilisant le même système robuste
         const profileImageHTML = hasProfileImage ? `
             <div class="member-avatar-container" style="width: 120px; height: 120px;">
                 <img src="${profileImageUrl}" 
-                      alt="${member.firstName} ${member.lastName}"
-                      class="member-photo actual-photo"
-                      style="border: 6px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"
-                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                      onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
+                    alt="${member.firstName} ${member.lastName}"
+                    class="member-photo actual-photo"
+                    style="border: 6px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                    onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
                 <div class="avatar-fallback" style="background-color: ${bgColor}; display: none;">
                     <span class="avatar-initials" style="font-size: 2.5rem;">${initials}</span>
                 </div>
@@ -1320,7 +1320,6 @@ class MembersSystem {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer la fenêtre"></button>
                         </div>
                         <div class="modal-body">
-                            <!-- En-tête du profil -->
                             <div class="row align-items-center mb-4">
                                 <div class="col-md-3 text-center">
                                     ${profileImageHTML}
@@ -1348,7 +1347,6 @@ class MembersSystem {
                             
                             <hr>
                             
-                            <!-- Informations détaillées -->
                             <div class="row">
                                 <div class="col-md-6">
                                     <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-primary"></i>Informations personnelles</h5>
@@ -1426,39 +1424,87 @@ class MembersSystem {
             </div>
         `;
         
-        // Gérer la modal existante
+        // Supprimer toute modal existante
         const existingModal = document.getElementById('memberProfileModal');
         if (existingModal) {
             existingModal.remove();
         }
         
+        // Ajouter la nouvelle modal
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         
         const modalElement = document.getElementById('memberProfileModal');
+        
+        // CORRECTION : Utiliser les options Bootstrap correctes pour l'accessibilité
         const modal = new bootstrap.Modal(modalElement, {
             backdrop: true,
             keyboard: true,
             focus: true
         });
         
-        // Gérer les événements d'accessibilité
+        // Gestion des événements corrigée
+        modalElement.addEventListener('show.bs.modal', () => {
+            // S'assurer que aria-hidden est correct avant l'affichage
+            modalElement.removeAttribute('aria-hidden');
+        });
+        
         modalElement.addEventListener('shown.bs.modal', () => {
-            // Focus sur le premier élément interactif quand la modal s'ouvre
+            // Focus management corrigé
             const closeButton = modalElement.querySelector('[data-bs-dismiss="modal"]');
             if (closeButton) {
                 closeButton.focus();
             }
+            
+            // S'assurer que le body a la classe correcte
+            document.body.classList.add('modal-open');
+            document.body.style.paddingRight = '0px'; // Éviter le décalage de scrollbar
+        });
+        
+        modalElement.addEventListener('hide.bs.modal', () => {
+            // Préparer la fermeture
         });
         
         modalElement.addEventListener('hidden.bs.modal', () => {
-            // Nettoyer après fermeture
+            // Nettoyage complet après fermeture
             modalElement.remove();
+            document.body.classList.remove('modal-open');
+            document.body.style.paddingRight = '';
+            
+            // Restaurer le focus sur l'élément qui a ouvert la modal
+            const activeElement = document.activeElement;
+            if (activeElement && activeElement.classList.contains('member-card')) {
+                activeElement.focus();
+            }
         });
         
-        // Gérer la navigation au clavier dans la modal
+        // Gestion du clavier
         modalElement.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 modal.hide();
+            }
+            
+            // Trap focus inside modal (accessibilité)
+            if (e.key === 'Tab') {
+                const focusableElements = modalElement.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                
+                if (focusableElements.length === 0) return;
+                
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+                
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        lastElement.focus();
+                        e.preventDefault();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        firstElement.focus();
+                        e.preventDefault();
+                    }
+                }
             }
         });
         
