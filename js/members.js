@@ -1,5 +1,5 @@
-// members-enhanced.js - Système complet amélioré de gestion des membres
-class EnhancedMembersSystem {
+// members.js - Système complet de gestion des membres American Corner Mahajanga - VERSION CORRIGÉE
+class MembersSystem {
     constructor() {
         this.members = [];
         this.filteredMembers = [];
@@ -8,13 +8,12 @@ class EnhancedMembersSystem {
         this.searchQuery = '';
         this.searchTimeout = null;
         this.isInitialized = false;
-        this.viewMode = 'grid';
+        this.viewMode = 'grid'; // 'grid' ou 'list'
         this.isLoading = false;
         this.retryCount = 0;
         this.maxRetries = 3;
         this.isOnline = navigator.onLine;
         this.isMobile = this.detectMobile();
-        
         this.init();
     }
 
@@ -24,10 +23,10 @@ class EnhancedMembersSystem {
     }
 
     async init() {
-        console.log('👥 Initialisation du système des membres amélioré...');
+        console.log('👥 Initialisation du système des membres...');
         this.setupMobileOptimizations();
         this.setupNetworkListeners();
-        await this.loadMembersWithRetry();
+        await this.loadMembers();
         this.isInitialized = true;
     }
 
@@ -61,7 +60,6 @@ class EnhancedMembersSystem {
             this.isOnline = true;
             this.showNotification('Connexion internet rétablie', 'success');
             document.body.classList.remove('network-offline');
-            this.refreshData();
         });
 
         window.addEventListener('offline', () => {
@@ -72,15 +70,41 @@ class EnhancedMembersSystem {
         });
     }
 
-    async loadMembersWithRetry() {
+    async loadMembers() {
         this.isLoading = true;
         
         try {
-            await this.loadMembers();
-            this.retryCount = 0;
+            console.log('🔄 Chargement des données membres...');
+            
+            // Priorité 1: Utiliser l'API si disponible et chargée
+            if (window.apiService && window.apiService.members && window.apiService.members.length > 0) {
+                this.members = window.apiService.members;
+                console.log(`✅ ${this.members.length} membres chargés depuis API`);
+            } 
+            // Priorité 2: Attendre que l'API se charge
+            else if (window.apiService && typeof window.apiService.fetchMembers === 'function') {
+                console.log('⏳ Chargement des membres depuis API...');
+                await window.apiService.fetchMembers();
+                
+                if (window.apiService.members && window.apiService.members.length > 0) {
+                    this.members = window.apiService.members;
+                    console.log(`✅ ${this.members.length} membres chargés depuis API après fetch`);
+                } else {
+                    throw new Error('API retourne une liste vide');
+                }
+            } 
+            // Priorité 3: Données mock en fallback
+            else {
+                console.warn('⚠️ API non disponible, chargement des données mock');
+                this.members = await this.loadMockMembers();
+                console.log(`📦 ${this.members.length} membres mock chargés`);
+            }
+            
+            this.filteredMembers = [...this.members];
             this.isLoading = false;
+            
         } catch (error) {
-            console.error('❌ Load members failed:', error);
+            console.error('❌ Erreur chargement membres:', error);
             this.isLoading = false;
             
             if (this.retryCount < this.maxRetries) {
@@ -91,110 +115,11 @@ class EnhancedMembersSystem {
                 this.showNotification(`Nouvelle tentative (${this.retryCount}/${this.maxRetries})...`, 'info');
                 
                 await new Promise(resolve => setTimeout(resolve, delay));
-                return this.loadMembersWithRetry();
+                return this.loadMembers();
             } else {
                 this.showNetworkError();
                 this.useOfflineData();
             }
-        }
-    }
-
-    async loadMembers() {
-        try {
-            console.log('🔄 Chargement des données membres...');
-            
-            if (window.apiService && window.apiService.members && window.apiService.members.length > 0) {
-                this.members = window.apiService.members;
-                console.log(`✅ ${this.members.length} membres chargés depuis API`);
-            } else if (window.apiService && typeof window.apiService.fetchMembers === 'function') {
-                console.log('⏳ Chargement des membres depuis API...');
-                await window.apiService.fetchMembers();
-                
-                if (window.apiService.members && window.apiService.members.length > 0) {
-                    this.members = window.apiService.members;
-                    console.log(`✅ ${this.members.length} membres chargés depuis API après fetch`);
-                } else {
-                    throw new Error('API retourne une liste vide');
-                }
-            } else {
-                console.warn('⚠️ API non disponible, chargement des données mock');
-                this.members = await this.loadMockMembers();
-                console.log(`📦 ${this.members.length} membres mock chargés`);
-            }
-            
-            // Pré-valider les images
-            await this.preloadProfileImages();
-            
-            // Cache les données pour une utilisation hors ligne
-            this.cacheMembersData();
-            
-            this.filteredMembers = [...this.members];
-            
-        } catch (error) {
-            console.error('❌ Erreur chargement membres:', error);
-            throw error;
-        }
-    }
-
-    async preloadProfileImages() {
-        if (!window.apiService) return;
-        
-        console.log('🖼️ Pré-validation des images de profil...');
-        const validationPromises = this.members.map(async (member) => {
-            member.hasValidImage = await window.apiService.validateProfileImage 
-                ? await window.apiService.validateProfileImage(member)
-                : false;
-            return member;
-        });
-        
-        await Promise.allSettled(validationPromises);
-        console.log('✅ Pré-validation des images terminée');
-    }
-
-    cacheMembersData() {
-        try {
-            localStorage.setItem('cachedMembers', JSON.stringify(this.members));
-            localStorage.setItem('cachedMembersTimestamp', new Date().toISOString());
-            console.log('💾 Données membres mises en cache');
-        } catch (error) {
-            console.warn('❌ Impossible de mettre en cache les données:', error);
-        }
-    }
-
-    useOfflineData() {
-        console.log('📴 Utilisation des données hors ligne...');
-        
-        try {
-            const cachedData = localStorage.getItem('cachedMembers');
-            const timestamp = localStorage.getItem('cachedMembersTimestamp');
-            
-            if (cachedData) {
-                this.members = JSON.parse(cachedData);
-                this.filteredMembers = [...this.members];
-                
-                if (timestamp) {
-                    const cacheAge = (new Date() - new Date(timestamp)) / (1000 * 60 * 60);
-                    console.log(`📅 Données cache âgées de ${cacheAge.toFixed(1)} heures`);
-                }
-                
-                this.showNotification('Données locales chargées', 'info');
-                this.renderMembers();
-            } else {
-                this.loadMockMembers().then(mockMembers => {
-                    this.members = mockMembers;
-                    this.filteredMembers = [...this.members];
-                    this.renderMembers();
-                    this.showNotification('Données de démonstration chargées', 'warning');
-                });
-            }
-        } catch (error) {
-            console.error('❌ Erreur chargement données cache:', error);
-            this.loadMockMembers().then(mockMembers => {
-                this.members = mockMembers;
-                this.filteredMembers = [...this.members];
-                this.renderMembers();
-                this.showNotification('Données de démonstration chargées', 'warning');
-            });
         }
     }
 
@@ -224,6 +149,35 @@ class EnhancedMembersSystem {
                 </div>
             </div>
         `;
+    }
+
+    useOfflineData() {
+        console.log('📴 Utilisation des données hors ligne...');
+        
+        try {
+            const cachedData = localStorage.getItem('cachedMembers');
+            if (cachedData) {
+                this.members = JSON.parse(cachedData);
+                this.filteredMembers = [...this.members];
+                this.renderMembers();
+                this.showNotification('Données locales chargées', 'info');
+            } else {
+                this.loadMockMembers().then(mockMembers => {
+                    this.members = mockMembers;
+                    this.filteredMembers = [...this.members];
+                    this.renderMembers();
+                    this.showNotification('Données de démonstration chargées', 'warning');
+                });
+            }
+        } catch (error) {
+            console.error('❌ Erreur chargement données cache:', error);
+            this.loadMockMembers().then(mockMembers => {
+                this.members = mockMembers;
+                this.filteredMembers = [...this.members];
+                this.renderMembers();
+                this.showNotification('Données de démonstration chargées', 'warning');
+            });
+        }
     }
 
     // Fonctions utilitaires
@@ -291,18 +245,15 @@ class EnhancedMembersSystem {
         return colors[colorIndex];
     }
 
-    // SYSTEME D'AVATAR ROBUSTE AMÉLIORÉ
+    // VERSION ROBUSTE - Utilisation de CSS pour les avatars
     getProfileImage(member) {
         const initials = this.getInitials(member.firstName, member.lastName);
         const bgColor = this.getAvatarColor(member);
         const occupationIcon = this.getOccupationIcon(member.occupation);
         const occupationColor = this.getOccupationColor(member.occupation);
 
-        // Vérifier si l'image existe et est valide
-        const hasValidImage = member.profileImage && member.profileImage.trim() !== '' && 
-                             (member.hasValidImage === undefined || member.hasValidImage === true);
-
-        if (hasValidImage) {
+        // Vérifier si l'image existe
+        if (member.profileImage && member.profileImage.trim() !== '') {
             let imageUrl;
             
             if (window.apiService && typeof window.apiService.getProfileImageUrl === 'function') {
@@ -311,17 +262,21 @@ class EnhancedMembersSystem {
                 imageUrl = member.profileImage;
             }
             
+            // Fallback CSS pour les images qui échouent
+            const fallbackHTML = `
+                <div class="avatar-fallback" style="background-color: ${bgColor};">
+                    <span class="avatar-initials">${initials}</span>
+                </div>
+            `;
+            
             return `
                 <div class="member-avatar-container">
                     <img src="${imageUrl}" 
                          alt="${member.firstName} ${member.lastName}"
                          class="member-photo actual-photo"
-                         loading="lazy"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                          onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
-                    <div class="avatar-fallback" style="background-color: ${bgColor}; display: none;">
-                        <span class="avatar-initials">${initials}</span>
-                    </div>
+                    ${fallbackHTML}
                     <div class="occupation-icon bg-${occupationColor}">
                         <i class="fas ${occupationIcon} text-white"></i>
                     </div>
@@ -329,7 +284,7 @@ class EnhancedMembersSystem {
             `;
         }
         
-        // Si pas de photo valide, utiliser le fallback CSS directement
+        // Si pas de photo, utiliser le fallback CSS directement
         return `
             <div class="member-avatar-container">
                 <div class="avatar-fallback" style="background-color: ${bgColor};">
@@ -344,19 +299,19 @@ class EnhancedMembersSystem {
 
     // Interface principale améliorée
     async loadMembersPage() {
-        console.log('📄 Chargement de la page membres améliorée...');
+        console.log('📄 Chargement de la page membres...');
         const container = document.getElementById('membersContainer');
         if (!container) {
             console.error('❌ Conteneur membres non trouvé');
             return;
         }
         
-        // Afficher le skeleton loading
-        container.innerHTML = this.getSkeletonLoadingHTML();
+        // Afficher le loading amélioré
+        container.innerHTML = this.getEnhancedLoadingHTML();
         
         // S'assurer que les membres sont chargés
-        if (this.members.length === 0 && !this.isLoading) {
-            await this.loadMembersWithRetry();
+        if (this.members.length === 0) {
+            await this.loadMembers();
         }
         
         if (this.members.length === 0) {
@@ -377,23 +332,26 @@ class EnhancedMembersSystem {
         console.log(`✅ ${this.members.length} membres chargés, ${this.filteredMembers.length} affichés`);
     }
 
-    getSkeletonLoadingHTML() {
-        const skeletonCount = this.isMobile ? 4 : 8;
-        return Array.from({ length: skeletonCount }, (_, i) => `
-            <div class="col-md-6 col-lg-4 col-xl-3">
-                <div class="card member-card skeleton-card" style="animation-delay: ${i * 0.1}s">
-                    <div class="card-body p-4">
-                        <div class="skeleton-avatar"></div>
-                        <div class="skeleton-line skeleton-name"></div>
-                        <div class="skeleton-line skeleton-id"></div>
-                        <div class="skeleton-line skeleton-occupation"></div>
-                        <div class="skeleton-line skeleton-contact"></div>
-                        <div class="skeleton-line skeleton-contact short"></div>
-                        <div class="skeleton-line skeleton-date"></div>
+    getEnhancedLoadingHTML() {
+        return `
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <div class="loading-spinner mb-4">
+                        <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;"></div>
+                    </div>
+                    <h3 class="text-primary mb-3">Chargement des membres</h3>
+                    <p class="text-muted mb-4">Nous préparons les profils de notre communauté</p>
+                    <div class="progress mb-3" style="height: 6px; max-width: 300px; margin: 0 auto;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 75%"></div>
+                    </div>
+                    <div class="mt-4">
+                        <button class="btn btn-outline-primary btn-lg" onclick="membersSystem.retryLoad()">
+                            <i class="fas fa-sync me-2"></i>Actualiser
+                        </button>
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
     }
 
     updateQuickStats() {
@@ -401,15 +359,16 @@ class EnhancedMembersSystem {
         const active = this.members.filter(m => {
             const joinDate = new Date(m.joinDate);
             const monthsDiff = (new Date() - joinDate) / (1000 * 60 * 60 * 24 * 30);
-            return monthsDiff <= 6;
+            return monthsDiff <= 6; // Actif si membre depuis moins de 6 mois
         }).length;
         
         const newMembers = this.members.filter(m => {
             const joinDate = new Date(m.joinDate);
             const daysDiff = (new Date() - joinDate) / (1000 * 60 * 60 * 24);
-            return daysDiff <= 30;
+            return daysDiff <= 30; // Nouveau si membre depuis moins de 30 jours
         }).length;
 
+        // Mettre à jour les éléments DOM
         const totalEl = document.getElementById('totalMembers');
         const activeEl = document.getElementById('activeMembers');
         const newEl = document.getElementById('newMembers');
@@ -434,7 +393,7 @@ class EnhancedMembersSystem {
 
     async retryLoad() {
         console.log('🔄 Nouvelle tentative de chargement...');
-        await this.loadMembersWithRetry();
+        await this.loadMembers();
         await this.loadMembersPage();
     }
 
@@ -486,7 +445,6 @@ class EnhancedMembersSystem {
                                 <div class="d-flex align-items-center justify-content-md-end gap-3">
                                     <span class="badge bg-primary fs-6" id="membersCount">${this.filteredMembers.length}/${this.members.length}</span>
                                     ${stats.demoMode ? '<span class="badge bg-warning demo-badge">Mode Démo</span>' : ''}
-                                    ${!this.isOnline ? '<span class="badge bg-secondary">Hors ligne</span>' : ''}
                                     
                                     <!-- Sélecteur de vue -->
                                     <div class="btn-group view-toggle" role="group">
@@ -558,8 +516,10 @@ class EnhancedMembersSystem {
         
         container.innerHTML = controlsHTML;
         
+        // Configurer les événements
         this.setupEnhancedControlsEventListeners();
         
+        // Focus sur la barre de recherche
         const searchInput = document.getElementById('membersSearch');
         if (searchInput) {
             searchInput.focus();
@@ -624,6 +584,7 @@ class EnhancedMembersSystem {
     }
 
     setupEnhancedControlsEventListeners() {
+        // Recherche
         const searchInput = document.getElementById('membersSearch');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         
@@ -645,6 +606,7 @@ class EnhancedMembersSystem {
             });
         }
         
+        // Filtres
         document.querySelectorAll('[data-filter]').forEach(button => {
             button.addEventListener('click', (e) => {
                 const filter = e.target.closest('[data-filter]').getAttribute('data-filter');
@@ -652,6 +614,7 @@ class EnhancedMembersSystem {
             });
         });
         
+        // Tri
         document.querySelectorAll('[data-sort]').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -664,6 +627,7 @@ class EnhancedMembersSystem {
     handleSearch(query) {
         this.searchQuery = query.trim();
         
+        // Mettre à jour le bouton clear
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         if (clearSearchBtn) {
             clearSearchBtn.disabled = !this.searchQuery;
@@ -780,6 +744,7 @@ class EnhancedMembersSystem {
     }
 
     updateControlsState() {
+        // Mettre à jour les boutons de filtre actifs
         document.querySelectorAll('[data-filter]').forEach(button => {
             const filter = button.getAttribute('data-filter');
             const filterConfig = {
@@ -799,11 +764,13 @@ class EnhancedMembersSystem {
             }
         });
         
+        // Mettre à jour le texte d'information
         const infoElement = document.getElementById('membersSubtitle');
         if (infoElement) {
             infoElement.textContent = this.getFilteredMembersText();
         }
         
+        // Mettre à jour le bouton clear search
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         if (clearSearchBtn) {
             clearSearchBtn.disabled = !this.searchQuery;
@@ -841,7 +808,7 @@ class EnhancedMembersSystem {
             return;
         }
         
-        if (this.viewMode === 'list' || this.isMobile) {
+        if (this.viewMode === 'list') {
             container.innerHTML = this.filteredMembers.map(member => 
                 this.createMemberListCard(member)
             ).join('');
@@ -909,10 +876,6 @@ class EnhancedMembersSystem {
     }
 
     createMemberGridCard(member, index) {
-        if (this.isMobile) {
-            return this.createMobileMemberCard(member, index);
-        }
-
         const profileImage = this.getProfileImage(member);
         const joinDate = this.formatDate(member.joinDate);
         const occupation = this.formatOccupation(member.occupation);
@@ -927,19 +890,23 @@ class EnhancedMembersSystem {
 
         return `
             <div class="col-md-6 col-lg-4 col-xl-3">
-                <div class="card member-card h-100" style="animation-delay: ${index * 0.1}s" tabindex="0">
+                <div class="card member-card h-100" style="animation-delay: ${index * 0.1}s">
                     <div class="card-body p-4">
+                        <!-- Photo de profil avec système robuste -->
                         ${profileImage}
                         
+                        <!-- Informations principales -->
                         <div class="text-center mb-3">
                             <h5 class="member-name">${highlightText(member.firstName)} ${highlightText(member.lastName)}</h5>
                             <div class="member-id">${highlightText(member.registrationNumber)}</div>
                         </div>
                         
+                        <!-- Occupation -->
                         <div class="member-occupation text-center mb-3">
                             <span class="badge bg-${occupationColor} text-white">${occupation}</span>
                         </div>
                         
+                        <!-- Informations de contact -->
                         <div class="member-contact text-muted small mb-3">
                             ${member.email ? `
                                 <div class="d-flex align-items-center mb-2">
@@ -955,6 +922,7 @@ class EnhancedMembersSystem {
                             ` : ''}
                         </div>
                         
+                        <!-- Lieu d'étude/travail -->
                         ${member.studyOrWorkPlace ? `
                             <div class="member-location mb-3">
                                 <div class="d-flex align-items-center">
@@ -966,6 +934,7 @@ class EnhancedMembersSystem {
                             </div>
                         ` : ''}
                         
+                        <!-- Date d'adhésion -->
                         <div class="member-join-date text-center">
                             <small class="text-muted">
                                 <i class="fas fa-calendar-alt me-1"></i>Membre depuis ${joinDate}
@@ -973,60 +942,17 @@ class EnhancedMembersSystem {
                         </div>
                     </div>
                     
+                    <!-- Actions -->
                     <div class="card-footer bg-transparent border-top-0 pt-0 member-actions">
                         <div class="d-grid gap-2">
                             <button class="btn btn-primary btn-sm" 
-                                    onclick="membersSystem.viewMemberDetails(${member.id})"
-                                    aria-label="Voir le profil de ${member.firstName} ${member.lastName}">
+                                    onclick="membersSystem.viewMemberDetails(${member.id})">
                                 <i class="fas fa-eye me-1"></i>Voir le Profil
                             </button>
                             <button class="btn btn-outline-secondary btn-sm" 
-                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
-                                    aria-label="Générer QR code pour ${member.firstName} ${member.lastName}">
+                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}')">
                                 <i class="fas fa-qrcode me-1"></i>Carte QR
                             </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    createMobileMemberCard(member, index) {
-        const profileImage = this.getProfileImage(member);
-        const occupation = this.formatOccupation(member.occupation);
-
-        return `
-            <div class="col-12 mb-3">
-                <div class="card member-card mobile-member-card" style="animation-delay: ${index * 0.1}s" tabindex="0">
-                    <div class="card-body p-3">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <div style="width: 60px; height: 60px;">
-                                    ${profileImage}
-                                </div>
-                            </div>
-                            <div class="col">
-                                <h6 class="mb-1 fw-bold">${member.firstName} ${member.lastName}</h6>
-                                <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
-                                    <small class="text-primary">${member.registrationNumber}</small>
-                                    <span class="badge bg-${this.getOccupationColor(member.occupation)}">
-                                        ${occupation}
-                                    </span>
-                                </div>
-                                ${member.email ? `
-                                    <small class="text-muted d-block text-truncate">
-                                        <i class="fas fa-envelope me-1"></i>${member.email}
-                                    </small>
-                                ` : ''}
-                            </div>
-                            <div class="col-auto">
-                                <button class="btn btn-primary btn-sm" 
-                                        onclick="membersSystem.viewMemberDetails(${member.id})"
-                                        aria-label="Voir le profil de ${member.firstName} ${member.lastName}">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1049,7 +975,7 @@ class EnhancedMembersSystem {
 
         return `
             <div class="col-12 mb-3">
-                <div class="card member-card" tabindex="0">
+                <div class="card member-card">
                     <div class="card-body py-3">
                         <div class="row align-items-center">
                             <div class="col-auto">
@@ -1109,6 +1035,7 @@ class EnhancedMembersSystem {
         `;
     }
 
+    // CORRECTION 1: Méthode viewMemberDetails corrigée pour l'accessibilité
     viewMemberDetails(memberId) {
         const member = this.members.find(m => m.id === memberId);
         if (member) {
@@ -1118,141 +1045,7 @@ class EnhancedMembersSystem {
         }
     }
 
-    generateMemberQR(registrationNumber) {
-        const member = this.members.find(m => m.registrationNumber === registrationNumber);
-        if (!member) {
-            this.showNotification('Membre non trouvé', 'error');
-            return;
-        }
-
-        if (window.appController) {
-            window.appController.loadPage('qr-generator');
-            setTimeout(() => {
-                if (window.qrGenerator && typeof window.qrGenerator.prefillForm === 'function') {
-                    window.qrGenerator.prefillForm(member);
-                }
-            }, 500);
-        } else {
-            this.showNotification('Redirection vers le générateur QR...', 'info');
-        }
-    }
-
-    quickContact(memberId) {
-        const member = this.members.find(m => m.id === memberId);
-        if (!member) return;
-
-        const contactOptions = [];
-        if (member.email) contactOptions.push(`📧 Email: ${member.email}`);
-        if (member.phoneNumber) contactOptions.push(`📞 Téléphone: ${member.phoneNumber}`);
-        
-        if (contactOptions.length === 0) {
-            this.showNotification('Aucune information de contact disponible', 'warning');
-            return;
-        }
-
-        const modalHTML = `
-            <div class="modal fade" id="contactModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header bg-info text-white">
-                            <h5 class="modal-title">
-                                <i class="fas fa-envelope me-2"></i>
-                                Contacter ${member.firstName} ${member.lastName}
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="contact-options">
-                                ${contactOptions.map(option => `
-                                    <div class="contact-option mb-3 p-3 border rounded">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas ${option.includes('Email') ? 'fa-envelope text-primary' : 'fa-phone text-success'} me-3 fa-lg"></i>
-                                            <div>
-                                                <strong>${option.split(': ')[0]}</strong>
-                                                <div class="text-muted">${option.split(': ')[1]}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        const existingModal = document.getElementById('contactModal');
-        if (existingModal) existingModal.remove();
-        
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        new bootstrap.Modal(document.getElementById('contactModal')).show();
-    }
-
-    async refreshData() {
-        console.log('🔄 Rafraîchissement des données membres...');
-        this.showNotification('Mise à jour des données en cours...', 'info');
-        
-        await this.loadMembersWithRetry();
-        await this.loadMembersPage();
-        
-        this.showNotification('Données mises à jour avec succès', 'success');
-    }
-
-    exportMembers() {
-        if (this.filteredMembers.length === 0) {
-            this.showNotification('Aucun membre à exporter', 'warning');
-            return;
-        }
-
-        const data = this.filteredMembers.map(member => ({
-            'Numéro': member.registrationNumber,
-            'Nom': member.lastName,
-            'Prénom': member.firstName,
-            'Occupation': this.formatOccupation(member.occupation),
-            'Email': member.email || '',
-            'Téléphone': member.phoneNumber || '',
-            'Lieu d\'étude/travail': member.studyOrWorkPlace || '',
-            'Adresse': member.address || '',
-            'Date d\'adhésion': this.formatDate(member.joinDate)
-        }));
-
-        const csv = this.convertToCSV(data);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        const timestamp = new Date().toISOString().split('T')[0];
-        link.setAttribute('href', url);
-        link.setAttribute('download', `membres_american_corner_${timestamp}.csv`);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        this.showNotification(`Liste de ${this.filteredMembers.length} membres exportée avec succès`, 'success');
-    }
-
-    convertToCSV(data) {
-        if (data.length === 0) return '';
-        
-        const headers = Object.keys(data[0]);
-        const csv = [
-            headers.join(','),
-            ...data.map(row => 
-                headers.map(header => {
-                    const value = row[header] || '';
-                    return `"${value.toString().replace(/"/g, '""')}"`;
-                }).join(',')
-            )
-        ].join('\n');
-        
-        return '\uFEFF' + csv;
-    }
-
+    // CORRECTION 2: Méthode showMemberModal complètement corrigée
     showMemberModal(member) {
         const initials = this.getInitials(member.firstName, member.lastName);
         const profileImageUrl = window.apiService ? 
@@ -1261,11 +1054,11 @@ class EnhancedMembersSystem {
         const joinDate = this.formatDate(member.joinDate);
         const occupation = this.formatOccupation(member.occupation);
         const occupationColor = this.getOccupationColor(member.occupation);
-        const hasValidImage = member.profileImage && member.profileImage.trim() !== '' && 
-                             (member.hasValidImage === undefined || member.hasValidImage === true);
+        const hasProfileImage = !!member.profileImage && member.profileImage.trim() !== '';
         const bgColor = this.getAvatarColor(member);
         
-        const profileImageHTML = hasValidImage ? `
+        // Avatar pour la modal utilisant le même système robuste
+        const profileImageHTML = hasProfileImage ? `
             <div class="member-avatar-container" style="width: 120px; height: 120px;">
                 <img src="${profileImageUrl}" 
                       alt="${member.firstName} ${member.lastName}"
@@ -1292,23 +1085,24 @@ class EnhancedMembersSystem {
         `;
         
         const modalHTML = `
-            <div class="modal fade" id="memberProfileModal" tabindex="-1" aria-hidden="true">
+            <div class="modal fade" id="memberProfileModal" tabindex="-1" aria-labelledby="memberProfileModalLabel" aria-modal="true" role="dialog">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header bg-primary text-white">
-                            <h5 class="modal-title">
+                            <h5 class="modal-title" id="memberProfileModalLabel">
                                 <i class="fas fa-user-circle me-2"></i>
-                                Profil du Membre
+                                Profil du Membre - ${member.firstName} ${member.lastName}
                             </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer la fenêtre"></button>
                         </div>
                         <div class="modal-body">
+                            <!-- En-tête du profil -->
                             <div class="row align-items-center mb-4">
                                 <div class="col-md-3 text-center">
                                     ${profileImageHTML}
                                 </div>
                                 <div class="col-md-9">
-                                    <h3 class="mb-2">${member.firstName} ${member.lastName}</h3>
+                                    <h3 class="mb-2" id="memberName">${member.firstName} ${member.lastName}</h3>
                                     <span class="badge bg-${occupationColor} fs-6 mb-3">${occupation}</span>
                                     <div class="row">
                                         <div class="col-sm-6">
@@ -1330,6 +1124,7 @@ class EnhancedMembersSystem {
                             
                             <hr>
                             
+                            <!-- Informations détaillées -->
                             <div class="row">
                                 <div class="col-md-6">
                                     <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-primary"></i>Informations personnelles</h5>
@@ -1397,7 +1192,7 @@ class EnhancedMembersSystem {
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                 <i class="fas fa-times me-1"></i>Fermer
                             </button>
-                            <button type="button" class="btn btn-primary" 
+                            <button type="button" class="btn btn-primary" id="generateQRBtn"
                                     onclick="membersSystem.generateMemberQR('${member.registrationNumber}'); bootstrap.Modal.getInstance(document.getElementById('memberProfileModal')).hide();">
                                 <i class="fas fa-qrcode me-1"></i>Générer carte QR
                             </button>
@@ -1407,6 +1202,7 @@ class EnhancedMembersSystem {
             </div>
         `;
         
+        // Gérer la modal existante
         const existingModal = document.getElementById('memberProfileModal');
         if (existingModal) {
             existingModal.remove();
@@ -1414,15 +1210,339 @@ class EnhancedMembersSystem {
         
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         
-        const memberModal = new bootstrap.Modal(document.getElementById('memberProfileModal'));
-        memberModal.show();
+        const modalElement = document.getElementById('memberProfileModal');
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
         
-        document.getElementById('memberProfileModal').addEventListener('hidden.bs.modal', function () {
+        // Gérer les événements d'accessibilité
+        modalElement.addEventListener('shown.bs.modal', () => {
+            // Focus sur le premier élément interactif quand la modal s'ouvre
+            const closeButton = modalElement.querySelector('[data-bs-dismiss="modal"]');
+            if (closeButton) {
+                closeButton.focus();
+            }
+        });
+        
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            // Nettoyer après fermeture
+            modalElement.remove();
+        });
+        
+        // Gérer la navigation au clavier dans la modal
+        modalElement.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                modal.hide();
+            }
+        });
+        
+        // Afficher la modal
+        modal.show();
+    }
+
+    generateMemberQR(registrationNumber) {
+        const member = this.members.find(m => m.registrationNumber === registrationNumber);
+        if (!member) {
+            this.showNotification('Membre non trouvé', 'error');
+            return;
+        }
+
+        // Rediriger vers le générateur QR
+        if (window.appController) {
+            window.appController.loadPage('qr-generator');
+            // Pré-remplir le formulaire
+            setTimeout(() => {
+                if (window.qrGenerator && typeof window.qrGenerator.prefillForm === 'function') {
+                    window.qrGenerator.prefillForm(member);
+                }
+            }, 500);
+        } else {
+            this.showNotification('Redirection vers le générateur QR...', 'info');
+        }
+    }
+
+    // CORRECTION: Méthode quickContact corrigée pour l'accessibilité
+    quickContact(memberId) {
+        const member = this.members.find(m => m.id === memberId);
+        if (!member) return;
+
+        const contactOptions = [];
+        if (member.email) contactOptions.push(`📧 Email: ${member.email}`);
+        if (member.phoneNumber) contactOptions.push(`📞 Téléphone: ${member.phoneNumber}`);
+        
+        if (contactOptions.length === 0) {
+            this.showNotification('Aucune information de contact disponible', 'warning');
+            return;
+        }
+
+        const modalHTML = `
+            <div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-modal="true" role="dialog">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title" id="contactModalLabel">
+                                <i class="fas fa-envelope me-2"></i>
+                                Contacter ${member.firstName} ${member.lastName}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="contact-options">
+                                ${contactOptions.map(option => `
+                                    <div class="contact-option mb-3 p-3 border rounded">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas ${option.includes('Email') ? 'fa-envelope text-primary' : 'fa-phone text-success'} me-3 fa-lg"></i>
+                                            <div>
+                                                <strong>${option.split(': ')[0]}</strong>
+                                                <div class="text-muted">${option.split(': ')[1]}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const existingModal = document.getElementById('contactModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        const modalElement = document.getElementById('contactModal');
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+        
+        // Configurer l'accessibilité
+        modalElement.addEventListener('shown.bs.modal', () => {
+            const closeButton = modalElement.querySelector('[data-bs-dismiss="modal"]');
+            if (closeButton) {
+                closeButton.focus();
+            }
+        });
+        
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            modalElement.remove();
+        });
+        
+        modal.show();
+    }
+
+    async refreshData() {
+        console.log('🔄 Rafraîchissement des données membres...');
+        this.showNotification('Mise à jour des données en cours...', 'info');
+        
+        await this.loadMembers();
+        await this.loadMembersPage();
+        
+        this.showNotification('Données mises à jour avec succès', 'success');
+    }
+
+    exportMembers() {
+        if (this.filteredMembers.length === 0) {
+            this.showNotification('Aucun membre à exporter', 'warning');
+            return;
+        }
+
+        const data = this.filteredMembers.map(member => ({
+            'Numéro': member.registrationNumber,
+            'Nom': member.lastName,
+            'Prénom': member.firstName,
+            'Occupation': this.formatOccupation(member.occupation),
+            'Email': member.email || '',
+            'Téléphone': member.phoneNumber || '',
+            'Lieu d\'étude/travail': member.studyOrWorkPlace || '',
+            'Adresse': member.address || '',
+            'Date d\'adhésion': this.formatDate(member.joinDate)
+        }));
+
+        // Créer un fichier CSV
+        const csv = this.convertToCSV(data);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.setAttribute('href', url);
+        link.setAttribute('download', `membres_american_corner_${timestamp}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showNotification(`Liste de ${this.filteredMembers.length} membres exportée avec succès`, 'success');
+    }
+
+    convertToCSV(data) {
+        if (data.length === 0) return '';
+        
+        const headers = Object.keys(data[0]);
+        const csv = [
+            headers.join(','),
+            ...data.map(row => 
+                headers.map(header => {
+                    const value = row[header] || '';
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                }).join(',')
+            )
+        ].join('\n');
+        
+        return '\uFEFF' + csv; // BOM pour Excel
+    }
+
+    showStats() {
+        const stats = this.calculateStats();
+        const modalHTML = `
+            <div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-modal="true" role="dialog">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="statsModalLabel">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Statistiques des Membres
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="border-bottom pb-2">Répartition par Occupation</h6>
+                                    <div id="occupationChart">
+                                        ${Object.entries(stats.byOccupation)
+                                            .sort((a, b) => b[1] - a[1])
+                                            .map(([occ, count]) => {
+                                                const percentage = ((count / stats.total) * 100).toFixed(1);
+                                                const occupationColor = this.getOccupationColor(occ);
+                                                return `
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span class="fw-medium">${this.formatOccupation(occ)}</span>
+                                                        <div>
+                                                            <span class="badge bg-${occupationColor} me-2">${count}</span>
+                                                            <small class="text-muted">${percentage}%</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="progress" style="height: 8px;">
+                                                        <div class="progress-bar bg-${occupationColor}" 
+                                                             style="width: ${percentage}%"
+                                                             role="progressbar">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `}).join('')}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="border-bottom pb-2">Informations Générales</h6>
+                                    <div class="list-group">
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Total des membres</span>
+                                            <strong class="text-primary">${stats.total}</strong>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Avec photo de profil</span>
+                                            <div>
+                                                <strong>${stats.withProfileImage}</strong>
+                                                <small class="text-muted ms-2">(${((stats.withProfileImage / stats.total) * 100).toFixed(1)}%)</small>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Membres récents (30j)</span>
+                                            <strong class="text-success">${stats.recentMembers}</strong>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Membres actifs (6 mois)</span>
+                                            <strong class="text-info">${stats.activeMembers}</strong>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Mode de données</span>
+                                            <strong class="${stats.demoMode ? 'text-warning' : 'text-success'}">
+                                                ${stats.demoMode ? 'Démo' : 'Live'}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                            <button type="button" class="btn btn-primary" onclick="membersSystem.exportMembers()">
+                                <i class="fas fa-download me-1"></i>Exporter les données
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Gérer la modal existante
+        const existingModal = document.getElementById('statsModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        const modalElement = document.getElementById('statsModal');
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+        
+        // Configurer l'accessibilité
+        modalElement.addEventListener('shown.bs.modal', () => {
+            const closeButton = modalElement.querySelector('[data-bs-dismiss="modal"]');
+            if (closeButton) {
+                closeButton.focus();
+            }
+        });
+        
+        modalElement.addEventListener('hidden.bs.modal', function () {
             this.remove();
         });
+        
+        modal.show();
+    }
+
+    calculateStats() {
+        const stats = {
+            total: this.members.length,
+            byOccupation: {},
+            withProfileImage: 0,
+            recentMembers: 0,
+            activeMembers: 0,
+            demoMode: window.apiService ? window.apiService.isUsingDemoData() : true
+        };
+
+        this.members.forEach(member => {
+            const occupation = member.occupation || 'other';
+            stats.byOccupation[occupation] = (stats.byOccupation[occupation] || 0) + 1;
+            
+            if (member.profileImage && member.profileImage.trim() !== '') {
+                stats.withProfileImage++;
+            }
+            
+            const joinDate = new Date(member.joinDate);
+            const daysSinceJoin = (new Date() - joinDate) / (1000 * 60 * 60 * 24);
+            if (daysSinceJoin <= 30) stats.recentMembers++;
+            if (daysSinceJoin <= 180) stats.activeMembers++; // 6 mois
+        });
+
+        return stats;
     }
 
     async loadMockMembers() {
+        // Données mock de secours
         return [
             {
                 id: 1,
@@ -1462,6 +1582,19 @@ class EnhancedMembersSystem {
                 studyOrWorkPlace: 'Société ABC',
                 joinDate: new Date('2023-06-10').toISOString(),
                 profileImage: null
+            },
+            {
+                id: 4,
+                registrationNumber: 'ACM004',
+                firstName: 'Emily',
+                lastName: 'Johnson',
+                email: 'emily.johnson@campus.edu',
+                occupation: 'student',
+                phoneNumber: '+261 33 987 6543',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'UCLA',
+                joinDate: new Date('2023-01-12').toISOString(),
+                profileImage: null
             }
         ];
     }
@@ -1471,6 +1604,7 @@ class EnhancedMembersSystem {
             window.appController.showNotification(message, type);
         } else {
             console.log(`💬 ${type.toUpperCase()}: ${message}`);
+            // Fallback simple
             const alertClass = type === 'error' ? 'alert-danger' : 
                              type === 'success' ? 'alert-success' : 
                              type === 'warning' ? 'alert-warning' : 'alert-info';
@@ -1496,40 +1630,11 @@ class EnhancedMembersSystem {
     }
 }
 
-// API Service amélioré avec validation d'images
-if (window.apiService && typeof window.apiService.validateProfileImage === 'undefined') {
-    window.apiService.validateProfileImage = async function(member) {
-        if (!member.profileImage) return false;
-        
-        try {
-            const imageUrl = this.getProfileImageUrl(member.profileImage);
-            const response = await fetch(imageUrl, { 
-                method: 'HEAD',
-                cache: 'no-cache'
-            });
-            
-            if (response.ok) {
-                const contentType = response.headers.get('content-type');
-                return contentType && contentType.startsWith('image/');
-            }
-            return false;
-        } catch (error) {
-            console.log('❌ Image validation failed:', error.message);
-            return false;
-        }
-    };
-}
-
-// Créer et exposer l'instance globale améliorée
-const membersSystem = new EnhancedMembersSystem();
+// Créer et exposer l'instance globale
+const membersSystem = new MembersSystem();
 window.membersSystem = membersSystem;
 
 // Initialisation
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Système membres amélioré prêt');
-    
-    if (!navigator.onLine) {
-        console.log('📴 Mode hors ligne détecté');
-        membersSystem.useOfflineData();
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('👥 Système membres prêt');
 });
