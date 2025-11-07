@@ -3,42 +3,63 @@ class AppController {
     constructor() {
         this.currentPage = 'home';
         this.validPages = ['home', 'about', 'attendance', 'qr-generator', 'members', 'contact'];
+        this.pages = {};
+        this.isInitialized = false;
         this.init();
     }
 
     async init() {
-        console.log('🚀 Initialisation American Corner Mahajanga...');
-        
-        // Setup event listeners first
-        this.setupEventListeners();
-        
-        // Initialize the application
-        await this.initializeApp();
-        
-        // Set as global reference
-        window.appController = this;
-        console.log('✅ Application initialisée avec succès');
+        try {
+            console.log('🚀 Initialisation American Corner Mahajanga...');
+            
+            // Setup event listeners first
+            this.setupEventListeners();
+            
+            // Set as global reference immediately
+            window.appController = this;
+            
+            // Initialize the application
+            await this.initializeApp();
+            
+            this.isInitialized = true;
+            console.log('✅ Application initialisée avec succès');
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'initialisation:', error);
+            this.showErrorPage('Erreur lors du démarrage de l\'application');
+        }
     }
 
     async initializeApp() {
-        try {
-            // Load members data
-            await this.loadMembers();
-            
-            // Initialize based on current URL
-            const hash = window.location.hash.substring(1);
-            if (hash && this.validPages.includes(hash)) {
-                await this.loadPage(hash);
-            } else {
-                await this.loadPage('home');
-            }
-        } catch (error) {
-            console.error('Erreur lors de l\'initialisation:', error);
-            this.showErrorPage('Erreur lors du chargement de l\'application');
+        // Load members data
+        await this.loadMembers();
+        
+        // Initialize based on current URL
+        const hash = window.location.hash.substring(1);
+        if (hash && this.validPages.includes(hash)) {
+            await this.loadPage(hash);
+        } else {
+            await this.loadPage('home');
         }
     }
 
     setupEventListeners() {
+        // Navigation event delegation
+        document.addEventListener('click', (e) => {
+            const navLink = e.target.closest('[data-page]');
+            if (navLink) {
+                e.preventDefault();
+                const pageId = navLink.getAttribute('data-page');
+                this.loadPage(pageId);
+            }
+            
+            // Handle logo click
+            const logo = e.target.closest('#nav-home');
+            if (logo) {
+                e.preventDefault();
+                this.loadPage('home');
+            }
+        });
+
         // Handle browser back/forward buttons
         window.addEventListener('popstate', (event) => {
             if (event.state && event.state.page) {
@@ -72,6 +93,7 @@ class AppController {
 
             console.log(`📄 Chargement de la page: ${pageId}`);
             
+            // Use fetch for external pages or internal cache
             const response = await fetch(`pages/${pageId}.html`);
             if (!response.ok) {
                 throw new Error('Page non trouvée');
@@ -107,10 +129,10 @@ class AppController {
             targetPage.classList.add('active');
             
             // Update active nav link
-            const navLink = document.querySelector(`[onclick="appController.loadPage('${pageId}')"]`);
-            if (navLink) {
-                navLink.classList.add('active');
-            }
+            const navLinks = document.querySelectorAll(`[data-page="${pageId}"]`);
+            navLinks.forEach(link => {
+                link.classList.add('active');
+            });
             
             this.currentPage = pageId;
             
@@ -206,8 +228,8 @@ class AppController {
         const kpiCounters = document.querySelectorAll('.kpi-counter');
         kpiCounters.forEach(counter => {
             const target = parseInt(counter.getAttribute('data-target'));
-            const duration = 2000; // 2 seconds
-            const step = target / (duration / 16); // 60fps
+            const duration = 2000;
+            const step = target / (duration / 16);
             
             let current = 0;
             const timer = setInterval(() => {
@@ -242,7 +264,6 @@ class AppController {
         const form = document.getElementById('contactForm');
         const formData = new FormData(form);
         
-        // Simulate form submission
         console.log('📧 Envoi du formulaire:', {
             name: formData.get('name'),
             email: formData.get('email'),
@@ -250,7 +271,7 @@ class AppController {
             message: formData.get('message')
         });
         
-        alert('Merci pour votre message! Nous vous répondrons bientôt.');
+        this.showNotification('Merci pour votre message! Nous vous répondrons bientôt.', 'success');
         form.reset();
     }
 
@@ -262,7 +283,7 @@ class AppController {
                     <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
                     <h4>Erreur</h4>
                     <p>${message}</p>
-                    <button class="btn btn-primary mt-2" onclick="appController.loadPage('home')">
+                    <button class="btn btn-primary mt-2" onclick="window.appController.loadPage('home')">
                         Retour à l'accueil
                     </button>
                 </div>
@@ -270,11 +291,37 @@ class AppController {
         `;
     }
 
+    // Notification system
+    showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = `
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+        `;
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
     // Utility function for testing scanner
     testScannerWithDemoMember() {
         console.log('🧪 Test avec membre démo ACM001');
         
-        // Simuler un scan réussi avec ACM001
         const demoQRData = JSON.stringify({
             registrationNumber: "ACM001",
             firstName: "Linus",
@@ -285,7 +332,6 @@ class AppController {
             timestamp: new Date().toISOString()
         });
         
-        // Déclencher le scan manuellement
         if (window.qrScanner && window.qrScanner.onScanSuccess) {
             window.qrScanner.onScanSuccess(demoQRData);
         } else {
@@ -328,27 +374,6 @@ const AppUtils = {
         } catch (error) {
             return dateString;
         }
-    },
-
-    showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type} alert-dismissible fade show`;
-        notification.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        
-        // Add to page
-        const container = document.querySelector('.container') || document.body;
-        container.insertBefore(notification, container.firstChild);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.remove();
-            }
-        }, 5000);
     }
 };
 
@@ -363,17 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Global error handler for uncaught errors
 window.addEventListener('error', (event) => {
     console.error('Erreur non gérée:', event.error);
-    
-    // Show user-friendly error message
-    if (window.appController) {
-        window.appController.showNotification(
-            'Une erreur inattendue s\'est produite. Veuillez rafraîchir la page.',
-            'danger'
-        );
-    }
 });
 
-// Export for module usage (if needed)
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { AppController, AppUtils };
-}
+// Make appController globally available
+window.AppController = AppController;

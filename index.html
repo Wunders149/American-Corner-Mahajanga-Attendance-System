@@ -21,7 +21,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="#" onclick="showPage('home')" aria-label="Retour à l'accueil American Corner Mahajanga">
+            <a class="navbar-brand" href="#" id="nav-home" aria-label="Retour à l'accueil American Corner Mahajanga">
                 <i class="fas fa-university me-2" aria-hidden="true"></i>
                 American Corner Mahajanga
             </a>
@@ -32,22 +32,22 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#" onclick="appController.loadPage('home')" aria-label="Aller à la page d'accueil">Accueil</a>
+                        <a class="nav-link active" href="#" data-page="home" aria-label="Aller à la page d'accueil">Accueil</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="appController.loadPage('about')" aria-label="En savoir plus sur American Corner">À Propos</a>
+                        <a class="nav-link" href="#" data-page="about" aria-label="En savoir plus sur American Corner">À Propos</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="appController.loadPage('attendance')" aria-label="Accéder au système de présence">Présence</a>
+                        <a class="nav-link" href="#" data-page="attendance" aria-label="Accéder au système de présence">Présence</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="appController.loadPage('qr-generator')" aria-label="Générer des QR codes">QR Codes</a>
+                        <a class="nav-link" href="#" data-page="qr-generator" aria-label="Générer des QR codes">QR Codes</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="appController.loadPage('members')" aria-label="Voir la liste des membres">Membres</a>
+                        <a class="nav-link" href="#" data-page="members" aria-label="Voir la liste des membres">Membres</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="appController.loadPage('contact')" aria-label="Nous contacter">Contact</a>
+                        <a class="nav-link" href="#" data-page="contact" aria-label="Nous contacter">Contact</a>
                     </li>
                 </ul>
             </div>
@@ -57,6 +57,12 @@
     <!-- Main Content Area -->
     <main id="main-content">
         <!-- Pages will be loaded here dynamically -->
+        <div class="container py-5 text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Chargement...</span>
+            </div>
+            <p class="mt-2">Chargement de l'application...</p>
+        </div>
     </main>
 
     <!-- Footer -->
@@ -76,11 +82,11 @@
                 <div class="col-md-4 mb-4 mb-md-0">
                     <h5>Liens Rapides</h5>
                     <ul class="list-unstyled">
-                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('home')">Accueil</a></li>
-                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('about')">À Propos</a></li>
-                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('attendance')">Présence</a></li>
-                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('qr-generator')">QR Codes</a></li>
-                        <li><a href="#" class="text-white text-decoration-none" onclick="showPage('contact')">Contact</a></li>
+                        <li><a href="#" class="text-white text-decoration-none" data-page="home">Accueil</a></li>
+                        <li><a href="#" class="text-white text-decoration-none" data-page="about">À Propos</a></li>
+                        <li><a href="#" class="text-white text-decoration-none" data-page="attendance">Présence</a></li>
+                        <li><a href="#" class="text-white text-decoration-none" data-page="qr-generator">QR Codes</a></li>
+                        <li><a href="#" class="text-white text-decoration-none" data-page="contact">Contact</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
