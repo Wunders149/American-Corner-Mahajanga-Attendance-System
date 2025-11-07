@@ -1,4 +1,4 @@
-// QR Generator System - Version complète avec corrections
+// QR Generator System - Version Améliorée
 class QRGenerator {
     constructor() {
         this.currentQRCode = null;
@@ -6,23 +6,25 @@ class QRGenerator {
         this.quickActionsSetup = false;
         this.isGenerating = false;
         this.prefillData = null;
+        
+        // Nouveaux gestionnaires
+        this.stateManager = new QRStateManager();
+        this.errorHandler = new ErrorHandler();
+        this.qrCache = new QRCache();
+        this.autoFillDebounce = this.debounce((value) => {
+            this.autoFillFromExistingMember(value);
+        }, 500);
     }
 
     async initializeQRGenerator() {
         console.log('🔧 Initialisation du générateur QR...');
         
         try {
+            // Charger les dépendances d'abord
+            await this.loadDependencies();
+            
             // Vérifier les éléments requis
             this.verifyRequiredElements();
-            
-            // Vérifier que la bibliothèque QR code est disponible
-            if (typeof qrcode === 'undefined') {
-                console.error('❌ Bibliothèque QR code non chargée');
-                this.showAlert('Erreur: Bibliothèque QR code non disponible', 'error');
-                return false;
-            }
-            
-            console.log('✅ Bibliothèque QR code disponible');
             
             this.setupEventListeners();
             await this.loadSampleMembers();
@@ -33,13 +35,61 @@ class QRGenerator {
             this.checkForPrefillData();
             
             console.log('✅ Générateur QR initialisé avec succès');
+            this.stateManager.setState({ generationStatus: 'ready' });
             return true;
             
         } catch (error) {
             console.error('❌ Erreur lors de l\'initialisation:', error);
-            this.showAlert('Erreur lors de l\'initialisation du générateur QR', 'error');
+            const handledError = this.errorHandler.handle(error, 'INITIALIZATION');
+            this.showAlert(handledError.userMessage, 'error');
             return false;
         }
+    }
+
+    /**
+     * Charge et vérifie toutes les dépendances nécessaires
+     */
+    async loadDependencies() {
+        console.log('📦 Chargement des dépendances...');
+        
+        const dependencies = {
+            qrcode: () => typeof qrcode !== 'undefined',
+            bootstrap: () => typeof bootstrap !== 'undefined',
+            apiService: () => window.apiService
+        };
+        
+        const missingDeps = [];
+        
+        for (const [dep, check] of Object.entries(dependencies)) {
+            if (!check()) {
+                console.warn(`⚠️ Dépendance manquante: ${dep}`);
+                missingDeps.push(dep);
+                await this.loadDependency(dep);
+            } else {
+                console.log(`✅ Dépendance chargée: ${dep}`);
+            }
+        }
+        
+        if (missingDeps.length > 0) {
+            console.log(`🔄 Dépendances chargées dynamiquement: ${missingDeps.join(', ')}`);
+        }
+    }
+
+    /**
+     * Charge une dépendance dynamiquement
+     */
+    async loadDependency(dependency) {
+        return new Promise((resolve, reject) => {
+            switch(dependency) {
+                case 'qrcode':
+                    // La librairie QR code devrait déjà être chargée via le HTML
+                    console.warn('Bibliothèque QR code non trouvée. Vérifiez le chargement dans le HTML.');
+                    resolve();
+                    break;
+                default:
+                    resolve();
+            }
+        });
     }
 
     /**
@@ -110,6 +160,7 @@ class QRGenerator {
             
         } catch (error) {
             console.error('❌ Erreur traitement données pré-remplissage:', error);
+            this.errorHandler.handle(error, 'PREFILL_DATA');
             sessionStorage.removeItem('qrPrefillData');
         }
     }
@@ -157,9 +208,9 @@ class QRGenerator {
             this.printQRCode();
         });
 
-        // Auto-remplissage depuis les champs
+        // Auto-remplissage depuis les champs avec debounce
         this.attachEvent('registrationNumber', 'input', (e) => {
-            this.autoFillFromExistingMember(e.target.value);
+            this.autoFillDebounce(e.target.value);
         });
 
         // Entrée pour générer avec la touche Enter
@@ -262,7 +313,8 @@ class QRGenerator {
             
         } catch (error) {
             console.error('❌ Erreur pré-remplissage:', error);
-            this.showAlert('Erreur lors du pré-remplissage du formulaire', 'error');
+            const handledError = this.errorHandler.handle(error, 'PREFILL_FORM');
+            this.showAlert(handledError.userMessage, 'error');
         }
     }
 
@@ -309,7 +361,8 @@ class QRGenerator {
                 
                 // Déclencher les événements de changement si nécessaire
                 if (field === 'registrationNumber') {
-                    this.autoFillFromExistingMember(fields[field]);
+                    // Utiliser le debounce pour l'auto-remplissage
+                    this.autoFillDebounce(fields[field]);
                 }
             }
         });
@@ -319,10 +372,26 @@ class QRGenerator {
         if (!registrationNumber || registrationNumber.length < 3) return;
         
         try {
+            // Vérifier d'abord le cache
+            const cachedMember = this.qrCache.get(`member_${registrationNumber}`);
+            if (cachedMember && !this.prefillData) {
+                this.fillFormFields({
+                    firstName: cachedMember.firstName,
+                    lastName: cachedMember.lastName,
+                    occupation: cachedMember.occupation || 'student',
+                    phoneNumber: cachedMember.phoneNumber || '',
+                    studyWorkPlace: cachedMember.studyOrWorkPlace || ''
+                });
+                return;
+            }
+
             // Utiliser le service API pour trouver le membre
             if (window.apiService && typeof window.apiService.getMemberByRegistrationNumber === 'function') {
                 const member = window.apiService.getMemberByRegistrationNumber(registrationNumber.trim());
                 if (member && !this.prefillData) {
+                    // Mettre en cache le membre
+                    this.qrCache.set(`member_${registrationNumber}`, member);
+                    
                     // Auto-remplir seulement si pas déjà pré-rempli
                     this.fillFormFields({
                         firstName: member.firstName,
@@ -337,6 +406,7 @@ class QRGenerator {
             }
         } catch (error) {
             console.warn('Erreur lors de l\'auto-remplissage:', error);
+            this.errorHandler.handle(error, 'AUTO_FILL');
         }
     }
 
@@ -372,15 +442,29 @@ class QRGenerator {
      * Obtient un membre par son numéro d'enregistrement
      */
     getMemberByRegistrationNumber(registrationNumber) {
+        // Vérifier d'abord le cache
+        const cachedMember = this.qrCache.get(`member_${registrationNumber}`);
+        if (cachedMember) {
+            return cachedMember;
+        }
+
         if (window.apiService && typeof window.apiService.getMemberByRegistrationNumber === 'function') {
-            return window.apiService.getMemberByRegistrationNumber(registrationNumber);
+            const member = window.apiService.getMemberByRegistrationNumber(registrationNumber);
+            if (member) {
+                this.qrCache.set(`member_${registrationNumber}`, member);
+            }
+            return member;
         }
         
         // Fallback: chercher dans les membres chargés
         if (window.membersSystem && window.membersSystem.members) {
-            return window.membersSystem.members.find(m => 
+            const member = window.membersSystem.members.find(m => 
                 m.registrationNumber === registrationNumber
             );
+            if (member) {
+                this.qrCache.set(`member_${registrationNumber}`, member);
+            }
+            return member;
         }
         
         return null;
@@ -410,7 +494,9 @@ class QRGenerator {
         const formData = this.getFormData();
         console.log('📝 Données du formulaire:', formData);
 
-        if (!this.validateFormData(formData)) {
+        const validation = this.validateFormData(formData);
+        if (!validation.isValid) {
+            validation.errors.forEach(error => this.showAlert(error, 'warning'));
             return;
         }
 
@@ -432,31 +518,68 @@ class QRGenerator {
     }
 
     validateFormData(data) {
-        const { registrationNumber, firstName, lastName } = data;
-        
-        if (!registrationNumber) {
-            this.showAlert('Le numéro d\'inscription est obligatoire', 'warning');
-            return false;
-        }
-        
-        if (!firstName || !lastName) {
-            this.showAlert('Le prénom et le nom sont obligatoires', 'warning');
-            return false;
-        }
-        
-        // Validation du format du numéro d'inscription
-        if (!this.isValidRegistrationNumber(registrationNumber)) {
-            this.showAlert('Format de numéro d\'inscription invalide', 'warning');
-            return false;
-        }
-        
-        return true;
-    }
+        const validationRules = {
+            registrationNumber: {
+                required: true,
+                pattern: /^(ACM)?\d+$/i,
+                minLength: 3,
+                maxLength: 20,
+                message: 'Format de numéro d\'inscription invalide'
+            },
+            firstName: {
+                required: true,
+                minLength: 2,
+                maxLength: 50,
+                pattern: /^[a-zA-ZÀ-ÿ\s\-']+$/,
+                message: 'Le prénom doit contenir entre 2 et 50 caractères alphabétiques'
+            },
+            lastName: {
+                required: true,
+                minLength: 2,
+                maxLength: 50,
+                pattern: /^[a-zA-ZÀ-ÿ\s\-']+$/,
+                message: 'Le nom doit contenir entre 2 et 50 caractères alphabétiques'
+            },
+            occupation: {
+                required: true,
+                allowed: ['student', 'employee', 'entrepreneur', 'unemployed', 'other'],
+                message: 'Veuillez sélectionner une occupation valide'
+            }
+        };
 
-    isValidRegistrationNumber(regNumber) {
-        // Accepter les formats: ACM123, M123, 123
-        const regex = /^(ACM)?\d+$/i;
-        return regex.test(regNumber);
+        const errors = [];
+
+        for (const [field, rules] of Object.entries(validationRules)) {
+            const value = data[field];
+            
+            if (rules.required && (!value || value.trim() === '')) {
+                errors.push(`Le champ ${field} est obligatoire`);
+                continue;
+            }
+            
+            if (value) {
+                if (rules.pattern && !rules.pattern.test(value)) {
+                    errors.push(rules.message);
+                }
+                
+                if (rules.minLength && value.length < rules.minLength) {
+                    errors.push(rules.message);
+                }
+                
+                if (rules.maxLength && value.length > rules.maxLength) {
+                    errors.push(rules.message);
+                }
+                
+                if (rules.allowed && !rules.allowed.includes(value)) {
+                    errors.push(rules.message);
+                }
+            }
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
     }
 
     prepareMemberData(formData) {
@@ -506,11 +629,22 @@ class QRGenerator {
         
         console.log('🔧 Génération du QR code depuis les données...');
         this.isGenerating = true;
+        this.stateManager.setState({ generationStatus: 'generating' });
         
         const jsonString = JSON.stringify(memberData, null, 2);
         console.log('📄 JSON à encoder:', jsonString);
         
         try {
+            // Vérifier d'abord le cache
+            const cacheKey = `qr_${memberData.registrationNumber}_${JSON.stringify(memberData).hashCode()}`;
+            const cachedQR = this.qrCache.get(cacheKey);
+            
+            if (cachedQR) {
+                console.log('📦 Utilisation du QR code en cache');
+                this.displayCachedQR(cachedQR, memberData, jsonString);
+                return;
+            }
+
             // VÉRIFICATION ROBUSTE DU CONTENEUR
             let qrcodeContainer = document.getElementById('qrcode');
             if (!qrcodeContainer) {
@@ -539,7 +673,7 @@ class QRGenerator {
             
             // Vérifier à nouveau la bibliothèque
             if (typeof qrcode === 'undefined') {
-                throw new Error('Bibliothèque QR code non disponible');
+                throw { code: 'LIBRARY_NOT_LOADED', message: 'Bibliothèque QR code non disponible' };
             }
 
             // Vider le conteneur
@@ -556,6 +690,15 @@ class QRGenerator {
             const qrImage = qr.createImgTag(6, 0, `QR Code ${memberData.registrationNumber}`);
             qrcodeContainer.innerHTML = qrImage;
             
+            // Mettre en cache le QR code généré
+            const qrElement = qrcodeContainer.querySelector('img');
+            if (qrElement) {
+                this.qrCache.set(cacheKey, {
+                    src: qrElement.src,
+                    data: memberData
+                });
+            }
+            
             // Mettre à jour l'affichage
             this.updateQRDisplay(memberData, jsonString);
             
@@ -568,13 +711,32 @@ class QRGenerator {
             // Masquer l'indicateur de pré-remplissage
             this.hidePrefillIndicator();
             
+            this.stateManager.setState({ 
+                generationStatus: 'success',
+                currentQR: memberData
+            });
+            
             console.log('🎉 QR code affiché avec succès');
             
         } catch (error) {
             console.error('❌ Erreur lors de la génération du QR code:', error);
-            this.handleGenerationError(error);
+            const handledError = this.errorHandler.handle(error, 'QR_GENERATION');
+            this.handleGenerationError(handledError);
+            this.stateManager.setState({ generationStatus: 'error' });
         } finally {
             this.isGenerating = false;
+        }
+    }
+
+    /**
+     * Affiche un QR code depuis le cache
+     */
+    displayCachedQR(cachedQR, memberData, jsonString) {
+        const qrcodeContainer = document.getElementById('qrcode');
+        if (qrcodeContainer) {
+            qrcodeContainer.innerHTML = `<img src="${cachedQR.src}" alt="QR Code ${memberData.registrationNumber}">`;
+            this.updateQRDisplay(memberData, jsonString);
+            this.showAlert('QR code chargé depuis le cache!', 'success');
         }
     }
 
@@ -757,11 +919,11 @@ class QRGenerator {
                 <div class="alert alert-danger text-center">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     <strong>Erreur de génération</strong><br>
-                    <small>${error.message}</small>
+                    <small>${error.userMessage || error.message}</small>
                 </div>
             `;
         }
-        this.showAlert('Erreur lors de la génération du QR code', 'error');
+        this.showAlert(error.userMessage || 'Erreur lors de la génération du QR code', 'error');
     }
 
     updateQRDisplay(memberData, jsonString) {
@@ -841,6 +1003,7 @@ class QRGenerator {
             localStorage.setItem('recentQRCodes', JSON.stringify(this.recentQRCodes));
         } catch (error) {
             console.error('Erreur sauvegarde QR codes récents:', error);
+            this.errorHandler.handle(error, 'SAVE_RECENT_QR');
         }
     }
 
@@ -850,6 +1013,7 @@ class QRGenerator {
             return stored ? JSON.parse(stored) : [];
         } catch (error) {
             console.error('Erreur chargement QR codes récents:', error);
+            this.errorHandler.handle(error, 'LOAD_RECENT_QR');
             return [];
         }
     }
@@ -893,6 +1057,7 @@ class QRGenerator {
             
         } catch (error) {
             console.error('Erreur lors du chargement des membres:', error);
+            const handledError = this.errorHandler.handle(error, 'LOAD_SAMPLE_MEMBERS');
             container.innerHTML = this.getErrorMembersHTML();
         }
     }
@@ -1257,6 +1422,10 @@ class QRGenerator {
         
         this.currentQRCode = null;
         this.prefillData = null;
+        this.stateManager.setState({ 
+            generationStatus: 'idle',
+            currentQR: null 
+        });
         this.showAlert('Formulaire réinitialisé', 'info');
     }
 
@@ -1318,6 +1487,23 @@ class QRGenerator {
         return icons[type] || 'info-circle';
     }
 
+    // ==================== NOUVELLES FONCTIONNALITÉS ====================
+
+    /**
+     * Fonction debounce pour optimiser les performances
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
     // Méthode pour nettoyer les ressources si nécessaire
     destroy() {
         this.currentQRCode = null;
@@ -1325,7 +1511,191 @@ class QRGenerator {
         this.quickActionsSetup = false;
         this.isGenerating = false;
         this.prefillData = null;
+        this.qrCache.clear();
+        this.stateManager.setState({ generationStatus: 'idle' });
     }
+}
+
+// ==================== CLASSES DE GESTION AMÉLIORÉES ====================
+
+/**
+ * Gestionnaire d'état pour le générateur QR
+ */
+class QRStateManager {
+    constructor() {
+        this.state = {
+            currentQR: null,
+            recentQRCodes: [],
+            generationStatus: 'idle', // 'idle', 'generating', 'success', 'error'
+            formData: {},
+            ui: {
+                prefillIndicator: false,
+                sectionVisible: false
+            }
+        };
+        this.listeners = [];
+    }
+    
+    setState(newState) {
+        this.state = { ...this.state, ...newState };
+        this.notifyListeners();
+    }
+    
+    subscribe(listener) {
+        this.listeners.push(listener);
+    }
+    
+    notifyListeners() {
+        this.listeners.forEach(listener => listener(this.state));
+    }
+    
+    getState() {
+        return { ...this.state };
+    }
+}
+
+/**
+ * Gestionnaire d'erreurs centralisé
+ */
+class ErrorHandler {
+    static handle(error, context = '') {
+        console.error(`❌ Erreur [${context}]:`, error);
+        
+        const errorMap = {
+            'QR_CODE_GENERATION_FAILED': {
+                message: 'Échec de la génération du QR code',
+                userMessage: 'Impossible de générer le QR code. Veuillez réessayer.',
+                level: 'error'
+            },
+            'LIBRARY_NOT_LOADED': {
+                message: 'Bibliothèque non chargée',
+                userMessage: 'Une ressource nécessaire est manquante. Veuillez actualiser la page.',
+                level: 'error'
+            },
+            'NETWORK_ERROR': {
+                message: 'Erreur réseau',
+                userMessage: 'Problème de connexion. Vérifiez votre connexion internet.',
+                level: 'warning'
+            },
+            'INITIALIZATION': {
+                message: 'Erreur d\'initialisation',
+                userMessage: 'Impossible d\'initialiser le générateur QR. Contactez l\'administrateur.',
+                level: 'error'
+            },
+            'PREFILL_DATA': {
+                message: 'Erreur de pré-remplissage',
+                userMessage: 'Impossible de pré-remplir le formulaire.',
+                level: 'warning'
+            },
+            'AUTO_FILL': {
+                message: 'Erreur d\'auto-remplissage',
+                userMessage: 'Impossible de trouver les informations du membre.',
+                level: 'info'
+            },
+            'SAVE_RECENT_QR': {
+                message: 'Erreur de sauvegarde',
+                userMessage: 'Impossible de sauvegarder l\'historique.',
+                level: 'warning'
+            },
+            'LOAD_RECENT_QR': {
+                message: 'Erreur de chargement',
+                userMessage: 'Impossible de charger l\'historique.',
+                level: 'warning'
+            },
+            'LOAD_SAMPLE_MEMBERS': {
+                message: 'Erreur de chargement des membres',
+                userMessage: 'Impossible de charger la liste des membres.',
+                level: 'warning'
+            }
+        };
+        
+        // Envoyer à un service de monitoring si disponible
+        this.reportToMonitoring(error, context);
+        
+        // Trouver l'erreur correspondante ou utiliser une erreur par défaut
+        const errorInfo = errorMap[context] || errorMap[error?.code] || {
+            message: error?.message || 'Erreur inconnue',
+            userMessage: 'Une erreur inattendue est survenue. Veuillez réessayer.',
+            level: 'error'
+        };
+        
+        return errorInfo;
+    }
+    
+    static reportToMonitoring(error, context) {
+        // Intégration avec Sentry ou autre service
+        if (window.Sentry) {
+            window.Sentry.captureException(error, { extra: { context } });
+        }
+        
+        // Log supplémentaire pour le débogage
+        if (window.console && window.console.error) {
+            window.console.error('Error reported to monitoring:', { error, context });
+        }
+    }
+}
+
+/**
+ * Système de cache pour optimiser les performances
+ */
+class QRCache {
+    constructor() {
+        this.cache = new Map();
+        this.maxSize = 100;
+        this.ttl = 30 * 60 * 1000; // 30 minutes
+    }
+    
+    set(key, value) {
+        if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            this.cache.delete(firstKey);
+        }
+        
+        this.cache.set(key, {
+            value,
+            timestamp: Date.now()
+        });
+    }
+    
+    get(key) {
+        const item = this.cache.get(key);
+        
+        if (!item) return null;
+        
+        // Vérifier TTL
+        if (Date.now() - item.timestamp > this.ttl) {
+            this.cache.delete(key);
+            return null;
+        }
+        
+        return item.value;
+    }
+    
+    clear() {
+        this.cache.clear();
+    }
+    
+    size() {
+        return this.cache.size;
+    }
+    
+    // Méthode utilitaire pour générer des hashs simples
+    static generateKey(...args) {
+        return args.join('_').replace(/\s+/g, '_');
+    }
+}
+
+// Extension de String pour le hachage simple
+if (!String.prototype.hashCode) {
+    String.prototype.hashCode = function() {
+        let hash = 0;
+        for (let i = 0; i < this.length; i++) {
+            const char = this.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return Math.abs(hash);
+    };
 }
 
 // Create global instance
@@ -1333,6 +1703,9 @@ const qrGenerator = new QRGenerator();
 
 // Exposer globalement pour le débogage et la liaison
 window.qrGenerator = qrGenerator;
+window.QRStateManager = QRStateManager;
+window.ErrorHandler = ErrorHandler;
+window.QRCache = QRCache;
 
 // Initialisation automatique si on est sur la page QR Generator
 document.addEventListener('DOMContentLoaded', function() {
@@ -1342,3 +1715,14 @@ document.addEventListener('DOMContentLoaded', function() {
         qrGenerator.initializeQRGenerator();
     }
 });
+
+// Export pour les modules ES6 si nécessaire
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        QRGenerator,
+        QRStateManager,
+        ErrorHandler,
+        QRCache,
+        qrGenerator
+    };
+}
