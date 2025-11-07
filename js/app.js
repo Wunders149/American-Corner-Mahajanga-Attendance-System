@@ -46,16 +46,28 @@ class AppController {
     }
 
     async initializeModules() {
-        // Initialize scanner module
+        console.log('🔧 Initialisation des modules...');
+        
+        // Initialize scanner module - VÉRIFICATION CORRECTE
         if (typeof qrScanner !== 'undefined') {
             this.modules.scanner = qrScanner;
-            console.log('🔍 Module Scanner initialisé');
+            console.log('🔍 Module Scanner détecté:', Object.getOwnPropertyNames(qrScanner));
+            
+            // Le scanner est déjà initialisé dans son constructeur
+            // On vérifie juste qu'il est prêt
+            if (qrScanner.libraryLoaded) {
+                console.log('✅ Scanner QR prêt à utiliser');
+            } else {
+                console.warn('⚠️ Scanner QR - bibliothèque non chargée');
+            }
+        } else {
+            console.warn('❌ Module Scanner non disponible');
         }
         
         // Initialize QR generator module
         if (typeof qrGenerator !== 'undefined') {
             this.modules.qrGenerator = qrGenerator;
-            console.log('📱 Module QR Generator initialisé');
+            console.log('📱 Module QR Generator détecté');
         }
         
         // Initialize members module
@@ -229,17 +241,63 @@ class AppController {
     }
 
     async initializeAttendancePage() {
-        // Initialize scanner if available
+        // Initialize scanner if available - CORRECTION ICI
         if (this.modules.scanner) {
             try {
-                await this.modules.scanner.initialize();
-                console.log('🔍 Scanner initialisé avec succès');
+                // Le scanner n'a pas de méthode initialize(), il est déjà prêt
+                // On vérifie juste qu'il fonctionne et on met à jour l'UI
+                console.log('🔍 Vérification du scanner QR...');
+                
+                // Mettre à jour l'interface utilisateur
+                this.modules.scanner.updateScannerUI('stopped');
+                
+                // Configurer les écouteurs d'événements pour les boutons du scanner
+                this.setupScannerEventListeners();
+                
+                console.log('✅ Scanner QR prêt - utilisez les boutons pour démarrer');
             } catch (error) {
-                console.warn('Erreur initialisation scanner:', error);
+                console.warn('Avertissement initialisation scanner:', error);
             }
         } else {
             console.warn('QR Scanner non disponible');
         }
+    }
+
+    // Nouvelle méthode pour configurer les écouteurs d'événements du scanner
+    setupScannerEventListeners() {
+        // Écouteur pour le bouton "Activer le Scanner"
+        const startBtn = document.getElementById('startScannerBtn');
+        if (startBtn && this.modules.scanner) {
+            startBtn.addEventListener('click', () => {
+                this.modules.scanner.startScanner();
+            });
+        }
+
+        // Écouteur pour le bouton "Arrêter le Scanner"
+        const stopBtn = document.getElementById('stopScannerBtn');
+        if (stopBtn && this.modules.scanner) {
+            stopBtn.addEventListener('click', () => {
+                this.modules.scanner.stopScanner();
+            });
+        }
+
+        // Écouteur pour le bouton "Entrée Manuelle"
+        const manualBtn = document.getElementById('manualEntryBtn');
+        if (manualBtn && this.modules.scanner) {
+            manualBtn.addEventListener('click', () => {
+                this.modules.scanner.startManualEntry();
+            });
+        }
+
+        // Écouteur pour le bouton de démo
+        const demoBtn = document.getElementById('demoScannerBtn');
+        if (demoBtn && this.modules.scanner) {
+            demoBtn.addEventListener('click', () => {
+                this.testScannerWithDemoMember();
+            });
+        }
+
+        console.log('🎯 Écouteurs d\'événements du scanner configurés');
     }
 
     async initializeQRGeneratorPage() {
