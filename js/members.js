@@ -1,25 +1,84 @@
-// Members Management System - Interface améliorée avec recherche
+// members.js - Système complet de gestion des membres avec recherche, filtres et interface améliorée
 class MembersSystem {
     constructor() {
+        this.members = [];
+        this.filteredMembers = [];
         this.currentFilter = 'all';
         this.currentSort = 'name';
         this.searchQuery = '';
-        this.filteredMembers = [];
         this.searchTimeout = null;
+        this.init();
     }
 
+    async init() {
+        console.log('👥 Initialisation du système des membres...');
+        await this.loadMembers();
+    }
+
+    async loadMembers() {
+        try {
+            if (window.apiService && window.apiService.members) {
+                this.members = window.apiService.members;
+                console.log(`✅ ${this.members.length} membres chargés depuis API`);
+            } else {
+                console.warn('⚠️ API non disponible, chargement des données mock');
+                this.members = await this.loadMockMembers();
+            }
+            
+            this.filteredMembers = [...this.members];
+            
+        } catch (error) {
+            console.error('❌ Erreur chargement membres:', error);
+        }
+    }
+
+    // Fonctions utilitaires locales
+    formatOccupation(occupation) {
+        if (!occupation) return 'Non spécifié';
+        const occupations = {
+            'student': 'Étudiant',
+            'employee': 'Employé',
+            'entrepreneur': 'Entrepreneur',
+            'unemployed': 'Sans emploi',
+            'other': 'Autre'
+        };
+        return occupations[occupation] || occupation;
+    }
+
+    getInitials(firstName, lastName) {
+        const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
+        const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
+        return firstInitial + lastInitial;
+    }
+
+    formatDate(dateString) {
+        if (!dateString) return 'Date inconnue';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        } catch (error) {
+            return dateString;
+        }
+    }
+
+    // Interface principale
     async loadMembersPage() {
+        console.log('📄 Chargement de la page membres...');
         const container = document.getElementById('membersContainer');
         if (!container) return;
         
         container.innerHTML = this.getLoadingHTML();
         
         // Attendre que les membres soient chargés
-        if (apiService.members.length === 0) {
-            await apiService.fetchMembers();
+        if (this.members.length === 0) {
+            await this.loadMembers();
         }
         
-        if (apiService.members.length === 0) {
+        if (this.members.length === 0) {
             container.innerHTML = this.getNoMembersHTML();
             return;
         }
@@ -28,7 +87,7 @@ class MembersSystem {
         await this.checkProfileImages();
         
         // Initialiser les membres filtrés
-        this.filteredMembers = [...apiService.members];
+        this.filteredMembers = [...this.members];
         
         // Afficher les contrôles de filtre, tri et recherche
         this.renderControls();
@@ -36,7 +95,7 @@ class MembersSystem {
         // Afficher les membres
         this.renderMembers();
         
-        console.log(`✅ ${apiService.members.length} membres chargés, ${this.filteredMembers.length} affichés`);
+        console.log(`✅ ${this.members.length} membres chargés, ${this.filteredMembers.length} affichés`);
     }
 
     getLoadingHTML() {
@@ -59,7 +118,7 @@ class MembersSystem {
                         <i class="fas fa-users fa-4x text-muted mb-4"></i>
                         <h3 class="text-muted">Aucun membre disponible</h3>
                         <p class="text-muted mb-4">Les membres apparaîtront ici une fois chargés depuis le système</p>
-                        <button class="btn btn-primary btn-lg" onclick="apiService.fetchMembers().then(() => members.loadMembersPage())">
+                        <button class="btn btn-primary btn-lg" onclick="membersSystem.loadMembersPage()">
                             <i class="fas fa-sync me-2"></i>Actualiser
                         </button>
                     </div>
@@ -70,9 +129,31 @@ class MembersSystem {
 
     async checkProfileImages() {
         console.log('🖼️ Vérification des images de profil...');
+        const membersWithImage = this.members.filter(member => 
+            member.profileImage && member.profileImage.trim() !== ''
+        ).length;
         
-        const stats = apiService.getMembersStats();
-        console.log(`📊 Statistiques images: ${stats.withProfileImage}/${stats.total} membres avec image`);
+        console.log(`📊 Statistiques images: ${membersWithImage}/${this.members.length} membres avec image`);
+        return membersWithImage;
+    }
+
+    setupEventListeners() {
+        // Filtres
+        const filterButtons = document.querySelectorAll('.member-filter');
+        filterButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const filter = e.target.getAttribute('data-filter');
+                this.filterMembers(filter);
+            });
+        });
+
+        // Recherche
+        const searchInput = document.getElementById('memberSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.searchMembers(e.target.value);
+            });
+        }
     }
 
     renderControls() {
@@ -88,7 +169,7 @@ class MembersSystem {
                                 <h5 class="card-title mb-0">
                                     <i class="fas fa-users me-2 text-primary"></i>
                                     Nos Membres
-                                    <span class="badge bg-primary ms-2" id="membersCount">${this.filteredMembers.length}/${apiService.members.length}</span>
+                                    <span class="badge bg-primary ms-2" id="membersCount">${this.filteredMembers.length}/${this.members.length}</span>
                                 </h5>
                             </div>
                             <div class="col-md-6 text-md-end">
@@ -111,8 +192,8 @@ class MembersSystem {
                                            id="membersSearch" 
                                            placeholder="Rechercher un membre par nom, numéro, téléphone..."
                                            value="${this.searchQuery}"
-                                           onkeyup="members.handleSearch(event)">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="members.clearSearch()">
+                                           onkeyup="membersSystem.handleSearch(event)">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="membersSystem.clearSearch()">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -126,23 +207,23 @@ class MembersSystem {
                                     <span class="text-muted small">Filtrer:</span>
                                     <div class="btn-group" role="group">
                                         <button type="button" class="btn btn-sm ${this.currentFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="members.setFilter('all')">
+                                                onclick="membersSystem.setFilter('all')">
                                             Tous
                                         </button>
                                         <button type="button" class="btn btn-sm ${this.currentFilter === 'student' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="members.setFilter('student')">
+                                                onclick="membersSystem.setFilter('student')">
                                             Étudiants
                                         </button>
                                         <button type="button" class="btn btn-sm ${this.currentFilter === 'employee' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="members.setFilter('employee')">
+                                                onclick="membersSystem.setFilter('employee')">
                                             Employés
                                         </button>
                                         <button type="button" class="btn btn-sm ${this.currentFilter === 'entrepreneur' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="members.setFilter('entrepreneur')">
+                                                onclick="membersSystem.setFilter('entrepreneur')">
                                             Entrepreneurs
                                         </button>
                                         <button type="button" class="btn btn-sm ${this.currentFilter === 'other' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="members.setFilter('other')">
+                                                onclick="membersSystem.setFilter('other')">
                                             Autres
                                         </button>
                                     </div>
@@ -156,11 +237,11 @@ class MembersSystem {
                                             ${this.getSortLabel(this.currentSort)}
                                         </button>
                                         <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item ${this.currentSort === 'name' ? 'active' : ''}" href="#" onclick="members.setSort('name')">Nom A-Z</a></li>
-                                            <li><a class="dropdown-item ${this.currentSort === 'name-desc' ? 'active' : ''}" href="#" onclick="members.setSort('name-desc')">Nom Z-A</a></li>
+                                            <li><a class="dropdown-item ${this.currentSort === 'name' ? 'active' : ''}" href="#" onclick="membersSystem.setSort('name')">Nom A-Z</a></li>
+                                            <li><a class="dropdown-item ${this.currentSort === 'name-desc' ? 'active' : ''}" href="#" onclick="membersSystem.setSort('name-desc')">Nom Z-A</a></li>
                                             <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item ${this.currentSort === 'recent' ? 'active' : ''}" href="#" onclick="members.setSort('recent')">Plus récents</a></li>
-                                            <li><a class="dropdown-item ${this.currentSort === 'oldest' ? 'active' : ''}" href="#" onclick="members.setSort('oldest')">Plus anciens</a></li>
+                                            <li><a class="dropdown-item ${this.currentSort === 'recent' ? 'active' : ''}" href="#" onclick="membersSystem.setSort('recent')">Plus récents</a></li>
+                                            <li><a class="dropdown-item ${this.currentSort === 'oldest' ? 'active' : ''}" href="#" onclick="membersSystem.setSort('oldest')">Plus anciens</a></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -247,7 +328,7 @@ class MembersSystem {
 
     applyFilters() {
         // Appliquer tous les filtres
-        let filtered = this.filterBySearch(apiService.members);
+        let filtered = this.filterBySearch(this.members);
         filtered = this.filterByOccupation(filtered);
         filtered = this.sortMembers(filtered);
         
@@ -300,7 +381,7 @@ class MembersSystem {
     updateMembersCount() {
         const countElement = document.getElementById('membersCount');
         if (countElement) {
-            countElement.textContent = `${this.filteredMembers.length}/${apiService.members.length}`;
+            countElement.textContent = `${this.filteredMembers.length}/${this.members.length}`;
         }
     }
 
@@ -360,18 +441,18 @@ class MembersSystem {
                     <p class="text-muted mb-4">${suggestion}</p>
                     <div class="d-flex gap-2 justify-content-center flex-wrap">
                         ${this.searchQuery ? 
-                            `<button class="btn btn-outline-primary btn-sm" onclick="members.clearSearch()">
+                            `<button class="btn btn-outline-primary btn-sm" onclick="membersSystem.clearSearch()">
                                 <i class="fas fa-times me-1"></i>Effacer la recherche
                             </button>` : 
                             ''
                         }
                         ${this.currentFilter !== 'all' ? 
-                            `<button class="btn btn-outline-primary btn-sm" onclick="members.setFilter('all')">
+                            `<button class="btn btn-outline-primary btn-sm" onclick="membersSystem.setFilter('all')">
                                 <i class="fas fa-users me-1"></i>Voir tous les membres
                             </button>` : 
                             ''
                         }
-                        <button class="btn btn-outline-secondary btn-sm" onclick="members.loadMembersPage()">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="membersSystem.loadMembersPage()">
                             <i class="fas fa-sync me-1"></i>Actualiser
                         </button>
                     </div>
@@ -382,89 +463,59 @@ class MembersSystem {
 
     createMemberCard(member) {
         const memberCol = document.createElement('div');
-        memberCol.className = 'col-md-6 col-lg-4 col-xl-3';
+        memberCol.className = 'col-md-6 col-lg-4 col-xl-3 mb-4';
         
-        const initials = utils.getInitials(member.firstName, member.lastName);
-        const profileImageUrl = apiService.getProfileImageUrl(member.profileImage);
-        const joinDate = member.joinDate ? new Date(member.joinDate).toLocaleDateString('fr-FR') : 'Date inconnue';
-        const occupationIcon = this.getOccupationIcon(member.occupation);
-        
-        // Gestion améliorée des images de profil
-        const hasProfileImage = !!member.profileImage;
-        const imageHtml = hasProfileImage ? 
-            `<img src="${profileImageUrl}" 
-                  alt="${member.firstName} ${member.lastName}" 
-                  class="profile-image"
-                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                  onload="this.style.display='block'; this.nextElementSibling.style.display='none';">` : 
-            '';
-        
-        // Mise en évidence de la recherche
-        const highlightText = (text) => {
-            if (!this.searchQuery || !text) return text;
-            const regex = new RegExp(`(${this.searchQuery})`, 'gi');
-            return text.replace(regex, '<mark class="bg-warning">$1</mark>');
-        };
-        
+        const profileImage = this.getProfileImage(member);
+        const joinDate = this.formatDate(member.joinDate);
+        const occupation = this.formatOccupation(member.occupation);
+        const initials = this.getInitials(member.firstName, member.lastName);
+
         memberCol.innerHTML = `
-            <div class="card member-card h-100">
-                <div class="card-body">
-                    <!-- En-tête du profil -->
-                    <div class="text-center mb-3">
-                        <div class="member-avatar position-relative mx-auto">
-                            ${imageHtml}
-                            <div class="initials-avatar ${hasProfileImage ? 'd-none' : ''}">
-                                ${initials}
-                            </div>
-                            <div class="occupation-badge">
-                                <i class="fas ${occupationIcon}"></i>
-                            </div>
-                            ${!hasProfileImage ? `
-                                <div class="no-image-badge" title="Pas de photo de profil">
-                                    <i class="fas fa-camera-slash"></i>
-                                </div>
-                            ` : ''}
-                        </div>
+            <div class="card member-card h-100 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <!-- Photo de profil -->
+                    <div class="member-avatar mb-3">
+                        ${profileImage}
                     </div>
                     
                     <!-- Informations principales -->
-                    <div class="text-center mb-3">
-                        <h5 class="card-title mb-1">
-                            ${highlightText(member.firstName)} ${highlightText(member.lastName)}
-                        </h5>
-                        <span class="badge bg-primary mb-2">${utils.formatOccupation(member.occupation)}</span>
-                        <p class="card-text">
-                            <small class="text-muted member-id-display">
-                                <i class="fas fa-id-card me-1"></i>
-                                ${highlightText(member.registrationNumber)}
-                            </small>
-                        </p>
+                    <h5 class="member-name mb-1">${member.firstName} ${member.lastName}</h5>
+                    <div class="member-id text-primary fw-bold mb-2">${member.registrationNumber}</div>
+                    
+                    <!-- Occupation -->
+                    <div class="member-occupation mb-2">
+                        <span class="badge bg-light text-dark">${occupation}</span>
                     </div>
                     
-                    <!-- Informations secondaires -->
-                    <div class="member-details small text-muted mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span><i class="fas fa-phone me-1"></i></span>
-                            <span>${member.phoneNumber ? highlightText(member.phoneNumber) : 'Non renseigné'}</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span><i class="fas fa-building me-1"></i></span>
-                            <span class="text-end">${member.studyOrWorkPlace ? highlightText(member.studyOrWorkPlace) : 'Non renseigné'}</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span><i class="fas fa-calendar me-1"></i></span>
-                            <span>Membre depuis ${joinDate}</span>
-                        </div>
+                    <!-- Informations de contact -->
+                    <div class="member-contact text-muted small mb-3">
+                        ${member.email ? `<div><i class="fas fa-envelope me-1"></i>${member.email}</div>` : ''}
+                        ${member.phoneNumber ? `<div><i class="fas fa-phone me-1"></i>${member.phoneNumber}</div>` : ''}
                     </div>
                     
-                    <!-- Actions -->
+                    <!-- Lieu d'étude/travail -->
+                    ${member.studyOrWorkPlace ? `
+                        <div class="member-location text-muted small mb-3">
+                            <i class="fas fa-building me-1"></i>${member.studyOrWorkPlace}
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Date d'adhésion -->
+                    <div class="member-join-date text-muted small">
+                        <i class="fas fa-calendar-alt me-1"></i>Membre depuis ${joinDate}
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="card-footer bg-transparent border-top-0 pt-0">
                     <div class="d-grid gap-2">
-                        <button class="btn btn-outline-primary btn-sm" onclick="members.viewMemberProfile('${member.registrationNumber}')">
-                            <i class="fas fa-eye me-1"></i>Voir le profil
+                        <button class="btn btn-outline-primary btn-sm" 
+                                onclick="membersSystem.viewMemberDetails(${member.id})">
+                            <i class="fas fa-eye me-1"></i>Voir profil
                         </button>
-                        <button class="btn btn-outline-success btn-sm" 
-                                onclick="qrGenerator.generateMemberQR('${member.registrationNumber}'); showPage('qr-generator');">
-                            <i class="fas fa-qrcode me-1"></i>Générer carte
+                        <button class="btn btn-outline-secondary btn-sm" 
+                                onclick="membersSystem.generateMemberQR(${member.id})">
+                            <i class="fas fa-qrcode me-1"></i>Générer QR
                         </button>
                     </div>
                 </div>
@@ -472,6 +523,38 @@ class MembersSystem {
         `;
         
         return memberCol;
+    }
+
+    getProfileImage(member) {
+        if (member.profileImage) {
+            const imageUrl = window.apiService ? 
+                window.apiService.getProfileImageUrl(member.profileImage) : 
+                member.profileImage;
+            
+            return `
+                <img src="${imageUrl}" 
+                     alt="${member.firstName} ${member.lastName}"
+                     class="rounded-circle member-photo"
+                     style="width: 80px; height: 80px; object-fit: cover;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="avatar-placeholder rounded-circle d-none align-items-center justify-content-center bg-secondary text-white"
+                     style="width: 80px; height: 80px;">
+                    <i class="fas fa-user"></i>
+                </div>
+            `;
+        }
+        
+        // Avatar avec initiales si pas de photo
+        const colors = ['primary', 'success', 'info', 'warning', 'danger'];
+        const colorIndex = (member.id || Math.random()) % colors.length;
+        const bgColor = colors[colorIndex];
+        
+        return `
+            <div class="avatar-initials bg-${bgColor} rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                 style="width: 80px; height: 80px; font-size: 1.5rem;">
+                ${this.getInitials(member.firstName, member.lastName)}
+            </div>
+        `;
     }
 
     getOccupationIcon(occupation) {
@@ -485,25 +568,49 @@ class MembersSystem {
         return icons[occupation] || 'fa-user';
     }
 
-    viewMemberProfile(registrationNumber) {
-        const member = apiService.getMemberByRegistrationNumber(registrationNumber);
+    viewMemberDetails(memberId) {
+        const member = this.members.find(m => m.id === memberId);
         if (member) {
             this.showMemberModal(member);
         }
     }
 
+    generateMemberQR(memberId) {
+        const member = this.members.find(m => m.id === memberId);
+        if (!member) return;
+
+        // Rediriger vers le générateur QR avec les données pré-remplies
+        if (window.appController) {
+            window.appController.loadPage('qr-generator');
+            // Pré-remplir le formulaire QR avec les données du membre
+            setTimeout(() => {
+                this.prefillQRForm(member);
+            }, 500);
+        }
+    }
+
+    prefillQRForm(member) {
+        // Implémentez le pré-remplissage du formulaire QR
+        console.log('📝 Pré-remplissage formulaire QR pour:', member);
+        if (window.qrGenerator && window.qrGenerator.prefillForm) {
+            window.qrGenerator.prefillForm(member);
+        }
+    }
+
     showMemberModal(member) {
-        const initials = utils.getInitials(member.firstName, member.lastName);
-        const profileImageUrl = apiService.getProfileImageUrl(member.profileImage);
-        const joinDate = member.joinDate ? new Date(member.joinDate).toLocaleDateString('fr-FR') : 'Non spécifiée';
-        const occupationIcon = this.getOccupationIcon(member.occupation);
+        const initials = this.getInitials(member.firstName, member.lastName);
+        const profileImageUrl = window.apiService ? 
+            window.apiService.getProfileImageUrl(member.profileImage) : 
+            member.profileImage;
+        const joinDate = this.formatDate(member.joinDate);
+        const occupation = this.formatOccupation(member.occupation);
         const hasProfileImage = !!member.profileImage;
         
-        // Gestion améliorée de l'image dans la modal
         const imageHtml = hasProfileImage ? 
             `<img src="${profileImageUrl}" 
                   alt="${member.firstName} ${member.lastName}" 
-                  class="profile-image large"
+                  class="rounded-circle"
+                  style="width: 100px; height: 100px; object-fit: cover;"
                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                   onload="this.style.display='block'; this.nextElementSibling.style.display='none';">` : 
             '';
@@ -523,24 +630,17 @@ class MembersSystem {
                             <!-- En-tête du profil -->
                             <div class="row align-items-center mb-4">
                                 <div class="col-md-3 text-center">
-                                    <div class="member-avatar large position-relative mx-auto">
+                                    <div class="position-relative mx-auto">
                                         ${imageHtml}
-                                        <div class="initials-avatar large ${hasProfileImage ? 'd-none' : ''}">
+                                        <div class="avatar-initials bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold ${hasProfileImage ? 'd-none' : ''}"
+                                             style="width: 100px; height: 100px; font-size: 2rem;">
                                             ${initials}
                                         </div>
-                                        <div class="occupation-badge large">
-                                            <i class="fas ${occupationIcon}"></i>
-                                        </div>
-                                        ${!hasProfileImage ? `
-                                            <div class="no-image-badge large" title="Pas de photo de profil">
-                                                <i class="fas fa-camera-slash"></i>
-                                            </div>
-                                        ` : ''}
                                     </div>
                                 </div>
                                 <div class="col-md-9">
                                     <h3 class="mb-1">${member.firstName} ${member.lastName}</h3>
-                                    <span class="badge bg-primary fs-6 mb-2">${utils.formatOccupation(member.occupation)}</span>
+                                    <span class="badge bg-primary fs-6 mb-2">${occupation}</span>
                                     <p class="text-muted mb-2">
                                         <i class="fas fa-id-card me-1"></i>
                                         <strong>Numéro d'enregistrement:</strong> 
@@ -550,12 +650,6 @@ class MembersSystem {
                                         <i class="fas fa-calendar me-1"></i>
                                         <strong>Membre depuis:</strong> ${joinDate}
                                     </p>
-                                    ${member.isTemporary ? `
-                                        <div class="alert alert-warning mt-2 p-2 small">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            Membre temporaire - Données de démonstration
-                                        </div>
-                                    ` : ''}
                                 </div>
                             </div>
                             
@@ -585,7 +679,7 @@ class MembersSystem {
                                     <table class="table table-borderless">
                                         <tr>
                                             <td width="40%"><strong><i class="fas fa-user-tie me-2 text-muted"></i>Occupation:</strong></td>
-                                            <td>${utils.formatOccupation(member.occupation)}</td>
+                                            <td>${occupation}</td>
                                         </tr>
                                         <tr>
                                             <td><strong><i class="fas fa-building me-2 text-muted"></i>Lieu d'étude/travail:</strong></td>
@@ -598,49 +692,13 @@ class MembersSystem {
                                     </table>
                                 </div>
                             </div>
-                            
-                            <!-- État du profil -->
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h5 class="mb-3"><i class="fas fa-chart-bar me-2 text-primary"></i>État du profil</h5>
-                                    <div class="row text-center">
-                                        <div class="col-4">
-                                            <div class="card bg-light">
-                                                <div class="card-body py-2">
-                                                    <i class="fas ${hasProfileImage ? 'fa-check text-success' : 'fa-times text-warning'} fa-2x mb-2"></i>
-                                                    <h6>Photo</h6>
-                                                    <small class="text-muted">${hasProfileImage ? 'Disponible' : 'Manquante'}</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="card bg-light">
-                                                <div class="card-body py-2">
-                                                    <i class="fas ${member.phoneNumber ? 'fa-check text-success' : 'fa-times text-warning'} fa-2x mb-2"></i>
-                                                    <h6>Contact</h6>
-                                                    <small class="text-muted">${member.phoneNumber ? 'Complet' : 'Incomplet'}</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="card bg-light">
-                                                <div class="card-body py-2">
-                                                    <i class="fas ${member.email ? 'fa-check text-success' : 'fa-times text-warning'} fa-2x mb-2"></i>
-                                                    <h6>Email</h6>
-                                                    <small class="text-muted">${member.email ? 'Renseigné' : 'Manquant'}</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                 <i class="fas fa-times me-1"></i>Fermer
                             </button>
                             <button type="button" class="btn btn-primary" 
-                                    onclick="qrGenerator.generateMemberQR('${member.registrationNumber}'); bootstrap.Modal.getInstance(document.getElementById('memberProfileModal')).hide(); showPage('qr-generator');">
+                                    onclick="membersSystem.generateMemberQR(${member.id}); bootstrap.Modal.getInstance(document.getElementById('memberProfileModal')).hide();">
                                 <i class="fas fa-qrcode me-1"></i>Générer carte QR
                             </button>
                         </div>
@@ -663,9 +721,40 @@ class MembersSystem {
         memberModal.show();
     }
 
+    async loadMockMembers() {
+        return [
+            {
+                id: 1,
+                registrationNumber: 'ACM001',
+                firstName: 'Linus',
+                lastName: 'Torvalds',
+                email: 'linus@linux.org',
+                occupation: 'entrepreneur',
+                phoneNumber: '+261 34 11 223 34',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Linux Foundation',
+                joinDate: new Date('2023-01-15').toISOString(),
+                profileImage: 'profiles/linus.jpg'
+            },
+            {
+                id: 2,
+                registrationNumber: 'ACM002',
+                firstName: 'Marie',
+                lastName: 'Curie', 
+                email: 'marie.curie@univ-mg.mg',
+                occupation: 'student',
+                phoneNumber: '+261 34 55 667 78',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Université de Mahajanga',
+                joinDate: new Date('2023-03-20').toISOString(),
+                profileImage: 'profiles/marie.jpg'
+            }
+        ];
+    }
+
     // Méthode pour exporter la liste des membres
     exportMembersList() {
-        const membersToExport = this.filteredMembers.length > 0 ? this.filteredMembers : apiService.members;
+        const membersToExport = this.filteredMembers.length > 0 ? this.filteredMembers : this.members;
         
         const csvContent = this.convertToCSV(membersToExport);
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -689,7 +778,7 @@ class MembersSystem {
             member.registrationNumber,
             member.firstName,
             member.lastName,
-            utils.formatOccupation(member.occupation),
+            this.formatOccupation(member.occupation),
             member.phoneNumber || '',
             member.email || '',
             member.studyOrWorkPlace || '',
@@ -701,89 +790,10 @@ class MembersSystem {
         ).join('\n');
     }
 
-    // Méthode pour afficher les statistiques
-    showStats() {
-        const stats = apiService.getMembersStats();
-        
-        const statsHTML = `
-            <div class="modal fade" id="statsModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header bg-info text-white">
-                            <h5 class="modal-title">
-                                <i class="fas fa-chart-pie me-2"></i>
-                                Statistiques des Membres
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row text-center">
-                                <div class="col-6 mb-3">
-                                    <div class="card bg-light">
-                                        <div class="card-body">
-                                            <h3 class="text-primary">${stats.total}</h3>
-                                            <small class="text-muted">Total membres</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6 mb-3">
-                                    <div class="card bg-light">
-                                        <div class="card-body">
-                                            <h3 class="text-success">${stats.withProfileImage}</h3>
-                                            <small class="text-muted">Avec photo</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body">
-                                            <h3 class="text-warning">${stats.recentMembers}</h3>
-                                            <small class="text-muted">Nouveaux (30j)</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body">
-                                            <h3 class="text-info">${Object.keys(stats.byOccupation).length}</h3>
-                                            <small class="text-muted">Catégories</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <hr>
-                            
-                            <h6>Répartition par occupation:</h6>
-                            <div class="mt-3">
-                                ${Object.entries(stats.byOccupation).map(([occupation, count]) => `
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span>${utils.formatOccupation(occupation)}</span>
-                                        <span class="badge bg-secondary">${count}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        const existingModal = document.getElementById('statsModal');
-        if (existingModal) existingModal.remove();
-        
-        document.body.insertAdjacentHTML('beforeend', statsHTML);
-        const statsModal = new bootstrap.Modal(document.getElementById('statsModal'));
-        statsModal.show();
-    }
-
     // Méthode utilitaire pour afficher des alertes
     showAlert(message, type = 'info') {
-        if (window.attendance && window.attendance.showAlert) {
-            window.attendance.showAlert(message, type);
+        if (window.appController && window.appController.showNotification) {
+            window.appController.showNotification(message, type);
         } else {
             // Fallback simple
             alert(message);
@@ -791,5 +801,13 @@ class MembersSystem {
     }
 }
 
-// Create global instance
-const members = new MembersSystem();
+// Créer une instance globale
+const membersSystem = new MembersSystem();
+
+// Exposer pour un usage global
+window.membersSystem = membersSystem;
+
+// Initialisation quand la page est prête
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('👥 Système membres prêt');
+});
