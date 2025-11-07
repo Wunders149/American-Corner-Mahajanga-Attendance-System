@@ -2,12 +2,12 @@
 <section id="about" class="page-section py-5" aria-label="À propos">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <button class="btn btn-outline-primary" onclick="showPage('home')" aria-label="Retour à l'accueil">
+            <button class="btn btn-outline-primary" data-page="home" aria-label="Retour à l'accueil">
                 <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>Retour
             </button>
             <div class="ms-3 text-end">
-                <a class="btn btn-sm btn-outline-secondary me-2" href="#" onclick="showPage('qr-generator')" aria-label="Générateur de QR">Générer QR</a>
-                <a class="btn btn-sm btn-primary" href="#" onclick="showPage('attendance')" aria-label="Aller au système de présence">Check-In</a>
+                <a class="btn btn-sm btn-outline-secondary me-2" href="#" data-page="qr-generator" aria-label="Générateur de QR">Générer QR</a>
+                <a class="btn btn-sm btn-primary" href="#" data-page="attendance" aria-label="Aller au système de présence">Check-In</a>
             </div>
         </div>
 
@@ -18,8 +18,8 @@
                 <p class="lead">Un espace dédié à l'échange culturel, à l'information et au soutien éducatif pour la communauté de Mahajanga. Nous rapprochons Madagascar et les États‑Unis par des programmes accessibles et inclusifs.</p>
                 <p>Notre offre comprend: information sur les études aux États‑Unis, ressources de bibliothèque, ateliers d'anglais, événements culturels, et un système moderne de suivi des présences pour faciliter la gestion des activités.</p>
                 <div class="mt-4">
-                    <a class="btn btn-primary me-2" href="#" onclick="showPage('contact')" aria-label="Nous contacter">Contactez‑nous</a>
-                    <a class="btn btn-outline-primary" href="#" onclick="showPage('members')" aria-label="Voir les membres">Voir les membres</a>
+                    <a class="btn btn-primary me-2" href="#" data-page="contact" aria-label="Nous contacter">Contactez‑nous</a>
+                    <a class="btn btn-outline-primary" href="#" data-page="members" aria-label="Voir les membres">Voir les membres</a>
                 </div>
             </div>
             <div class="col-md-6">
@@ -150,8 +150,8 @@
             <h4 class="mb-2">Visitez‑nous à l'Université de Mahajanga</h4>
             <p class="mb-3 small">Rejoignez nos activités et bénéficiez de ressources pour vos projets académiques et professionnels.</p>
             <div>
-                <a class="btn btn-light me-2" href="#" onclick="showPage('contact')" aria-label="Planifier une visite">Planifier une visite</a>
-                <a class="btn btn-outline-light" href="#" onclick="showPage('qr-generator')" aria-label="Créer un QR code">Créer un QR</a>
+                <a class="btn btn-light me-2" href="#" data-page="contact" aria-label="Planifier une visite">Planifier une visite</a>
+                <a class="btn btn-outline-light" href="#" data-page="qr-generator" aria-label="Créer un QR code">Créer un QR</a>
             </div>
         </div>
     </div>

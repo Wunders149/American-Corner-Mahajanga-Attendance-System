@@ -3,8 +3,8 @@ class AppController {
     constructor() {
         this.currentPage = 'home';
         this.validPages = ['home', 'about', 'attendance', 'qr-generator', 'members', 'contact'];
-        this.pages = {};
         this.isInitialized = false;
+        this.modules = {};
         this.init();
     }
 
@@ -12,11 +12,11 @@ class AppController {
         try {
             console.log('🚀 Initialisation American Corner Mahajanga...');
             
-            // Setup event listeners first
-            this.setupEventListeners();
-            
             // Set as global reference immediately
             window.appController = this;
+            
+            // Setup event listeners first
+            this.setupEventListeners();
             
             // Initialize the application
             await this.initializeApp();
@@ -33,6 +33,9 @@ class AppController {
         // Load members data
         await this.loadMembers();
         
+        // Initialize modules
+        await this.initializeModules();
+        
         // Initialize based on current URL
         const hash = window.location.hash.substring(1);
         if (hash && this.validPages.includes(hash)) {
@@ -42,14 +45,48 @@ class AppController {
         }
     }
 
+    async initializeModules() {
+        // Initialize scanner module
+        if (typeof qrScanner !== 'undefined') {
+            this.modules.scanner = qrScanner;
+            console.log('🔍 Module Scanner initialisé');
+        }
+        
+        // Initialize QR generator module
+        if (typeof qrGenerator !== 'undefined') {
+            this.modules.qrGenerator = qrGenerator;
+            console.log('📱 Module QR Generator initialisé');
+        }
+        
+        // Initialize members module
+        if (typeof membersManager !== 'undefined') {
+            this.modules.members = membersManager;
+            console.log('👥 Module Members initialisé');
+        } else if (typeof members !== 'undefined') {
+            this.modules.members = members;
+            console.log('👥 Module Members (legacy) initialisé');
+        }
+    }
+
     setupEventListeners() {
-        // Navigation event delegation
+        // Navigation event delegation - enhanced to handle all dynamic content
         document.addEventListener('click', (e) => {
+            // Handle data-page navigation
             const navLink = e.target.closest('[data-page]');
             if (navLink) {
                 e.preventDefault();
                 const pageId = navLink.getAttribute('data-page');
                 this.loadPage(pageId);
+                return;
+            }
+            
+            // Handle button clicks with data-page
+            const button = e.target.closest('button[data-page]');
+            if (button) {
+                e.preventDefault();
+                const pageId = button.getAttribute('data-page');
+                this.loadPage(pageId);
+                return;
             }
             
             // Handle logo click
@@ -57,6 +94,15 @@ class AppController {
             if (logo) {
                 e.preventDefault();
                 this.loadPage('home');
+                return;
+            }
+            
+            // Handle back buttons
+            const backButton = e.target.closest('.btn-outline-primary');
+            if (backButton && backButton.textContent.includes('Retour')) {
+                e.preventDefault();
+                this.loadPage('home');
+                return;
             }
         });
 
@@ -93,7 +139,6 @@ class AppController {
 
             console.log(`📄 Chargement de la page: ${pageId}`);
             
-            // Use fetch for external pages or internal cache
             const response = await fetch(`pages/${pageId}.html`);
             if (!response.ok) {
                 throw new Error('Page non trouvée');
@@ -185,8 +230,13 @@ class AppController {
 
     async initializeAttendancePage() {
         // Initialize scanner if available
-        if (typeof qrScanner !== 'undefined') {
-            await qrScanner.initialize();
+        if (this.modules.scanner) {
+            try {
+                await this.modules.scanner.initialize();
+                console.log('🔍 Scanner initialisé avec succès');
+            } catch (error) {
+                console.warn('Erreur initialisation scanner:', error);
+            }
         } else {
             console.warn('QR Scanner non disponible');
         }
@@ -194,8 +244,20 @@ class AppController {
 
     async initializeQRGeneratorPage() {
         // Initialize QR generator if available
-        if (typeof qrGenerator !== 'undefined') {
-            await qrGenerator.initialize();
+        if (this.modules.qrGenerator) {
+            try {
+                // Try different possible initialization methods
+                if (typeof this.modules.qrGenerator.initialize === 'function') {
+                    await this.modules.qrGenerator.initialize();
+                } else if (typeof this.modules.qrGenerator.init === 'function') {
+                    await this.modules.qrGenerator.init();
+                } else {
+                    console.log('📱 QR Generator prêt à utiliser');
+                }
+                console.log('📱 QR Generator initialisé avec succès');
+            } catch (error) {
+                console.warn('Erreur initialisation QR Generator:', error);
+            }
         } else {
             console.warn('QR Generator non disponible');
         }
@@ -203,10 +265,19 @@ class AppController {
 
     async initializeMembersPage() {
         // Load members if available
-        if (typeof membersManager !== 'undefined') {
-            await membersManager.loadMembers();
-        } else if (typeof members !== 'undefined') {
-            await members.loadMembersPage();
+        if (this.modules.members) {
+            try {
+                if (typeof this.modules.members.loadMembers === 'function') {
+                    await this.modules.members.loadMembers();
+                } else if (typeof this.modules.members.loadMembersPage === 'function') {
+                    await this.modules.members.loadMembersPage();
+                } else if (typeof this.modules.members.init === 'function') {
+                    await this.modules.members.init();
+                }
+                console.log('👥 Members module initialisé avec succès');
+            } catch (error) {
+                console.warn('Erreur initialisation members:', error);
+            }
         } else {
             console.warn('Gestionnaire de membres non disponible');
         }
@@ -221,6 +292,7 @@ class AppController {
                 this.handleContactForm();
             });
         }
+        console.log('📧 Page Contact initialisée');
     }
 
     // KPI Counter Animation
@@ -283,7 +355,7 @@ class AppController {
                     <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
                     <h4>Erreur</h4>
                     <p>${message}</p>
-                    <button class="btn btn-primary mt-2" onclick="window.appController.loadPage('home')">
+                    <button class="btn btn-primary mt-2" data-page="home">
                         Retour à l'accueil
                     </button>
                 </div>
@@ -332,63 +404,15 @@ class AppController {
             timestamp: new Date().toISOString()
         });
         
-        if (window.qrScanner && window.qrScanner.onScanSuccess) {
-            window.qrScanner.onScanSuccess(demoQRData);
+        if (this.modules.scanner && this.modules.scanner.onScanSuccess) {
+            this.modules.scanner.onScanSuccess(demoQRData);
         } else {
             console.warn('QR Scanner non disponible pour le test');
         }
     }
 }
 
-// Utility Functions
-const AppUtils = {
-    getInitials(firstName, lastName) {
-        const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
-        const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
-        return firstInitial + lastInitial;
-    },
-
-    formatOccupation(occupation) {
-        if (!occupation) return 'Non spécifié';
-        const occupations = {
-            'student': 'Étudiant',
-            'employee': 'Employé',
-            'entrepreneur': 'Entrepreneur',
-            'unemployed': 'Sans emploi',
-            'other': 'Autre'
-        };
-        return occupations[occupation] || occupation;
-    },
-
-    formatDate(dateString) {
-        if (!dateString) return 'Date inconnue';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('fr-FR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (error) {
-            return dateString;
-        }
-    }
-};
-
-// Global utility functions
-window.utils = AppUtils;
-
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new AppController();
 });
-
-// Global error handler for uncaught errors
-window.addEventListener('error', (event) => {
-    console.error('Erreur non gérée:', event.error);
-});
-
-// Make appController globally available
-window.AppController = AppController;

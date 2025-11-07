@@ -6,8 +6,8 @@
             <h1 class="display-4 fw-bold mb-3">American Corner Mahajanga</h1>
             <p class="lead mb-4">Votre porte d'entrée vers l'éducation, la culture et l'information américaine à Mahajanga, Madagascar.</p>
             <div class="d-flex flex-column flex-sm-row gap-2">
-                <button class="btn btn-light btn-lg px-4" onclick="showPage('about')" aria-label="En savoir plus sur American Corner">En Savoir Plus</button>
-                <button class="btn btn-outline-light btn-lg px-4" onclick="showPage('attendance')" aria-label="Aller au check-in">Check-In</button>
+                <button class="btn btn-light btn-lg px-4" data-page="about" aria-label="En savoir plus sur American Corner">En Savoir Plus</button>
+                <button class="btn btn-outline-light btn-lg px-4" data-page="attendance" aria-label="Aller au check-in">Check-In</button>
             </div>
         </div>
     </div>
@@ -42,7 +42,7 @@
             <h2 class="section-title text-center">Nos Activités</h2>
             <div class="row g-4">
                 <div class="col-md-6 col-lg-3">
-                    <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" onclick="showPage('about')" onkeypress="if(event.key==='Enter') showPage('about')">
+                    <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" data-page="about">
                         <div class="service-icon" aria-hidden="true">
                             <i class="fas fa-graduation-cap"></i>
                         </div>
@@ -51,7 +51,7 @@
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3">
-                    <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" onclick="showPage('about')" onkeypress="if(event.key==='Enter') showPage('about')">
+                    <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" data-page="about">
                         <div class="service-icon" aria-hidden="true">
                             <i class="fas fa-book"></i>
                         </div>
@@ -60,7 +60,7 @@
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3">
-                    <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" onclick="showPage('about')" onkeypress="if(event.key==='Enter') showPage('about')">
+                    <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" data-page="about">
                         <div class="service-icon" aria-hidden="true">
                             <i class="fas fa-language"></i>
                         </div>
@@ -69,7 +69,7 @@
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3">
-                    <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" onclick="showPage('about')" onkeypress="if(event.key==='Enter') showPage('about')">
+                    <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" data-page="about">
                         <div class="service-icon" aria-hidden="true">
                             <i class="fas fa-users"></i>
                         </div>
@@ -91,7 +91,7 @@
                         <i class="fas fa-qrcode fa-3x text-primary mb-3" aria-hidden="true"></i>
                         <h4>Système de Présence</h4>
                         <p>Check-in avec QR code pour le suivi des présences.</p>
-                        <button class="btn btn-primary mt-2" onclick="showPage('attendance')" aria-label="Accéder au système de présence">Accéder</button>
+                        <button class="btn btn-primary mt-2" data-page="attendance" aria-label="Accéder au système de présence">Accéder</button>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -99,7 +99,7 @@
                         <i class="fas fa-id-card fa-3x text-primary mb-3" aria-hidden="true"></i>
                         <h4>Générateur QR</h4>
                         <p>Créez des QR codes personnalisés pour les membres.</p>
-                        <button class="btn btn-primary mt-2" onclick="showPage('qr-generator')" aria-label="Accéder au générateur de QR">Générer</button>
+                        <button class="btn btn-primary mt-2" data-page="qr-generator" aria-label="Accéder au générateur de QR">Générer</button>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -107,7 +107,7 @@
                         <i class="fas fa-users fa-3x text-primary mb-3" aria-hidden="true"></i>
                         <h4>Gestion Membres</h4>
                         <p>Consultez la liste des membres et leurs profils.</p>
-                        <button class="btn btn-primary mt-2" onclick="showPage('members')" aria-label="Voir les membres">Voir</button>
+                        <button class="btn btn-primary mt-2" data-page="members" aria-label="Voir les membres">Voir</button>
                     </div>
                 </div>
             </div>
