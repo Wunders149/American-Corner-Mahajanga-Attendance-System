@@ -1,7 +1,7 @@
-<!-- Attendance System Page - MODIFIÉ POUR SCANNER.JS -->
+<!-- Attendance System Page -->
 <section id="attendance" class="page-section py-5">
     <div class="container">
-        <button class="btn btn-outline-primary mb-4" onclick="showPage('home')" aria-label="Retour à l'accueil">
+        <button class="btn btn-outline-primary mb-4" data-page="home" aria-label="Retour à l'accueil">
             <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
         </button>
         <h2 class="section-title text-center">Système de Présence ACM</h2>
@@ -18,7 +18,7 @@
             </div>
         </div>
 
-        <!-- QR Scanner Section - STRUCTURE MODIFIÉE -->
+        <!-- QR Scanner Section -->
         <div class="card attendance-card">
             <div class="card-header bg-primary text-white">
                 <h4 class="mb-0"><i class="fas fa-qrcode me-2"></i>Check-in par QR Code</h4>
@@ -29,7 +29,7 @@
                         <div class="qr-scanner-container">
                             <h5>Scannez Votre QR Code Membre</h5>
                             
-                            <!-- Scanner Container - STRUCTURE SIMPLIFIÉE -->
+                            <!-- Scanner Container -->
                             <div id="scannerSection">
                                 <!-- Camera Placeholder - visible par défaut -->
                                 <div class="camera-placeholder" id="cameraPlaceholder">
@@ -53,7 +53,7 @@
                             </div>
                             
                             <!-- Manual Entry -->
-                            <button class="btn btn-outline-primary mt-3 w-100" onclick="qrScanner.startManualEntry()" aria-label="Entrer manuellement les informations">
+                            <button class="btn btn-outline-primary mt-3 w-100" id="manualEntryBtn" aria-label="Entrer manuellement les informations">
                                 <i class="fas fa-keyboard me-2"></i>Entrée Manuelle
                             </button>
                             
@@ -61,7 +61,7 @@
                             <div class="mt-3 p-3 bg-light rounded">
                                 <h6>Mode Démo</h6>
                                 <p class="small mb-2">Testez le système avec des données locales</p>
-                                <button class="btn btn-outline-info btn-sm w-100" onclick="testScannerWithDemoMember()" aria-label="Tester avec le membre ACM001">
+                                <button class="btn btn-outline-info btn-sm w-100" id="demoScannerBtn" aria-label="Tester avec le membre ACM001">
                                     Utiliser ACM001 (Linus Torvalds)
                                 </button>
                             </div>
@@ -78,7 +78,7 @@
                                 <li class="list-group-item">Confirmez votre check-in</li>
                             </ol>
                             
-                            <!-- Check-in Interface will be injected here by scanner.js -->
+                            <!-- Check-in Interface -->
                             <div id="checkinInterfaceContainer">
                                 <!-- L'interface de check-in sera injectée ici dynamiquement -->
                             </div>
