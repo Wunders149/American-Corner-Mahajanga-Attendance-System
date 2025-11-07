@@ -1,4 +1,4 @@
-// members.js - Système complet de gestion des membres avec recherche, filtres et interface améliorée
+// members.js - Système complet de gestion des membres American Corner Mahajanga
 class MembersSystem {
     constructor() {
         this.members = [];
@@ -17,22 +17,44 @@ class MembersSystem {
 
     async loadMembers() {
         try {
-            if (window.apiService && window.apiService.members) {
+            console.log('🔄 Chargement des données membres...');
+            
+            // Priorité 1: Utiliser l'API si disponible et chargée
+            if (window.apiService && window.apiService.members && window.apiService.members.length > 0) {
                 this.members = window.apiService.members;
                 console.log(`✅ ${this.members.length} membres chargés depuis API`);
-            } else {
+            } 
+            // Priorité 2: Attendre que l'API se charge
+            else if (window.apiService && typeof window.apiService.fetchMembers === 'function') {
+                console.log('⏳ Chargement des membres depuis API...');
+                await window.apiService.fetchMembers();
+                
+                if (window.apiService.members && window.apiService.members.length > 0) {
+                    this.members = window.apiService.members;
+                    console.log(`✅ ${this.members.length} membres chargés depuis API après fetch`);
+                } else {
+                    throw new Error('API retourne une liste vide');
+                }
+            } 
+            // Priorité 3: Données mock en fallback
+            else {
                 console.warn('⚠️ API non disponible, chargement des données mock');
                 this.members = await this.loadMockMembers();
+                console.log(`📦 ${this.members.length} membres mock chargés`);
             }
             
             this.filteredMembers = [...this.members];
             
         } catch (error) {
             console.error('❌ Erreur chargement membres:', error);
+            // Fallback aux données mock en cas d'erreur
+            this.members = await this.loadMockMembers();
+            this.filteredMembers = [...this.members];
+            console.log(`🔄 ${this.members.length} membres de secours chargés`);
         }
     }
 
-    // Fonctions utilitaires locales
+    // Fonctions utilitaires
     formatOccupation(occupation) {
         if (!occupation) return 'Non spécifié';
         const occupations = {
@@ -65,15 +87,30 @@ class MembersSystem {
         }
     }
 
+    getOccupationIcon(occupation) {
+        const icons = {
+            'student': 'fa-graduation-cap',
+            'employee': 'fa-briefcase',
+            'entrepreneur': 'fa-lightbulb',
+            'unemployed': 'fa-user',
+            'other': 'fa-user'
+        };
+        return icons[occupation] || 'fa-user';
+    }
+
     // Interface principale
     async loadMembersPage() {
         console.log('📄 Chargement de la page membres...');
         const container = document.getElementById('membersContainer');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ Conteneur membres non trouvé');
+            return;
+        }
         
+        // Afficher le loading
         container.innerHTML = this.getLoadingHTML();
         
-        // Attendre que les membres soient chargés
+        // S'assurer que les membres sont chargés
         if (this.members.length === 0) {
             await this.loadMembers();
         }
@@ -84,15 +121,13 @@ class MembersSystem {
         }
         
         // Vérifier les images de profil
-        await this.checkProfileImages();
+        this.checkProfileImages();
         
         // Initialiser les membres filtrés
         this.filteredMembers = [...this.members];
         
-        // Afficher les contrôles de filtre, tri et recherche
+        // Afficher l'interface complète
         this.renderControls();
-        
-        // Afficher les membres
         this.renderMembers();
         
         console.log(`✅ ${this.members.length} membres chargés, ${this.filteredMembers.length} affichés`);
@@ -118,17 +153,21 @@ class MembersSystem {
                         <i class="fas fa-users fa-4x text-muted mb-4"></i>
                         <h3 class="text-muted">Aucun membre disponible</h3>
                         <p class="text-muted mb-4">Les membres apparaîtront ici une fois chargés depuis le système</p>
-                        <button class="btn btn-primary btn-lg" onclick="membersSystem.loadMembersPage()">
-                            <i class="fas fa-sync me-2"></i>Actualiser
-                        </button>
+                        <div class="d-flex gap-2 justify-content-center flex-wrap">
+                            <button class="btn btn-primary" onclick="membersSystem.loadMembersPage()">
+                                <i class="fas fa-sync me-2"></i>Actualiser
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="appController?.loadPage('home')">
+                                <i class="fas fa-home me-2"></i>Accueil
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
     }
 
-    async checkProfileImages() {
-        console.log('🖼️ Vérification des images de profil...');
+    checkProfileImages() {
         const membersWithImage = this.members.filter(member => 
             member.profileImage && member.profileImage.trim() !== ''
         ).length;
@@ -137,27 +176,9 @@ class MembersSystem {
         return membersWithImage;
     }
 
-    setupEventListeners() {
-        // Filtres
-        const filterButtons = document.querySelectorAll('.member-filter');
-        filterButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                const filter = e.target.getAttribute('data-filter');
-                this.filterMembers(filter);
-            });
-        });
-
-        // Recherche
-        const searchInput = document.getElementById('memberSearch');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.searchMembers(e.target.value);
-            });
-        }
-    }
-
     renderControls() {
         const container = document.getElementById('membersContainer');
+        if (!container) return;
         
         const controlsHTML = `
             <div class="col-12 mb-4">
@@ -191,9 +212,8 @@ class MembersSystem {
                                            class="form-control" 
                                            id="membersSearch" 
                                            placeholder="Rechercher un membre par nom, numéro, téléphone..."
-                                           value="${this.searchQuery}"
-                                           onkeyup="membersSystem.handleSearch(event)">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="membersSystem.clearSearch()">
+                                           value="${this.searchQuery}">
+                                    <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -206,100 +226,121 @@ class MembersSystem {
                                 <div class="d-flex flex-wrap gap-2 align-items-center">
                                     <span class="text-muted small">Filtrer:</span>
                                     <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-sm ${this.currentFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="membersSystem.setFilter('all')">
-                                            Tous
-                                        </button>
-                                        <button type="button" class="btn btn-sm ${this.currentFilter === 'student' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="membersSystem.setFilter('student')">
-                                            Étudiants
-                                        </button>
-                                        <button type="button" class="btn btn-sm ${this.currentFilter === 'employee' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="membersSystem.setFilter('employee')">
-                                            Employés
-                                        </button>
-                                        <button type="button" class="btn btn-sm ${this.currentFilter === 'entrepreneur' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="membersSystem.setFilter('entrepreneur')">
-                                            Entrepreneurs
-                                        </button>
-                                        <button type="button" class="btn btn-sm ${this.currentFilter === 'other' ? 'btn-primary' : 'btn-outline-primary'}" 
-                                                onclick="membersSystem.setFilter('other')">
-                                            Autres
-                                        </button>
+                                        ${this.renderFilterButtons()}
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="d-flex justify-content-md-end">
-                                    <div class="dropdown">
-                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                            <i class="fas fa-sort me-1"></i>
-                                            ${this.getSortLabel(this.currentSort)}
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item ${this.currentSort === 'name' ? 'active' : ''}" href="#" onclick="membersSystem.setSort('name')">Nom A-Z</a></li>
-                                            <li><a class="dropdown-item ${this.currentSort === 'name-desc' ? 'active' : ''}" href="#" onclick="membersSystem.setSort('name-desc')">Nom Z-A</a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item ${this.currentSort === 'recent' ? 'active' : ''}" href="#" onclick="membersSystem.setSort('recent')">Plus récents</a></li>
-                                            <li><a class="dropdown-item ${this.currentSort === 'oldest' ? 'active' : ''}" href="#" onclick="membersSystem.setSort('oldest')">Plus anciens</a></li>
-                                        </ul>
-                                    </div>
+                                    ${this.renderSortDropdown()}
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            <div class="col-12">
+                <div class="row g-4" id="membersGridContainer"></div>
+            </div>
         `;
         
         container.innerHTML = controlsHTML;
         
-        // Focus sur la barre de recherche si query existante
-        if (this.searchQuery) {
-            const searchInput = document.getElementById('membersSearch');
-            if (searchInput) {
-                searchInput.focus();
-            }
-        }
-    }
-
-    getFilteredMembersText() {
-        if (this.searchQuery && this.currentFilter !== 'all') {
-            return `Résultats pour "${this.searchQuery}" parmi les ${this.getFilterLabel(this.currentFilter).toLowerCase()}`;
-        } else if (this.searchQuery) {
-            return `Résultats pour "${this.searchQuery}"`;
-        } else if (this.currentFilter !== 'all') {
-            return `${this.getFilterLabel(this.currentFilter)} seulement`;
-        }
-        return 'Tous les membres';
-    }
-
-    getFilterLabel(filter) {
-        const labels = {
-            'all': 'Tous',
-            'student': 'Étudiants',
-            'employee': 'Employés',
-            'entrepreneur': 'Entrepreneurs',
-            'other': 'Autres'
-        };
-        return labels[filter] || 'Filtrer';
-    }
-
-    getSortLabel(sort) {
-        const labels = {
-            'name': 'Nom A-Z',
-            'name-desc': 'Nom Z-A',
-            'recent': 'Récents',
-            'oldest': 'Anciens'
-        };
-        return labels[sort] || 'Trier';
-    }
-
-    handleSearch(event) {
-        const query = event.target.value.trim().toLowerCase();
-        this.searchQuery = query;
+        // Configurer les événements
+        this.setupControlsEventListeners();
         
-        // Débounce pour éviter les recherches trop fréquentes
+        // Focus sur la barre de recherche
+        const searchInput = document.getElementById('membersSearch');
+        if (searchInput) {
+            searchInput.focus();
+        }
+    }
+
+    renderFilterButtons() {
+        const filters = [
+            { value: 'all', label: 'Tous' },
+            { value: 'student', label: 'Étudiants' },
+            { value: 'employee', label: 'Employés' },
+            { value: 'entrepreneur', label: 'Entrepreneurs' },
+            { value: 'other', label: 'Autres' }
+        ];
+        
+        return filters.map(filter => `
+            <button type="button" 
+                    class="btn btn-sm ${this.currentFilter === filter.value ? 'btn-primary' : 'btn-outline-primary'}" 
+                    data-filter="${filter.value}">
+                ${filter.label}
+            </button>
+        `).join('');
+    }
+
+    renderSortDropdown() {
+        const sortOptions = [
+            { value: 'name', label: 'Nom A-Z' },
+            { value: 'name-desc', label: 'Nom Z-A' },
+            { value: 'recent', label: 'Récents' },
+            { value: 'oldest', label: 'Anciens' }
+        ];
+        
+        const currentSortLabel = sortOptions.find(opt => opt.value === this.currentSort)?.label || 'Trier';
+        
+        return `
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-sort me-1"></i>${currentSortLabel}
+                </button>
+                <ul class="dropdown-menu">
+                    ${sortOptions.map(option => `
+                        <li>
+                            <a class="dropdown-item ${this.currentSort === option.value ? 'active' : ''}" 
+                               href="#" data-sort="${option.value}">
+                                ${option.label}
+                            </a>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    setupControlsEventListeners() {
+        // Recherche
+        const searchInput = document.getElementById('membersSearch');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.handleSearch(e.target.value);
+            });
+        }
+        
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                this.clearSearch();
+            });
+        }
+        
+        // Filtres
+        document.querySelectorAll('[data-filter]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const filter = e.target.getAttribute('data-filter');
+                this.setFilter(filter);
+            });
+        });
+        
+        // Tri
+        document.querySelectorAll('[data-sort]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const sort = e.target.getAttribute('data-sort');
+                this.setSort(sort);
+            });
+        });
+    }
+
+    handleSearch(query) {
+        this.searchQuery = query.trim().toLowerCase();
+        
         clearTimeout(this.searchTimeout);
         this.searchTimeout = setTimeout(() => {
             this.applyFilters();
@@ -327,16 +368,14 @@ class MembersSystem {
     }
 
     applyFilters() {
-        // Appliquer tous les filtres
         let filtered = this.filterBySearch(this.members);
         filtered = this.filterByOccupation(filtered);
         filtered = this.sortMembers(filtered);
         
         this.filteredMembers = filtered;
         this.renderMembers();
-        
-        // Mettre à jour le compteur
         this.updateMembersCount();
+        this.updateControlsState();
     }
 
     filterBySearch(members) {
@@ -349,8 +388,7 @@ class MembersSystem {
             (member.registrationNumber && member.registrationNumber.toLowerCase().includes(query)) ||
             (member.email && member.email.toLowerCase().includes(query)) ||
             (member.phoneNumber && member.phoneNumber.toLowerCase().includes(query)) ||
-            (member.studyOrWorkPlace && member.studyOrWorkPlace.toLowerCase().includes(query)) ||
-            (member.address && member.address.toLowerCase().includes(query))
+            (member.studyOrWorkPlace && member.studyOrWorkPlace.toLowerCase().includes(query))
         );
     }
 
@@ -385,37 +423,58 @@ class MembersSystem {
         }
     }
 
+    updateControlsState() {
+        // Mettre à jour les boutons de filtre actifs
+        document.querySelectorAll('[data-filter]').forEach(button => {
+            const filter = button.getAttribute('data-filter');
+            if (filter === this.currentFilter) {
+                button.classList.replace('btn-outline-primary', 'btn-primary');
+            } else {
+                button.classList.replace('btn-primary', 'btn-outline-primary');
+            }
+        });
+        
+        // Mettre à jour le texte d'information
+        const infoElement = document.querySelector('.text-muted i').parentElement;
+        if (infoElement) {
+            infoElement.innerHTML = `<i class="fas fa-info-circle me-1"></i>${this.getFilteredMembersText()}`;
+        }
+    }
+
+    getFilteredMembersText() {
+        if (this.searchQuery && this.currentFilter !== 'all') {
+            return `Résultats pour "${this.searchQuery}" parmi les ${this.getFilterLabel(this.currentFilter).toLowerCase()}`;
+        } else if (this.searchQuery) {
+            return `Résultats pour "${this.searchQuery}"`;
+        } else if (this.currentFilter !== 'all') {
+            return `${this.getFilterLabel(this.currentFilter)} seulement`;
+        }
+        return 'Tous les membres';
+    }
+
+    getFilterLabel(filter) {
+        const labels = {
+            'all': 'Tous',
+            'student': 'Étudiants',
+            'employee': 'Employés',
+            'entrepreneur': 'Entrepreneurs',
+            'other': 'Autres'
+        };
+        return labels[filter] || 'Filtrer';
+    }
+
     renderMembers() {
-        const container = document.getElementById('membersContainer');
+        const container = document.getElementById('membersGridContainer');
         if (!container) return;
         
-        // Trouver ou créer le conteneur des membres
-        let membersContainer = document.getElementById('membersGridContainer');
-        if (!membersContainer) {
-            membersContainer = document.createElement('div');
-            membersContainer.className = 'col-12';
-            membersContainer.id = 'membersGridContainer';
-            container.appendChild(membersContainer);
-        }
-        
-        // Vider le conteneur
-        membersContainer.innerHTML = '';
-        
         if (this.filteredMembers.length === 0) {
-            membersContainer.innerHTML = this.getNoResultsHTML();
+            container.innerHTML = this.getNoResultsHTML();
             return;
         }
         
-        const membersGrid = document.createElement('div');
-        membersGrid.className = 'row g-4';
-        membersGrid.id = 'membersGrid';
-        
-        this.filteredMembers.forEach(member => {
-            const memberCard = this.createMemberCard(member);
-            membersGrid.appendChild(memberCard);
-        });
-        
-        membersContainer.appendChild(membersGrid);
+        container.innerHTML = this.filteredMembers.map(member => 
+            this.createMemberCard(member)
+        ).join('');
     }
 
     getNoResultsHTML() {
@@ -462,110 +521,112 @@ class MembersSystem {
     }
 
     createMemberCard(member) {
-        const memberCol = document.createElement('div');
-        memberCol.className = 'col-md-6 col-lg-4 col-xl-3 mb-4';
-        
         const profileImage = this.getProfileImage(member);
         const joinDate = this.formatDate(member.joinDate);
         const occupation = this.formatOccupation(member.occupation);
-        const initials = this.getInitials(member.firstName, member.lastName);
+        const occupationIcon = this.getOccupationIcon(member.occupation);
 
-        memberCol.innerHTML = `
-            <div class="card member-card h-100 shadow-sm">
-                <div class="card-body text-center p-4">
-                    <!-- Photo de profil -->
-                    <div class="member-avatar mb-3">
-                        ${profileImage}
-                    </div>
-                    
-                    <!-- Informations principales -->
-                    <h5 class="member-name mb-1">${member.firstName} ${member.lastName}</h5>
-                    <div class="member-id text-primary fw-bold mb-2">${member.registrationNumber}</div>
-                    
-                    <!-- Occupation -->
-                    <div class="member-occupation mb-2">
-                        <span class="badge bg-light text-dark">${occupation}</span>
-                    </div>
-                    
-                    <!-- Informations de contact -->
-                    <div class="member-contact text-muted small mb-3">
-                        ${member.email ? `<div><i class="fas fa-envelope me-1"></i>${member.email}</div>` : ''}
-                        ${member.phoneNumber ? `<div><i class="fas fa-phone me-1"></i>${member.phoneNumber}</div>` : ''}
-                    </div>
-                    
-                    <!-- Lieu d'étude/travail -->
-                    ${member.studyOrWorkPlace ? `
-                        <div class="member-location text-muted small mb-3">
-                            <i class="fas fa-building me-1"></i>${member.studyOrWorkPlace}
+        // Mise en évidence de la recherche
+        const highlightText = (text) => {
+            if (!this.searchQuery || !text) return text;
+            const regex = new RegExp(`(${this.searchQuery})`, 'gi');
+            return text.replace(regex, '<mark class="bg-warning px-1 rounded">$1</mark>');
+        };
+
+        return `
+            <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+                <div class="card member-card h-100 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <!-- Photo de profil -->
+                        <div class="member-avatar mb-3 position-relative">
+                            ${profileImage}
+                            <div class="occupation-icon position-absolute bottom-0 end-0 bg-white rounded-circle p-1 shadow-sm">
+                                <i class="fas ${occupationIcon} text-primary small"></i>
+                            </div>
                         </div>
-                    ` : ''}
-                    
-                    <!-- Date d'adhésion -->
-                    <div class="member-join-date text-muted small">
-                        <i class="fas fa-calendar-alt me-1"></i>Membre depuis ${joinDate}
+                        
+                        <!-- Informations principales -->
+                        <h5 class="member-name mb-1">${highlightText(member.firstName)} ${highlightText(member.lastName)}</h5>
+                        <div class="member-id text-primary fw-bold mb-2">${highlightText(member.registrationNumber)}</div>
+                        
+                        <!-- Occupation -->
+                        <div class="member-occupation mb-2">
+                            <span class="badge bg-light text-dark border">${occupation}</span>
+                        </div>
+                        
+                        <!-- Informations de contact -->
+                        <div class="member-contact text-muted small mb-3">
+                            ${member.email ? `<div><i class="fas fa-envelope me-1"></i>${highlightText(member.email)}</div>` : ''}
+                            ${member.phoneNumber ? `<div><i class="fas fa-phone me-1"></i>${highlightText(member.phoneNumber)}</div>` : ''}
+                        </div>
+                        
+                        <!-- Lieu d'étude/travail -->
+                        ${member.studyOrWorkPlace ? `
+                            <div class="member-location text-muted small mb-3">
+                                <i class="fas fa-building me-1"></i>${highlightText(member.studyOrWorkPlace)}
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Date d'adhésion -->
+                        <div class="member-join-date text-muted small">
+                            <i class="fas fa-calendar-alt me-1"></i>Membre depuis ${joinDate}
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Actions -->
-                <div class="card-footer bg-transparent border-top-0 pt-0">
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-outline-primary btn-sm" 
-                                onclick="membersSystem.viewMemberDetails(${member.id})">
-                            <i class="fas fa-eye me-1"></i>Voir profil
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm" 
-                                onclick="membersSystem.generateMemberQR(${member.id})">
-                            <i class="fas fa-qrcode me-1"></i>Générer QR
-                        </button>
+                    
+                    <!-- Actions -->
+                    <div class="card-footer bg-transparent border-top-0 pt-0">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" 
+                                    onclick="membersSystem.viewMemberDetails(${member.id})">
+                                <i class="fas fa-eye me-1"></i>Voir profil
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" 
+                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}')">
+                                <i class="fas fa-qrcode me-1"></i>Générer QR
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
-        
-        return memberCol;
     }
 
     getProfileImage(member) {
-        if (member.profileImage) {
-            const imageUrl = window.apiService ? 
-                window.apiService.getProfileImageUrl(member.profileImage) : 
-                member.profileImage;
+        // Vérifier si l'image existe
+        if (member.profileImage && member.profileImage.trim() !== '') {
+            let imageUrl;
+            
+            if (window.apiService && typeof window.apiService.getProfileImageUrl === 'function') {
+                imageUrl = window.apiService.getProfileImageUrl(member.profileImage);
+            } else {
+                imageUrl = member.profileImage;
+            }
             
             return `
                 <img src="${imageUrl}" 
                      alt="${member.firstName} ${member.lastName}"
                      class="rounded-circle member-photo"
-                     style="width: 80px; height: 80px; object-fit: cover;"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                     style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #f8f9fa;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                     onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
                 <div class="avatar-placeholder rounded-circle d-none align-items-center justify-content-center bg-secondary text-white"
-                     style="width: 80px; height: 80px;">
-                    <i class="fas fa-user"></i>
+                     style="width: 80px; height: 80px; border: 3px solid #f8f9fa;">
+                    <i class="fas fa-user fa-lg"></i>
                 </div>
             `;
         }
         
         // Avatar avec initiales si pas de photo
         const colors = ['primary', 'success', 'info', 'warning', 'danger'];
-        const colorIndex = (member.id || Math.random()) % colors.length;
+        const colorIndex = (member.id || Math.floor(Math.random() * colors.length)) % colors.length;
         const bgColor = colors[colorIndex];
         
         return `
             <div class="avatar-initials bg-${bgColor} rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-                 style="width: 80px; height: 80px; font-size: 1.5rem;">
+                 style="width: 80px; height: 80px; font-size: 1.5rem; border: 3px solid #f8f9fa;">
                 ${this.getInitials(member.firstName, member.lastName)}
             </div>
         `;
-    }
-
-    getOccupationIcon(occupation) {
-        const icons = {
-            'student': 'fa-graduation-cap',
-            'employee': 'fa-briefcase',
-            'entrepreneur': 'fa-lightbulb',
-            'unemployed': 'fa-user',
-            'other': 'fa-user'
-        };
-        return icons[occupation] || 'fa-user';
     }
 
     viewMemberDetails(memberId) {
@@ -575,25 +636,24 @@ class MembersSystem {
         }
     }
 
-    generateMemberQR(memberId) {
-        const member = this.members.find(m => m.id === memberId);
-        if (!member) return;
+    generateMemberQR(registrationNumber) {
+        const member = this.members.find(m => m.registrationNumber === registrationNumber);
+        if (!member) {
+            this.showNotification('Membre non trouvé', 'error');
+            return;
+        }
 
-        // Rediriger vers le générateur QR avec les données pré-remplies
+        // Rediriger vers le générateur QR
         if (window.appController) {
             window.appController.loadPage('qr-generator');
-            // Pré-remplir le formulaire QR avec les données du membre
+            // Pré-remplir le formulaire
             setTimeout(() => {
-                this.prefillQRForm(member);
+                if (window.qrGenerator && typeof window.qrGenerator.prefillForm === 'function') {
+                    window.qrGenerator.prefillForm(member);
+                }
             }, 500);
-        }
-    }
-
-    prefillQRForm(member) {
-        // Implémentez le pré-remplissage du formulaire QR
-        console.log('📝 Pré-remplissage formulaire QR pour:', member);
-        if (window.qrGenerator && window.qrGenerator.prefillForm) {
-            window.qrGenerator.prefillForm(member);
+        } else {
+            this.showNotification('Redirection vers le générateur QR...', 'info');
         }
     }
 
@@ -604,7 +664,7 @@ class MembersSystem {
             member.profileImage;
         const joinDate = this.formatDate(member.joinDate);
         const occupation = this.formatOccupation(member.occupation);
-        const hasProfileImage = !!member.profileImage;
+        const hasProfileImage = !!member.profileImage && member.profileImage.trim() !== '';
         
         const imageHtml = hasProfileImage ? 
             `<img src="${profileImageUrl}" 
@@ -698,7 +758,7 @@ class MembersSystem {
                                 <i class="fas fa-times me-1"></i>Fermer
                             </button>
                             <button type="button" class="btn btn-primary" 
-                                    onclick="membersSystem.generateMemberQR(${member.id}); bootstrap.Modal.getInstance(document.getElementById('memberProfileModal')).hide();">
+                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}'); bootstrap.Modal.getInstance(document.getElementById('memberProfileModal')).hide();">
                                 <i class="fas fa-qrcode me-1"></i>Générer carte QR
                             </button>
                         </div>
@@ -707,21 +767,20 @@ class MembersSystem {
             </div>
         `;
         
-        // Supprimer la modal existante si elle existe
+        // Gérer la modal existante
         const existingModal = document.getElementById('memberProfileModal');
         if (existingModal) {
             existingModal.remove();
         }
         
-        // Ajouter la nouvelle modal
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         
-        // Afficher la modal
         const memberModal = new bootstrap.Modal(document.getElementById('memberProfileModal'));
         memberModal.show();
     }
 
     async loadMockMembers() {
+        // Données mock de secours (sans images pour éviter les 404)
         return [
             {
                 id: 1,
@@ -734,7 +793,7 @@ class MembersSystem {
                 address: 'Mahajanga, Madagascar',
                 studyOrWorkPlace: 'Linux Foundation',
                 joinDate: new Date('2023-01-15').toISOString(),
-                profileImage: 'profiles/linus.jpg'
+                profileImage: null
             },
             {
                 id: 2,
@@ -747,67 +806,25 @@ class MembersSystem {
                 address: 'Mahajanga, Madagascar',
                 studyOrWorkPlace: 'Université de Mahajanga',
                 joinDate: new Date('2023-03-20').toISOString(),
-                profileImage: 'profiles/marie.jpg'
+                profileImage: null
             }
         ];
     }
 
-    // Méthode pour exporter la liste des membres
-    exportMembersList() {
-        const membersToExport = this.filteredMembers.length > 0 ? this.filteredMembers : this.members;
-        
-        const csvContent = this.convertToCSV(membersToExport);
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', `membres_acm_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        this.showAlert('Liste des membres exportée avec succès!', 'success');
-    }
-
-    convertToCSV(members) {
-        const headers = ['Numéro', 'Prénom', 'Nom', 'Occupation', 'Téléphone', 'Email', 'Lieu', 'Date d\'adhésion'];
-        const rows = members.map(member => [
-            member.registrationNumber,
-            member.firstName,
-            member.lastName,
-            this.formatOccupation(member.occupation),
-            member.phoneNumber || '',
-            member.email || '',
-            member.studyOrWorkPlace || '',
-            member.joinDate ? new Date(member.joinDate).toLocaleDateString('fr-FR') : ''
-        ]);
-        
-        return [headers, ...rows].map(row => 
-            row.map(field => `"${field}"`).join(',')
-        ).join('\n');
-    }
-
-    // Méthode utilitaire pour afficher des alertes
-    showAlert(message, type = 'info') {
-        if (window.appController && window.appController.showNotification) {
+    showNotification(message, type = 'info') {
+        if (window.appController && typeof window.appController.showNotification === 'function') {
             window.appController.showNotification(message, type);
         } else {
-            // Fallback simple
-            alert(message);
+            console.log(`💬 ${type.toUpperCase()}: ${message}`);
         }
     }
 }
 
-// Créer une instance globale
+// Créer et exposer l'instance globale
 const membersSystem = new MembersSystem();
-
-// Exposer pour un usage global
 window.membersSystem = membersSystem;
 
-// Initialisation quand la page est prête
-document.addEventListener('DOMContentLoaded', function() {
+// Initialisation
+document.addEventListener('DOMContentLoaded', () => {
     console.log('👥 Système membres prêt');
 });

@@ -131,7 +131,11 @@ class AppController {
     async loadMembers() {
         try {
             if (typeof apiService !== 'undefined') {
-                await apiService.fetchMembers();
+                // Attendre que l'API charge les membres
+                if (apiService.members.length === 0) {
+                    console.log('⏳ Chargement des membres depuis API...');
+                    await apiService.fetchMembers();
+                }
                 console.log(`📊 ${apiService.members.length} membres chargés`);
             }
         } catch (error) {
