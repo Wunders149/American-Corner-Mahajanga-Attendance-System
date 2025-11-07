@@ -45,21 +45,14 @@ class AppController {
         }
     }
 
+    // Dans app.js - méthode initializeModules()
     async initializeModules() {
         console.log('🔧 Initialisation des modules...');
         
-        // Initialize scanner module - VÉRIFICATION CORRECTE
+        // Initialize scanner module
         if (typeof qrScanner !== 'undefined') {
             this.modules.scanner = qrScanner;
-            console.log('🔍 Module Scanner détecté:', Object.getOwnPropertyNames(qrScanner));
-            
-            // Le scanner est déjà initialisé dans son constructeur
-            // On vérifie juste qu'il est prêt
-            if (qrScanner.libraryLoaded) {
-                console.log('✅ Scanner QR prêt à utiliser');
-            } else {
-                console.warn('⚠️ Scanner QR - bibliothèque non chargée');
-            }
+            console.log('🔍 Module Scanner détecté');
         } else {
             console.warn('❌ Module Scanner non disponible');
         }
@@ -68,15 +61,19 @@ class AppController {
         if (typeof qrGenerator !== 'undefined') {
             this.modules.qrGenerator = qrGenerator;
             console.log('📱 Module QR Generator détecté');
+        } else {
+            console.warn('❌ Module QR Generator non disponible');
         }
         
-        // Initialize members module
-        if (typeof membersManager !== 'undefined') {
-            this.modules.members = membersManager;
-            console.log('👥 Module Members initialisé');
+        // Initialize members module - CORRECTION ICI
+        if (typeof membersSystem !== 'undefined') {
+            this.modules.members = membersSystem;
+            console.log('👥 Module MembersSystem détecté');
         } else if (typeof members !== 'undefined') {
             this.modules.members = members;
-            console.log('👥 Module Members (legacy) initialisé');
+            console.log('👥 Module Members (legacy) détecté');
+        } else {
+            console.warn('❌ Module Members non disponible');
         }
     }
 
@@ -321,23 +318,60 @@ class AppController {
         }
     }
 
+    // Dans app.js - méthode initializeMembersPage()
     async initializeMembersPage() {
         // Load members if available
         if (this.modules.members) {
             try {
-                if (typeof this.modules.members.loadMembers === 'function') {
-                    await this.modules.members.loadMembers();
-                } else if (typeof this.modules.members.loadMembersPage === 'function') {
+                console.log('👥 Initialisation de la page membres...');
+                
+                // Essayer différentes méthodes d'initialisation
+                if (typeof this.modules.members.loadMembersPage === 'function') {
                     await this.modules.members.loadMembersPage();
+                    console.log('✅ Page membres chargée avec loadMembersPage()');
+                } else if (typeof this.modules.members.loadMembers === 'function') {
+                    await this.modules.members.loadMembers();
+                    console.log('✅ Page membres chargée avec loadMembers()');
                 } else if (typeof this.modules.members.init === 'function') {
                     await this.modules.members.init();
+                    console.log('✅ Page membres chargée avec init()');
+                } else {
+                    console.log('👥 Module membres prêt à utiliser');
                 }
-                console.log('👥 Members module initialisé avec succès');
+                
             } catch (error) {
-                console.warn('Erreur initialisation members:', error);
+                console.error('❌ Erreur initialisation members:', error);
+                this.showNotification('Erreur lors du chargement des membres', 'error');
             }
         } else {
-            console.warn('Gestionnaire de membres non disponible');
+            console.warn('⚠️ Gestionnaire de membres non disponible');
+            this.showMembersFallback();
+        }
+    }
+
+    // Nouvelle méthode de fallback
+    showMembersFallback() {
+        const container = document.getElementById('membersContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="card text-center py-5">
+                        <div class="card-body">
+                            <i class="fas fa-exclamation-triangle fa-4x text-warning mb-4"></i>
+                            <h3 class="text-warning">Système de membres temporairement indisponible</h3>
+                            <p class="text-muted mb-4">Le chargement des profils de membres rencontre des difficultés techniques.</p>
+                            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                <button class="btn btn-primary" onclick="appController.loadPage('home')">
+                                    <i class="fas fa-home me-2"></i>Retour à l'accueil
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="appController.loadPage('members')">
+                                    <i class="fas fa-sync me-2"></i>Réessayer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
     }
 
