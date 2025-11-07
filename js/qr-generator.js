@@ -1,4 +1,4 @@
-// QR Generator System - Version améliorée avec liaison membres
+// QR Generator System - Version complète avec corrections
 class QRGenerator {
     constructor() {
         this.currentQRCode = null;
@@ -12,6 +12,9 @@ class QRGenerator {
         console.log('🔧 Initialisation du générateur QR...');
         
         try {
+            // Vérifier les éléments requis
+            this.verifyRequiredElements();
+            
             // Vérifier que la bibliothèque QR code est disponible
             if (typeof qrcode === 'undefined') {
                 console.error('❌ Bibliothèque QR code non chargée');
@@ -37,6 +40,48 @@ class QRGenerator {
             this.showAlert('Erreur lors de l\'initialisation du générateur QR', 'error');
             return false;
         }
+    }
+
+    /**
+     * Vérifie que tous les éléments requis existent
+     */
+    verifyRequiredElements() {
+        console.log('🔍 Vérification des éléments requis...');
+        
+        const requiredElements = [
+            'qrcode',
+            'qrCodeSection',
+            'downloadQRBtn', 
+            'printQRBtn',
+            'displayRegNumber',
+            'displayName',
+            'displayOccupation',
+            'jsonPreview'
+        ];
+        
+        let allElementsExist = true;
+        
+        requiredElements.forEach(elementId => {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.warn(`❌ Élément manquant: #${elementId}`);
+                allElementsExist = false;
+                
+                // Créer les éléments critiques immédiatement
+                if (elementId === 'qrcode' || elementId === 'qrCodeSection') {
+                    console.log(`🛠️ Création immédiate de: #${elementId}`);
+                    this.createQRCodeContainer();
+                }
+            } else {
+                console.log(`✅ Élément présent: #${elementId}`);
+            }
+        });
+        
+        if (!allElementsExist) {
+            console.log('🛠️ Certains éléments sont manquants, création dynamique activée');
+        }
+        
+        return allElementsExist;
     }
 
     /**
@@ -147,8 +192,14 @@ class QRGenerator {
         const element = document.getElementById(elementId);
         if (element) {
             element.addEventListener(event, handler);
+            console.log(`✅ Événement attaché: ${event} sur #${elementId}`);
         } else {
-            console.warn(`Élément #${elementId} non trouvé pour l'événement ${event}`);
+            console.warn(`⚠️ Élément #${elementId} non trouvé pour l'événement ${event}`);
+            
+            // Si c'est un élément critique, le créer
+            if (elementId === 'downloadQRBtn' || elementId === 'printQRBtn') {
+                console.log(`🛠️ Élément critique manquant, création différée: #${elementId}`);
+            }
         }
     }
 
@@ -191,6 +242,9 @@ class QRGenerator {
             // Stocker les données pour référence
             this.prefillData = member;
 
+            // Afficher l'indicateur de pré-remplissage
+            this.showPrefillIndicator();
+
             // Scroll vers le formulaire
             const formElement = document.getElementById('qrGeneratorForm');
             if (formElement) {
@@ -210,6 +264,29 @@ class QRGenerator {
             console.error('❌ Erreur pré-remplissage:', error);
             this.showAlert('Erreur lors du pré-remplissage du formulaire', 'error');
         }
+    }
+
+    /**
+     * Affiche l'indicateur de pré-remplissage
+     */
+    showPrefillIndicator() {
+        let indicator = document.getElementById('prefillIndicator');
+        if (!indicator) {
+            // Créer l'indicateur s'il n'existe pas
+            indicator = document.createElement('div');
+            indicator.id = 'prefillIndicator';
+            indicator.className = 'alert alert-warning mb-3';
+            indicator.innerHTML = `
+                <i class="fas fa-sync me-2"></i>
+                <strong>Formulaire pré-rempli:</strong> Les informations proviennent de la base des membres.
+            `;
+            
+            const form = document.getElementById('qrGeneratorForm');
+            if (form) {
+                form.parentNode.insertBefore(indicator, form);
+            }
+        }
+        indicator.style.display = 'block';
     }
 
     /**
@@ -423,7 +500,7 @@ class QRGenerator {
         return normalized;
     }
 
-    // 🎯 MÉTHODE PRINCIPALE DE GÉNÉRATION
+    // 🎯 MÉTHODE PRINCIPALE DE GÉNÉRATION - CORRIGÉE
     async generateQRCodeFromData(memberData) {
         if (this.isGenerating) return;
         
@@ -434,12 +511,25 @@ class QRGenerator {
         console.log('📄 JSON à encoder:', jsonString);
         
         try {
-            // Vider le conteneur et afficher le loading
-            const qrcodeContainer = document.getElementById('qrcode');
+            // VÉRIFICATION ROBUSTE DU CONTENEUR
+            let qrcodeContainer = document.getElementById('qrcode');
             if (!qrcodeContainer) {
-                throw new Error('Conteneur QR code non trouvé');
+                console.warn('❌ Conteneur QR code non trouvé, création dynamique...');
+                this.createQRCodeContainer();
+                
+                // Réessayer après création
+                await new Promise(resolve => setTimeout(resolve, 100));
+                qrcodeContainer = document.getElementById('qrcode');
             }
             
+            // Vérifier à nouveau après tentative de création
+            if (!qrcodeContainer) {
+                throw new Error('Impossible de créer ou trouver le conteneur QR code');
+            }
+            
+            console.log('✅ Conteneur QR code trouvé/créé');
+            
+            // Afficher le loading
             qrcodeContainer.innerHTML = this.getLoadingHTML();
             
             // Utiliser une petite pause pour permettre l'affichage du loading
@@ -475,6 +565,9 @@ class QRGenerator {
             // Réinitialiser les données de pré-remplissage
             this.prefillData = null;
             
+            // Masquer l'indicateur de pré-remplissage
+            this.hidePrefillIndicator();
+            
             console.log('🎉 QR code affiché avec succès');
             
         } catch (error) {
@@ -483,6 +576,166 @@ class QRGenerator {
         } finally {
             this.isGenerating = false;
         }
+    }
+
+    /**
+     * Masque l'indicateur de pré-remplissage
+     */
+    hidePrefillIndicator() {
+        const indicator = document.getElementById('prefillIndicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
+    }
+
+    /**
+     * Crée dynamiquement le conteneur QR code si il n'existe pas
+     */
+    createQRCodeContainer() {
+        console.log('🛠️ Création dynamique du conteneur QR code...');
+        
+        // Vérifier d'abord si la section QR existe
+        let qrCodeSection = document.getElementById('qrCodeSection');
+        
+        if (!qrCodeSection) {
+            // Créer toute la section si elle n'existe pas
+            qrCodeSection = this.createFullQRCodeSection();
+        } else {
+            // La section existe, vérifier le conteneur qrcode
+            let qrcodeContainer = document.getElementById('qrcode');
+            if (!qrcodeContainer) {
+                // Créer juste le conteneur dans la section existante
+                const qrDisplayArea = qrCodeSection.querySelector('.qr-code-display');
+                if (qrDisplayArea) {
+                    qrcodeContainer = document.createElement('div');
+                    qrcodeContainer.id = 'qrcode';
+                    qrDisplayArea.prepend(qrcodeContainer);
+                    console.log('✅ Conteneur QR code créé dans section existante');
+                }
+            }
+        }
+    }
+
+    /**
+     * Crée toute la section QR code complète
+     */
+    createFullQRCodeSection() {
+        console.log('🏗️ Création de toute la section QR code...');
+        
+        const sectionHTML = `
+            <div class="card mb-5" id="qrCodeSection">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        QR Code Généré avec Succès
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 text-center">
+                            <div class="qr-code-display">
+                                <div id="qrcode"></div>
+                                <div class="mt-3 action-buttons">
+                                    <button class="btn btn-success me-2 mb-2" id="downloadQRBtn">
+                                        <i class="fas fa-download me-2"></i>Télécharger
+                                    </button>
+                                    <button class="btn btn-outline-primary mb-2" id="printQRBtn">
+                                        <i class="fas fa-print me-2"></i>Imprimer
+                                    </button>
+                                    <button class="btn btn-outline-info mb-2" id="newQRBtn">
+                                        <i class="fas fa-plus me-2"></i>Nouveau QR
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="member-info">
+                                <h5 class="border-bottom pb-2 mb-3">Informations Encodées</h5>
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="info-grid">
+                                            <div class="info-item">
+                                                <strong>Numéro:</strong>
+                                                <span id="displayRegNumber" class="member-id-display text-primary">-</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <strong>Nom Complet:</strong>
+                                                <span id="displayName">-</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <strong>Occupation:</strong>
+                                                <span id="displayOccupation">-</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <strong>Téléphone:</strong>
+                                                <span id="displayPhone" class="text-muted">Non fourni</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <strong>Lieu:</strong>
+                                                <span id="displayStudyWork" class="text-muted">Non fourni</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <strong>Généré le:</strong>
+                                                <span id="displayTimestamp" class="text-muted">-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5 class="border-bottom pb-2 mb-3">Contenu du QR Code (Format API)</h5>
+                        <div class="card">
+                            <div class="card-header bg-dark text-white py-2">
+                                <small><i class="fas fa-code me-2"></i>Structure JSON</small>
+                            </div>
+                            <div class="card-body p-0">
+                                <pre class="bg-light p-3 mb-0"><code id="jsonPreview" class="language-json">Les données JSON apparaîtront ici...</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Trouver où insérer la section (après le formulaire)
+        const qrGeneratorForm = document.getElementById('qrGeneratorForm');
+        const container = document.querySelector('.container') || document.body;
+        
+        if (qrGeneratorForm) {
+            qrGeneratorForm.closest('.card').insertAdjacentHTML('afterend', sectionHTML);
+        } else {
+            container.insertAdjacentHTML('beforeend', sectionHTML);
+        }
+        
+        // Re-attacher les événements des boutons
+        this.attachDynamicEventListeners();
+        
+        console.log('✅ Section QR code créée dynamiquement');
+        return document.getElementById('qrCodeSection');
+    }
+
+    /**
+     * Attache les événements pour les éléments créés dynamiquement
+     */
+    attachDynamicEventListeners() {
+        this.attachEvent('downloadQRBtn', 'click', (e) => {
+            e.preventDefault();
+            this.downloadQRCode();
+        });
+
+        this.attachEvent('printQRBtn', 'click', (e) => {
+            e.preventDefault();
+            this.printQRCode();
+        });
+
+        this.attachEvent('newQRBtn', 'click', (e) => {
+            e.preventDefault();
+            this.clearQRForm();
+        });
     }
 
     getLoadingHTML() {
@@ -998,6 +1251,9 @@ class QRGenerator {
         if (qrCodeSection) {
             qrCodeSection.style.display = 'none';
         }
+        
+        // Masquer l'indicateur de pré-remplissage
+        this.hidePrefillIndicator();
         
         this.currentQRCode = null;
         this.prefillData = null;
