@@ -1,0 +1,103 @@
+<!-- Attendance System Page - MODIFIÉ POUR SCANNER.JS -->
+<section id="attendance" class="page-section py-5">
+    <div class="container">
+        <button class="btn btn-outline-primary mb-4" onclick="showPage('home')" aria-label="Retour à l'accueil">
+            <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+        </button>
+        <h2 class="section-title text-center">Système de Présence ACM</h2>
+        
+        <!-- Alerts -->
+        <div id="attendanceAlert" class="alert alert-attendance" style="display: none;"></div>
+        
+        <!-- Scanner Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="scanner-status text-center">
+                    <span class="badge bg-secondary" id="scannerStatus">Scanner arrêté</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Scanner Section - STRUCTURE MODIFIÉE -->
+        <div class="card attendance-card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-qrcode me-2"></i>Check-in par QR Code</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="qr-scanner-container">
+                            <h5>Scannez Votre QR Code Membre</h5>
+                            
+                            <!-- Scanner Container - STRUCTURE SIMPLIFIÉE -->
+                            <div id="scannerSection">
+                                <!-- Camera Placeholder - visible par défaut -->
+                                <div class="camera-placeholder" id="cameraPlaceholder">
+                                    <i class="fas fa-camera fa-3x mb-3"></i>
+                                    <p>Scanner prêt</p>
+                                    <small class="text-muted mt-2">Cliquez pour activer le scanner</small>
+                                </div>
+                                
+                                <!-- Scanner Container - caché par défaut -->
+                                <div id="scannerContainer" style="display: none;"></div>
+                                
+                                <!-- Scanner Controls -->
+                                <div class="scanner-controls mt-3">
+                                    <button class="btn btn-primary w-100" id="startScannerBtn">
+                                        <i class="fas fa-camera me-2"></i>Activer le Scanner
+                                    </button>
+                                    <button class="btn btn-secondary w-100" id="stopScannerBtn" style="display: none;">
+                                        <i class="fas fa-stop me-2"></i>Arrêter le Scanner
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Manual Entry -->
+                            <button class="btn btn-outline-primary mt-3 w-100" onclick="qrScanner.startManualEntry()" aria-label="Entrer manuellement les informations">
+                                <i class="fas fa-keyboard me-2"></i>Entrée Manuelle
+                            </button>
+                            
+                            <!-- Quick Demo -->
+                            <div class="mt-3 p-3 bg-light rounded">
+                                <h6>Mode Démo</h6>
+                                <p class="small mb-2">Testez le système avec des données locales</p>
+                                <button class="btn btn-outline-info btn-sm w-100" onclick="testScannerWithDemoMember()" aria-label="Tester avec le membre ACM001">
+                                    Utiliser ACM001 (Linus Torvalds)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-4">
+                            <h5>Comment Check-in</h5>
+                            <ol class="list-group list-group-numbered mb-4">
+                                <li class="list-group-item">Obtenez votre QR code personnel</li>
+                                <li class="list-group-item">Activez le scanner caméra</li>
+                                <li class="list-group-item">Scannez votre QR code</li>
+                                <li class="list-group-item">Remplissez les détails de votre visite</li>
+                                <li class="list-group-item">Confirmez votre check-in</li>
+                            </ol>
+                            
+                            <!-- Check-in Interface will be injected here by scanner.js -->
+                            <div id="checkinInterfaceContainer">
+                                <!-- L'interface de check-in sera injectée ici dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Sessions -->
+        <div class="card attendance-card mt-4">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-history me-2"></i>Check-ins Récents</h4>
+            </div>
+            <div class="card-body">
+                <div id="recentCheckinsContainer">
+                    <p class="text-muted text-center">Aucun check-in récent</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

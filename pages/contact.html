@@ -1,0 +1,60 @@
+<!-- Contact Page -->
+<section id="contact" class="page-section py-5 bg-light">
+    <div class="container">
+        <button class="btn btn-outline-primary mb-4" onclick="showPage('home')" aria-label="Retour à l'accueil">
+            <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+        </button>
+        <h2 class="section-title text-center">Contactez-Nous</h2>
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h4 class="mb-4">Coordonnées</h4>
+                        <div class="mb-3">
+                            <h5><i class="fas fa-map-marker-alt me-2 text-primary"></i> Adresse</h5>
+                            <p>Université de Mahajanga<br>Mahajanga, Région Boeny<br>Madagascar</p>
+                        </div>
+                        <div class="mb-3">
+                            <h5><i class="fas fa-envelope me-2 text-primary"></i> Email</h5>
+                            <p>info@americancornermahajanga.mg</p>
+                        </div>
+                        <div class="mb-3">
+                            <h5><i class="fas fa-phone me-2 text-primary"></i> Téléphone</h5>
+                            <p>+261 XX XX XXX XX</p>
+                        </div>
+                        <div class="mb-3">
+                            <h5><i class="fas fa-clock me-2 text-primary"></i> Heures d'Ouverture</h5>
+                            <p>Lundi - Vendredi: 9h00 - 17h00<br>Samedi: 9h00 - 13h00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h4 class="mb-4">Envoyez un Message</h4>
+                        <form id="contactForm">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nom</label>
+                                <input type="text" class="form-control" id="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="subject" class="form-label">Sujet</label>
+                                <input type="text" class="form-control" id="subject" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Message</label>
+                                <textarea class="form-control" id="message" rows="4" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary px-4" id="sendMessageBtn">Envoyer</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

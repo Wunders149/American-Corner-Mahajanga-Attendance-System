@@ -1,0 +1,140 @@
+<!-- QR Generator Page -->
+<section id="qr-generator" class="page-section py-5">
+    <div class="container">
+        <button class="btn btn-outline-primary mb-4" onclick="showPage('home')" aria-label="Retour à l'accueil">
+            <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+        </button>
+        <h2 class="section-title text-center">Générateur de QR Codes</h2>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Format API:</strong> Les QR codes générés utilisent le format exact de votre API pour une compatibilité parfaite avec le système d'attendance.
+        </div>
+        
+        <!-- QR Generator Form -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-qrcode me-2"></i>Générer un QR Code Membre</h4>
+            </div>
+            <div class="card-body">
+                <form id="qrGeneratorForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="registrationNumber" class="form-label">Numéro d'Enregistrement *</label>
+                                <input type="text" class="form-control" id="registrationNumber" required 
+                                       placeholder="ex: ACM001, ACM002">
+                                <div class="form-text">Doit correspondre au registrationNumber de l'API</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="firstName" class="form-label">Prénom *</label>
+                                <input type="text" class="form-control" id="firstName" required 
+                                       placeholder="ex: Linus">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="lastName" class="form-label">Nom *</label>
+                                <input type="text" class="form-control" id="lastName" required 
+                                       placeholder="ex: Torvalds">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="occupation" class="form-label">Occupation</label>
+                                <select class="form-select" id="occupation">
+                                    <option value="student">Étudiant</option>
+                                    <option value="employee">Employé</option>
+                                    <option value="entrepreneur">Entrepreneur</option>
+                                    <option value="unemployed">Sans emploi</option>
+                                    <option value="other">Autre</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="phoneNumber" class="form-label">Téléphone</label>
+                                <input type="tel" class="form-control" id="phoneNumber" 
+                                       placeholder="ex: +261 34 12 345 67">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="studyWorkPlace" class="form-label">Lieu d'Étude/Travail</label>
+                                <input type="text" class="form-control" id="studyWorkPlace" 
+                                       placeholder="ex: Université de Mahajanga">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg" id="generateQRBtn">
+                            <i class="fas fa-qrcode me-2"></i>Générer QR Code
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-lg ms-2" id="clearQRBtn">
+                            <i class="fas fa-eraser me-2"></i>Effacer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- QR Code Display -->
+        <div class="card" id="qrCodeSection" style="display: none;">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-check-circle me-2"></i>QR Code Généré</h4>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="qr-code-display">
+                            <div id="qrcode"></div>
+                            <div class="mt-3">
+                                <button class="btn btn-success me-2" id="downloadQRBtn" aria-label="Télécharger le QR code">
+                                    <i class="fas fa-download me-2"></i>Télécharger
+                                </button>
+                                <button class="btn btn-outline-primary" id="printQRBtn" aria-label="Imprimer le QR code">
+                                    <i class="fas fa-print me-2"></i>Imprimer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="member-info">
+                            <h5>Informations Membre</h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    <p><strong>Numéro:</strong> <span id="displayRegNumber" class="member-id-display">-</span></p>
+                                    <p><strong>Nom:</strong> <span id="displayName">-</span></p>
+                                    <p><strong>Occupation:</strong> <span id="displayOccupation">-</span></p>
+                                    <p><strong>Téléphone:</strong> <span id="displayPhone">-</span></p>
+                                    <p><strong>Lieu:</strong> <span id="displayStudyWork">-</span></p>
+                                    <p><strong>Généré:</strong> <span id="displayTimestamp">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h5>Contenu du QR Code (Format API):</h5>
+                    <pre class="bg-light p-3 rounded"><code id="jsonPreview"></code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Members Section -->
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><i class="fas fa-users me-2"></i>Membres ACM - Prêts à Scanner</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-center mb-4">Cliquez sur un membre pour générer instantanément son QR code</p>
+                
+                <div class="row g-4" id="sampleMembers">
+                    <!-- Sample members will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
