@@ -1,5 +1,5 @@
-// members.js - Système complet de gestion des membres American Corner Mahajanga
-class MembersSystem {
+// members-enhanced.js - Système complet amélioré de gestion des membres
+class EnhancedMembersSystem {
     constructor() {
         this.members = [];
         this.filteredMembers = [];
@@ -8,27 +8,105 @@ class MembersSystem {
         this.searchQuery = '';
         this.searchTimeout = null;
         this.isInitialized = false;
-        this.viewMode = 'grid'; // 'grid' ou 'list'
+        this.viewMode = 'grid';
+        this.isLoading = false;
+        this.retryCount = 0;
+        this.maxRetries = 3;
+        this.isOnline = navigator.onLine;
+        this.isMobile = this.detectMobile();
+        
         this.init();
     }
 
+    detectMobile() {
+        return window.innerWidth <= 768 || 
+               /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
     async init() {
-        console.log('👥 Initialisation du système des membres...');
-        await this.loadMembers();
+        console.log('👥 Initialisation du système des membres amélioré...');
+        this.setupMobileOptimizations();
+        this.setupNetworkListeners();
+        await this.loadMembersWithRetry();
         this.isInitialized = true;
+    }
+
+    setupMobileOptimizations() {
+        if (this.isMobile) {
+            this.viewMode = 'list';
+            this.enableTouchOptimizations();
+        }
+    }
+
+    enableTouchOptimizations() {
+        document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+        document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+    }
+
+    handleTouchStart(e) {
+        if (e.target.closest('.member-card')) {
+            e.target.closest('.member-card').classList.add('touch-active');
+        }
+    }
+
+    handleTouchEnd(e) {
+        document.querySelectorAll('.member-card.touch-active').forEach(card => {
+            card.classList.remove('touch-active');
+        });
+    }
+
+    setupNetworkListeners() {
+        window.addEventListener('online', () => {
+            console.log('🌐 Connexion rétablie');
+            this.isOnline = true;
+            this.showNotification('Connexion internet rétablie', 'success');
+            document.body.classList.remove('network-offline');
+            this.refreshData();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('📴 Perte de connexion');
+            this.isOnline = false;
+            this.showNotification('Mode hors ligne activé', 'warning');
+            document.body.classList.add('network-offline');
+        });
+    }
+
+    async loadMembersWithRetry() {
+        this.isLoading = true;
+        
+        try {
+            await this.loadMembers();
+            this.retryCount = 0;
+            this.isLoading = false;
+        } catch (error) {
+            console.error('❌ Load members failed:', error);
+            this.isLoading = false;
+            
+            if (this.retryCount < this.maxRetries) {
+                this.retryCount++;
+                const delay = Math.min(1000 * Math.pow(2, this.retryCount), 10000);
+                
+                console.log(`🔄 Retry ${this.retryCount}/${this.maxRetries} in ${delay}ms`);
+                this.showNotification(`Nouvelle tentative (${this.retryCount}/${this.maxRetries})...`, 'info');
+                
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.loadMembersWithRetry();
+            } else {
+                this.showNetworkError();
+                this.useOfflineData();
+            }
+        }
     }
 
     async loadMembers() {
         try {
             console.log('🔄 Chargement des données membres...');
             
-            // Priorité 1: Utiliser l'API si disponible et chargée
             if (window.apiService && window.apiService.members && window.apiService.members.length > 0) {
                 this.members = window.apiService.members;
                 console.log(`✅ ${this.members.length} membres chargés depuis API`);
-            } 
-            // Priorité 2: Attendre que l'API se charge
-            else if (window.apiService && typeof window.apiService.fetchMembers === 'function') {
+            } else if (window.apiService && typeof window.apiService.fetchMembers === 'function') {
                 console.log('⏳ Chargement des membres depuis API...');
                 await window.apiService.fetchMembers();
                 
@@ -38,23 +116,114 @@ class MembersSystem {
                 } else {
                     throw new Error('API retourne une liste vide');
                 }
-            } 
-            // Priorité 3: Données mock en fallback
-            else {
+            } else {
                 console.warn('⚠️ API non disponible, chargement des données mock');
                 this.members = await this.loadMockMembers();
                 console.log(`📦 ${this.members.length} membres mock chargés`);
             }
             
+            // Pré-valider les images
+            await this.preloadProfileImages();
+            
+            // Cache les données pour une utilisation hors ligne
+            this.cacheMembersData();
+            
             this.filteredMembers = [...this.members];
             
         } catch (error) {
             console.error('❌ Erreur chargement membres:', error);
-            // Fallback aux données mock en cas d'erreur
-            this.members = await this.loadMockMembers();
-            this.filteredMembers = [...this.members];
-            console.log(`🔄 ${this.members.length} membres de secours chargés`);
+            throw error;
         }
+    }
+
+    async preloadProfileImages() {
+        if (!window.apiService) return;
+        
+        console.log('🖼️ Pré-validation des images de profil...');
+        const validationPromises = this.members.map(async (member) => {
+            member.hasValidImage = await window.apiService.validateProfileImage 
+                ? await window.apiService.validateProfileImage(member)
+                : false;
+            return member;
+        });
+        
+        await Promise.allSettled(validationPromises);
+        console.log('✅ Pré-validation des images terminée');
+    }
+
+    cacheMembersData() {
+        try {
+            localStorage.setItem('cachedMembers', JSON.stringify(this.members));
+            localStorage.setItem('cachedMembersTimestamp', new Date().toISOString());
+            console.log('💾 Données membres mises en cache');
+        } catch (error) {
+            console.warn('❌ Impossible de mettre en cache les données:', error);
+        }
+    }
+
+    useOfflineData() {
+        console.log('📴 Utilisation des données hors ligne...');
+        
+        try {
+            const cachedData = localStorage.getItem('cachedMembers');
+            const timestamp = localStorage.getItem('cachedMembersTimestamp');
+            
+            if (cachedData) {
+                this.members = JSON.parse(cachedData);
+                this.filteredMembers = [...this.members];
+                
+                if (timestamp) {
+                    const cacheAge = (new Date() - new Date(timestamp)) / (1000 * 60 * 60);
+                    console.log(`📅 Données cache âgées de ${cacheAge.toFixed(1)} heures`);
+                }
+                
+                this.showNotification('Données locales chargées', 'info');
+                this.renderMembers();
+            } else {
+                this.loadMockMembers().then(mockMembers => {
+                    this.members = mockMembers;
+                    this.filteredMembers = [...this.members];
+                    this.renderMembers();
+                    this.showNotification('Données de démonstration chargées', 'warning');
+                });
+            }
+        } catch (error) {
+            console.error('❌ Erreur chargement données cache:', error);
+            this.loadMockMembers().then(mockMembers => {
+                this.members = mockMembers;
+                this.filteredMembers = [...this.members];
+                this.renderMembers();
+                this.showNotification('Données de démonstration chargées', 'warning');
+            });
+        }
+    }
+
+    showNetworkError() {
+        const container = document.getElementById('membersContainer');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="card text-center border-warning">
+                    <div class="card-body py-5">
+                        <i class="fas fa-wifi fa-4x text-warning mb-4"></i>
+                        <h3 class="text-warning mb-3">Problème de connexion</h3>
+                        <p class="text-muted mb-4">
+                            Impossible de charger les données depuis le serveur. 
+                            Vérifiez votre connexion internet.
+                        </p>
+                        <div class="d-flex gap-2 justify-content-center flex-wrap">
+                            <button class="btn btn-warning" onclick="membersSystem.retryLoad()">
+                                <i class="fas fa-sync me-2"></i>Réessayer
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="membersSystem.useOfflineData()">
+                                <i class="fas fa-users me-2"></i>Utiliser les données locales
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     // Fonctions utilitaires
@@ -122,15 +291,18 @@ class MembersSystem {
         return colors[colorIndex];
     }
 
-    // VERSION ROBUSTE - Utilisation de CSS pour les avatars
+    // SYSTEME D'AVATAR ROBUSTE AMÉLIORÉ
     getProfileImage(member) {
         const initials = this.getInitials(member.firstName, member.lastName);
         const bgColor = this.getAvatarColor(member);
         const occupationIcon = this.getOccupationIcon(member.occupation);
         const occupationColor = this.getOccupationColor(member.occupation);
 
-        // Vérifier si l'image existe
-        if (member.profileImage && member.profileImage.trim() !== '') {
+        // Vérifier si l'image existe et est valide
+        const hasValidImage = member.profileImage && member.profileImage.trim() !== '' && 
+                             (member.hasValidImage === undefined || member.hasValidImage === true);
+
+        if (hasValidImage) {
             let imageUrl;
             
             if (window.apiService && typeof window.apiService.getProfileImageUrl === 'function') {
@@ -139,21 +311,17 @@ class MembersSystem {
                 imageUrl = member.profileImage;
             }
             
-            // Fallback CSS pour les images qui échouent
-            const fallbackHTML = `
-                <div class="avatar-fallback" style="background-color: ${bgColor};">
-                    <span class="avatar-initials">${initials}</span>
-                </div>
-            `;
-            
             return `
                 <div class="member-avatar-container">
                     <img src="${imageUrl}" 
                          alt="${member.firstName} ${member.lastName}"
                          class="member-photo actual-photo"
+                         loading="lazy"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                          onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
-                    ${fallbackHTML}
+                    <div class="avatar-fallback" style="background-color: ${bgColor}; display: none;">
+                        <span class="avatar-initials">${initials}</span>
+                    </div>
                     <div class="occupation-icon bg-${occupationColor}">
                         <i class="fas ${occupationIcon} text-white"></i>
                     </div>
@@ -161,7 +329,7 @@ class MembersSystem {
             `;
         }
         
-        // Si pas de photo, utiliser le fallback CSS directement
+        // Si pas de photo valide, utiliser le fallback CSS directement
         return `
             <div class="member-avatar-container">
                 <div class="avatar-fallback" style="background-color: ${bgColor};">
@@ -176,19 +344,19 @@ class MembersSystem {
 
     // Interface principale améliorée
     async loadMembersPage() {
-        console.log('📄 Chargement de la page membres...');
+        console.log('📄 Chargement de la page membres améliorée...');
         const container = document.getElementById('membersContainer');
         if (!container) {
             console.error('❌ Conteneur membres non trouvé');
             return;
         }
         
-        // Afficher le loading amélioré
-        container.innerHTML = this.getEnhancedLoadingHTML();
+        // Afficher le skeleton loading
+        container.innerHTML = this.getSkeletonLoadingHTML();
         
         // S'assurer que les membres sont chargés
-        if (this.members.length === 0) {
-            await this.loadMembers();
+        if (this.members.length === 0 && !this.isLoading) {
+            await this.loadMembersWithRetry();
         }
         
         if (this.members.length === 0) {
@@ -198,9 +366,6 @@ class MembersSystem {
         
         // Mettre à jour les statistiques
         this.updateQuickStats();
-        
-        // Vérifier les images de profil
-        this.checkProfileImages();
         
         // Initialiser les membres filtrés
         this.filteredMembers = [...this.members];
@@ -212,26 +377,23 @@ class MembersSystem {
         console.log(`✅ ${this.members.length} membres chargés, ${this.filteredMembers.length} affichés`);
     }
 
-    getEnhancedLoadingHTML() {
-        return `
-            <div class="col-12">
-                <div class="text-center py-5">
-                    <div class="loading-spinner mb-4">
-                        <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;"></div>
-                    </div>
-                    <h3 class="text-primary mb-3">Chargement des membres</h3>
-                    <p class="text-muted mb-4">Nous préparons les profils de notre communauté</p>
-                    <div class="progress mb-3" style="height: 6px; max-width: 300px; margin: 0 auto;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 75%"></div>
-                    </div>
-                    <div class="mt-4">
-                        <button class="btn btn-outline-primary btn-lg" onclick="membersSystem.retryLoad()">
-                            <i class="fas fa-sync me-2"></i>Actualiser
-                        </button>
+    getSkeletonLoadingHTML() {
+        const skeletonCount = this.isMobile ? 4 : 8;
+        return Array.from({ length: skeletonCount }, (_, i) => `
+            <div class="col-md-6 col-lg-4 col-xl-3">
+                <div class="card member-card skeleton-card" style="animation-delay: ${i * 0.1}s">
+                    <div class="card-body p-4">
+                        <div class="skeleton-avatar"></div>
+                        <div class="skeleton-line skeleton-name"></div>
+                        <div class="skeleton-line skeleton-id"></div>
+                        <div class="skeleton-line skeleton-occupation"></div>
+                        <div class="skeleton-line skeleton-contact"></div>
+                        <div class="skeleton-line skeleton-contact short"></div>
+                        <div class="skeleton-line skeleton-date"></div>
                     </div>
                 </div>
             </div>
-        `;
+        `).join('');
     }
 
     updateQuickStats() {
@@ -239,16 +401,15 @@ class MembersSystem {
         const active = this.members.filter(m => {
             const joinDate = new Date(m.joinDate);
             const monthsDiff = (new Date() - joinDate) / (1000 * 60 * 60 * 24 * 30);
-            return monthsDiff <= 6; // Actif si membre depuis moins de 6 mois
+            return monthsDiff <= 6;
         }).length;
         
         const newMembers = this.members.filter(m => {
             const joinDate = new Date(m.joinDate);
             const daysDiff = (new Date() - joinDate) / (1000 * 60 * 60 * 24);
-            return daysDiff <= 30; // Nouveau si membre depuis moins de 30 jours
+            return daysDiff <= 30;
         }).length;
 
-        // Mettre à jour les éléments DOM
         const totalEl = document.getElementById('totalMembers');
         const activeEl = document.getElementById('activeMembers');
         const newEl = document.getElementById('newMembers');
@@ -273,7 +434,7 @@ class MembersSystem {
 
     async retryLoad() {
         console.log('🔄 Nouvelle tentative de chargement...');
-        await this.loadMembers();
+        await this.loadMembersWithRetry();
         await this.loadMembersPage();
     }
 
@@ -297,15 +458,6 @@ class MembersSystem {
                 </div>
             </div>
         `;
-    }
-
-    checkProfileImages() {
-        const membersWithImage = this.members.filter(member => 
-            member.profileImage && member.profileImage.trim() !== ''
-        ).length;
-        
-        console.log(`📊 Statistiques images: ${membersWithImage}/${this.members.length} membres avec image`);
-        return membersWithImage;
     }
 
     renderEnhancedControls() {
@@ -334,6 +486,7 @@ class MembersSystem {
                                 <div class="d-flex align-items-center justify-content-md-end gap-3">
                                     <span class="badge bg-primary fs-6" id="membersCount">${this.filteredMembers.length}/${this.members.length}</span>
                                     ${stats.demoMode ? '<span class="badge bg-warning demo-badge">Mode Démo</span>' : ''}
+                                    ${!this.isOnline ? '<span class="badge bg-secondary">Hors ligne</span>' : ''}
                                     
                                     <!-- Sélecteur de vue -->
                                     <div class="btn-group view-toggle" role="group">
@@ -405,10 +558,8 @@ class MembersSystem {
         
         container.innerHTML = controlsHTML;
         
-        // Configurer les événements
         this.setupEnhancedControlsEventListeners();
         
-        // Focus sur la barre de recherche
         const searchInput = document.getElementById('membersSearch');
         if (searchInput) {
             searchInput.focus();
@@ -473,7 +624,6 @@ class MembersSystem {
     }
 
     setupEnhancedControlsEventListeners() {
-        // Recherche
         const searchInput = document.getElementById('membersSearch');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         
@@ -495,7 +645,6 @@ class MembersSystem {
             });
         }
         
-        // Filtres
         document.querySelectorAll('[data-filter]').forEach(button => {
             button.addEventListener('click', (e) => {
                 const filter = e.target.closest('[data-filter]').getAttribute('data-filter');
@@ -503,7 +652,6 @@ class MembersSystem {
             });
         });
         
-        // Tri
         document.querySelectorAll('[data-sort]').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -516,7 +664,6 @@ class MembersSystem {
     handleSearch(query) {
         this.searchQuery = query.trim();
         
-        // Mettre à jour le bouton clear
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         if (clearSearchBtn) {
             clearSearchBtn.disabled = !this.searchQuery;
@@ -633,7 +780,6 @@ class MembersSystem {
     }
 
     updateControlsState() {
-        // Mettre à jour les boutons de filtre actifs
         document.querySelectorAll('[data-filter]').forEach(button => {
             const filter = button.getAttribute('data-filter');
             const filterConfig = {
@@ -653,13 +799,11 @@ class MembersSystem {
             }
         });
         
-        // Mettre à jour le texte d'information
         const infoElement = document.getElementById('membersSubtitle');
         if (infoElement) {
             infoElement.textContent = this.getFilteredMembersText();
         }
         
-        // Mettre à jour le bouton clear search
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         if (clearSearchBtn) {
             clearSearchBtn.disabled = !this.searchQuery;
@@ -697,7 +841,7 @@ class MembersSystem {
             return;
         }
         
-        if (this.viewMode === 'list') {
+        if (this.viewMode === 'list' || this.isMobile) {
             container.innerHTML = this.filteredMembers.map(member => 
                 this.createMemberListCard(member)
             ).join('');
@@ -765,6 +909,10 @@ class MembersSystem {
     }
 
     createMemberGridCard(member, index) {
+        if (this.isMobile) {
+            return this.createMobileMemberCard(member, index);
+        }
+
         const profileImage = this.getProfileImage(member);
         const joinDate = this.formatDate(member.joinDate);
         const occupation = this.formatOccupation(member.occupation);
@@ -779,23 +927,19 @@ class MembersSystem {
 
         return `
             <div class="col-md-6 col-lg-4 col-xl-3">
-                <div class="card member-card h-100" style="animation-delay: ${index * 0.1}s">
+                <div class="card member-card h-100" style="animation-delay: ${index * 0.1}s" tabindex="0">
                     <div class="card-body p-4">
-                        <!-- Photo de profil avec système robuste -->
                         ${profileImage}
                         
-                        <!-- Informations principales -->
                         <div class="text-center mb-3">
                             <h5 class="member-name">${highlightText(member.firstName)} ${highlightText(member.lastName)}</h5>
                             <div class="member-id">${highlightText(member.registrationNumber)}</div>
                         </div>
                         
-                        <!-- Occupation -->
                         <div class="member-occupation text-center mb-3">
                             <span class="badge bg-${occupationColor} text-white">${occupation}</span>
                         </div>
                         
-                        <!-- Informations de contact -->
                         <div class="member-contact text-muted small mb-3">
                             ${member.email ? `
                                 <div class="d-flex align-items-center mb-2">
@@ -811,7 +955,6 @@ class MembersSystem {
                             ` : ''}
                         </div>
                         
-                        <!-- Lieu d'étude/travail -->
                         ${member.studyOrWorkPlace ? `
                             <div class="member-location mb-3">
                                 <div class="d-flex align-items-center">
@@ -823,7 +966,6 @@ class MembersSystem {
                             </div>
                         ` : ''}
                         
-                        <!-- Date d'adhésion -->
                         <div class="member-join-date text-center">
                             <small class="text-muted">
                                 <i class="fas fa-calendar-alt me-1"></i>Membre depuis ${joinDate}
@@ -831,17 +973,60 @@ class MembersSystem {
                         </div>
                     </div>
                     
-                    <!-- Actions -->
                     <div class="card-footer bg-transparent border-top-0 pt-0 member-actions">
                         <div class="d-grid gap-2">
                             <button class="btn btn-primary btn-sm" 
-                                    onclick="membersSystem.viewMemberDetails(${member.id})">
+                                    onclick="membersSystem.viewMemberDetails(${member.id})"
+                                    aria-label="Voir le profil de ${member.firstName} ${member.lastName}">
                                 <i class="fas fa-eye me-1"></i>Voir le Profil
                             </button>
                             <button class="btn btn-outline-secondary btn-sm" 
-                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}')">
+                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
+                                    aria-label="Générer QR code pour ${member.firstName} ${member.lastName}">
                                 <i class="fas fa-qrcode me-1"></i>Carte QR
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    createMobileMemberCard(member, index) {
+        const profileImage = this.getProfileImage(member);
+        const occupation = this.formatOccupation(member.occupation);
+
+        return `
+            <div class="col-12 mb-3">
+                <div class="card member-card mobile-member-card" style="animation-delay: ${index * 0.1}s" tabindex="0">
+                    <div class="card-body p-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div style="width: 60px; height: 60px;">
+                                    ${profileImage}
+                                </div>
+                            </div>
+                            <div class="col">
+                                <h6 class="mb-1 fw-bold">${member.firstName} ${member.lastName}</h6>
+                                <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+                                    <small class="text-primary">${member.registrationNumber}</small>
+                                    <span class="badge bg-${this.getOccupationColor(member.occupation)}">
+                                        ${occupation}
+                                    </span>
+                                </div>
+                                ${member.email ? `
+                                    <small class="text-muted d-block text-truncate">
+                                        <i class="fas fa-envelope me-1"></i>${member.email}
+                                    </small>
+                                ` : ''}
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-primary btn-sm" 
+                                        onclick="membersSystem.viewMemberDetails(${member.id})"
+                                        aria-label="Voir le profil de ${member.firstName} ${member.lastName}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -864,7 +1049,7 @@ class MembersSystem {
 
         return `
             <div class="col-12 mb-3">
-                <div class="card member-card">
+                <div class="card member-card" tabindex="0">
                     <div class="card-body py-3">
                         <div class="row align-items-center">
                             <div class="col-auto">
@@ -940,10 +1125,8 @@ class MembersSystem {
             return;
         }
 
-        // Rediriger vers le générateur QR
         if (window.appController) {
             window.appController.loadPage('qr-generator');
-            // Pré-remplir le formulaire
             setTimeout(() => {
                 if (window.qrGenerator && typeof window.qrGenerator.prefillForm === 'function') {
                     window.qrGenerator.prefillForm(member);
@@ -967,9 +1150,6 @@ class MembersSystem {
             return;
         }
 
-        const message = `Contact: ${member.firstName} ${member.lastName}\n\n${contactOptions.join('\n')}`;
-        
-        // Créer une modal de contact
         const modalHTML = `
             <div class="modal fade" id="contactModal" tabindex="-1">
                 <div class="modal-dialog">
@@ -979,7 +1159,7 @@ class MembersSystem {
                                 <i class="fas fa-envelope me-2"></i>
                                 Contacter ${member.firstName} ${member.lastName}
                             </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
                         </div>
                         <div class="modal-body">
                             <div class="contact-options">
@@ -1015,7 +1195,7 @@ class MembersSystem {
         console.log('🔄 Rafraîchissement des données membres...');
         this.showNotification('Mise à jour des données en cours...', 'info');
         
-        await this.loadMembers();
+        await this.loadMembersWithRetry();
         await this.loadMembersPage();
         
         this.showNotification('Données mises à jour avec succès', 'success');
@@ -1039,7 +1219,6 @@ class MembersSystem {
             'Date d\'adhésion': this.formatDate(member.joinDate)
         }));
 
-        // Créer un fichier CSV
         const csv = this.convertToCSV(data);
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
@@ -1071,133 +1250,7 @@ class MembersSystem {
             )
         ].join('\n');
         
-        return '\uFEFF' + csv; // BOM pour Excel
-    }
-
-    showStats() {
-        const stats = this.calculateStats();
-        const modalHTML = `
-            <div class="modal fade" id="statsModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header bg-primary text-white">
-                            <h5 class="modal-title">
-                                <i class="fas fa-chart-bar me-2"></i>
-                                Statistiques des Membres
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6 class="border-bottom pb-2">Répartition par Occupation</h6>
-                                    <div id="occupationChart">
-                                        ${Object.entries(stats.byOccupation)
-                                            .sort((a, b) => b[1] - a[1])
-                                            .map(([occ, count]) => {
-                                                const percentage = ((count / stats.total) * 100).toFixed(1);
-                                                const occupationColor = this.getOccupationColor(occ);
-                                                return `
-                                                <div class="mb-3">
-                                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                                        <span class="fw-medium">${this.formatOccupation(occ)}</span>
-                                                        <div>
-                                                            <span class="badge bg-${occupationColor} me-2">${count}</span>
-                                                            <small class="text-muted">${percentage}%</small>
-                                                        </div>
-                                                    </div>
-                                                    <div class="progress" style="height: 8px;">
-                                                        <div class="progress-bar bg-${occupationColor}" 
-                                                             style="width: ${percentage}%"
-                                                             role="progressbar">
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            `}).join('')}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6 class="border-bottom pb-2">Informations Générales</h6>
-                                    <div class="list-group">
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Total des membres</span>
-                                            <strong class="text-primary">${stats.total}</strong>
-                                        </div>
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Avec photo de profil</span>
-                                            <div>
-                                                <strong>${stats.withProfileImage}</strong>
-                                                <small class="text-muted ms-2">(${((stats.withProfileImage / stats.total) * 100).toFixed(1)}%)</small>
-                                            </div>
-                                        </div>
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Membres récents (30j)</span>
-                                            <strong class="text-success">${stats.recentMembers}</strong>
-                                        </div>
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Membres actifs (6 mois)</span>
-                                            <strong class="text-info">${stats.activeMembers}</strong>
-                                        </div>
-                                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Mode de données</span>
-                                            <strong class="${stats.demoMode ? 'text-warning' : 'text-success'}">
-                                                ${stats.demoMode ? 'Démo' : 'Live'}
-                                            </strong>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-                            <button type="button" class="btn btn-primary" onclick="membersSystem.exportMembers()">
-                                <i class="fas fa-download me-1"></i>Exporter les données
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Gérer la modal existante
-        const existingModal = document.getElementById('statsModal');
-        if (existingModal) existingModal.remove();
-        
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        const modal = new bootstrap.Modal(document.getElementById('statsModal'));
-        modal.show();
-        
-        // Nettoyer après fermeture
-        document.getElementById('statsModal').addEventListener('hidden.bs.modal', function () {
-            this.remove();
-        });
-    }
-
-    calculateStats() {
-        const stats = {
-            total: this.members.length,
-            byOccupation: {},
-            withProfileImage: 0,
-            recentMembers: 0,
-            activeMembers: 0,
-            demoMode: window.apiService ? window.apiService.isUsingDemoData() : true
-        };
-
-        this.members.forEach(member => {
-            const occupation = member.occupation || 'other';
-            stats.byOccupation[occupation] = (stats.byOccupation[occupation] || 0) + 1;
-            
-            if (member.profileImage && member.profileImage.trim() !== '') {
-                stats.withProfileImage++;
-            }
-            
-            const joinDate = new Date(member.joinDate);
-            const daysSinceJoin = (new Date() - joinDate) / (1000 * 60 * 60 * 24);
-            if (daysSinceJoin <= 30) stats.recentMembers++;
-            if (daysSinceJoin <= 180) stats.activeMembers++; // 6 mois
-        });
-
-        return stats;
+        return '\uFEFF' + csv;
     }
 
     showMemberModal(member) {
@@ -1208,11 +1261,11 @@ class MembersSystem {
         const joinDate = this.formatDate(member.joinDate);
         const occupation = this.formatOccupation(member.occupation);
         const occupationColor = this.getOccupationColor(member.occupation);
-        const hasProfileImage = !!member.profileImage && member.profileImage.trim() !== '';
+        const hasValidImage = member.profileImage && member.profileImage.trim() !== '' && 
+                             (member.hasValidImage === undefined || member.hasValidImage === true);
         const bgColor = this.getAvatarColor(member);
         
-        // Avatar pour la modal utilisant le même système robuste
-        const profileImageHTML = hasProfileImage ? `
+        const profileImageHTML = hasValidImage ? `
             <div class="member-avatar-container" style="width: 120px; height: 120px;">
                 <img src="${profileImageUrl}" 
                       alt="${member.firstName} ${member.lastName}"
@@ -1247,10 +1300,9 @@ class MembersSystem {
                                 <i class="fas fa-user-circle me-2"></i>
                                 Profil du Membre
                             </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
                         </div>
                         <div class="modal-body">
-                            <!-- En-tête du profil -->
                             <div class="row align-items-center mb-4">
                                 <div class="col-md-3 text-center">
                                     ${profileImageHTML}
@@ -1278,7 +1330,6 @@ class MembersSystem {
                             
                             <hr>
                             
-                            <!-- Informations détaillées -->
                             <div class="row">
                                 <div class="col-md-6">
                                     <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-primary"></i>Informations personnelles</h5>
@@ -1356,7 +1407,6 @@ class MembersSystem {
             </div>
         `;
         
-        // Gérer la modal existante
         const existingModal = document.getElementById('memberProfileModal');
         if (existingModal) {
             existingModal.remove();
@@ -1367,14 +1417,12 @@ class MembersSystem {
         const memberModal = new bootstrap.Modal(document.getElementById('memberProfileModal'));
         memberModal.show();
         
-        // Nettoyer la modal après fermeture
         document.getElementById('memberProfileModal').addEventListener('hidden.bs.modal', function () {
             this.remove();
         });
     }
 
     async loadMockMembers() {
-        // Données mock de secours
         return [
             {
                 id: 1,
@@ -1414,19 +1462,6 @@ class MembersSystem {
                 studyOrWorkPlace: 'Société ABC',
                 joinDate: new Date('2023-06-10').toISOString(),
                 profileImage: null
-            },
-            {
-                id: 4,
-                registrationNumber: 'ACM004',
-                firstName: 'Emily',
-                lastName: 'Johnson',
-                email: 'emily.johnson@campus.edu',
-                occupation: 'student',
-                phoneNumber: '+261 33 987 6543',
-                address: 'Mahajanga, Madagascar',
-                studyOrWorkPlace: 'UCLA',
-                joinDate: new Date('2023-01-12').toISOString(),
-                profileImage: null
             }
         ];
     }
@@ -1436,7 +1471,6 @@ class MembersSystem {
             window.appController.showNotification(message, type);
         } else {
             console.log(`💬 ${type.toUpperCase()}: ${message}`);
-            // Fallback simple
             const alertClass = type === 'error' ? 'alert-danger' : 
                              type === 'success' ? 'alert-success' : 
                              type === 'warning' ? 'alert-warning' : 'alert-info';
@@ -1448,7 +1482,7 @@ class MembersSystem {
                 <div class="d-flex align-items-center">
                     <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>
                     <div class="flex-grow-1">${message}</div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
                 </div>
             `;
             document.body.appendChild(alert);
@@ -1462,11 +1496,40 @@ class MembersSystem {
     }
 }
 
-// Créer et exposer l'instance globale
-const membersSystem = new MembersSystem();
+// API Service amélioré avec validation d'images
+if (window.apiService && typeof window.apiService.validateProfileImage === 'undefined') {
+    window.apiService.validateProfileImage = async function(member) {
+        if (!member.profileImage) return false;
+        
+        try {
+            const imageUrl = this.getProfileImageUrl(member.profileImage);
+            const response = await fetch(imageUrl, { 
+                method: 'HEAD',
+                cache: 'no-cache'
+            });
+            
+            if (response.ok) {
+                const contentType = response.headers.get('content-type');
+                return contentType && contentType.startsWith('image/');
+            }
+            return false;
+        } catch (error) {
+            console.log('❌ Image validation failed:', error.message);
+            return false;
+        }
+    };
+}
+
+// Créer et exposer l'instance globale améliorée
+const membersSystem = new EnhancedMembersSystem();
 window.membersSystem = membersSystem;
 
 // Initialisation
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('👥 Système membres prêt');
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Système membres amélioré prêt');
+    
+    if (!navigator.onLine) {
+        console.log('📴 Mode hors ligne détecté');
+        membersSystem.useOfflineData();
+    }
 });

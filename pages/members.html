@@ -1,4 +1,4 @@
-<!-- Members Page -->
+<!-- Members Page - VERSION AMÉLIORÉE -->
 <section id="members" class="page-section py-5">
     <div class="container">
         <!-- Header avec navigation et actions -->
@@ -10,10 +10,10 @@
             </div>
             <div class="col-md-6 text-md-end">
                 <div class="d-flex gap-2 justify-content-md-end">
-                    <button class="btn btn-outline-success btn-sm" onclick="membersSystem.exportMembers()">
+                    <button class="btn btn-outline-success btn-sm" onclick="membersSystem.exportMembers()" aria-label="Exporter les membres">
                         <i class="fas fa-download me-1"></i>Exporter
                     </button>
-                    <button class="btn btn-outline-info btn-sm" onclick="membersSystem.showStats()">
+                    <button class="btn btn-outline-info btn-sm" onclick="membersSystem.showStats()" aria-label="Voir les statistiques">
                         <i class="fas fa-chart-bar me-1"></i>Statistiques
                     </button>
                 </div>
@@ -54,7 +54,7 @@
 
         <!-- Conteneur principal des membres -->
         <div class="row g-4" id="membersContainer">
-            <!-- Les membres seront chargés ici dynamiquement -->
+            <!-- Les membres seront chargés ici dynamiquement avec skeleton loading -->
         </div>
     </div>
 </section>
