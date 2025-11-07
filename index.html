@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="American Corner Mahajanga - Système complet de gestion des membres et présence par QR code">
     <title>American Corner Mahajanga - Système Complet</title>
     
     <!-- Bibliothèques -->
@@ -20,32 +21,33 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="#" onclick="showPage('home')">
-                <i class="fas fa-university me-2"></i>
+            <a class="navbar-brand" href="#" onclick="showPage('home')" aria-label="Retour à l'accueil American Corner Mahajanga">
+                <i class="fas fa-university me-2" aria-hidden="true"></i>
                 American Corner Mahajanga
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Basculer la navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#" onclick="showPage('home')">Accueil</a>
+                        <a class="nav-link active" href="#" onclick="showPage('home')" aria-label="Aller à la page d'accueil">Accueil</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showPage('about')">À Propos</a>
+                        <a class="nav-link" href="#" onclick="showPage('about')" aria-label="En savoir plus sur American Corner">À Propos</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showPage('attendance')">Présence</a>
+                        <a class="nav-link" href="#" onclick="showPage('attendance')" aria-label="Accéder au système de présence">Présence</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showPage('qr-generator')">QR Codes</a>
+                        <a class="nav-link" href="#" onclick="showPage('qr-generator')" aria-label="Générer des QR codes">QR Codes</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showPage('members')">Membres</a>
+                        <a class="nav-link" href="#" onclick="showPage('members')" aria-label="Voir la liste des membres">Membres</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showPage('contact')">Contact</a>
+                        <a class="nav-link" href="#" onclick="showPage('contact')" aria-label="Nous contacter">Contact</a>
                     </li>
                 </ul>
             </div>
@@ -53,24 +55,51 @@
     </nav>
 
     <!-- Home Page -->
-    <section id="home" class="page-section active">
-        <div class="hero-section">
-            <div class="container">
-                <h1 class="display-4 fw-bold mb-4">American Corner Mahajanga</h1>
-                <p class="lead mb-4">Votre porte d'entrée vers l'éducation, la culture et l'information américaine à Mahajanga, Madagascar</p>
-                <button class="btn btn-light btn-lg px-4 me-2" onclick="showPage('about')">En Savoir Plus</button>
-                <button class="btn btn-outline-light btn-lg px-4" onclick="showPage('attendance')">Check-In</button>
+    <section id="home" class="page-section active" role="region" aria-label="Accueil">
+        <div class="hero-section position-relative text-white" style="background-image: url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1600&q=80'); background-size: cover; background-position: center;">
+            <div class="hero-overlay position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.45);"></div>
+            <div class="container position-relative py-6" style="z-index:2;">
+                <h1 class="display-4 fw-bold mb-3">American Corner Mahajanga</h1>
+                <p class="lead mb-4">Votre porte d'entrée vers l'éducation, la culture et l'information américaine à Mahajanga, Madagascar.</p>
+                <div class="d-flex flex-column flex-sm-row gap-2">
+                    <button class="btn btn-light btn-lg px-4" onclick="showPage('about')" aria-label="En savoir plus sur American Corner">En Savoir Plus</button>
+                    <button class="btn btn-outline-light btn-lg px-4" onclick="showPage('attendance')" aria-label="Aller au check-in">Check-In</button>
+                </div>
             </div>
         </div>
 
-        <!-- Services Preview -->
-        <section class="py-5">
+        <!-- Quick KPIs -->
+        <section class="py-4 bg-white" aria-label="Statistiques">
             <div class="container">
-                <h2 class="section-title text-center">Nos Services</h2>
+                <div class="row text-center">
+                    <div class="col-6 col-md-3 mb-3">
+                        <h3 class="mb-0"><span class="kpi-counter" data-target="1200">0</span>+</h3>
+                        <p class="mb-0 small text-muted">Membres Inscrits</p>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <h3 class="mb-0"><span class="kpi-counter" data-target="350">0</span>+</h3>
+                        <p class="mb-0 small text-muted">Événements Organisés</p>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <h3 class="mb-0"><span class="kpi-counter" data-target="95">0</span>%</h3>
+                        <p class="mb-0 small text-muted">Satisfaction</p>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <h3 class="mb-0"><span class="kpi-counter" data-target="15">0</span>+</h3>
+                        <p class="mb-0 small text-muted">Partenaires Locaux</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Services Preview -->
+        <section class="py-5" aria-label="Nos activités">
+            <div class="container">
+                <h2 class="section-title text-center">Nos Activités</h2>
                 <div class="row g-4">
                     <div class="col-md-6 col-lg-3">
-                        <div class="card service-card text-center p-4">
-                            <div class="service-icon">
+                        <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" onclick="showPage('about')" onkeypress="if(event.key==='Enter') showPage('about')">
+                            <div class="service-icon" aria-hidden="true">
                                 <i class="fas fa-graduation-cap"></i>
                             </div>
                             <h4>Conseil Éducatif</h4>
@@ -78,8 +107,8 @@
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-3">
-                        <div class="card service-card text-center p-4">
-                            <div class="service-icon">
+                        <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" onclick="showPage('about')" onkeypress="if(event.key==='Enter') showPage('about')">
+                            <div class="service-icon" aria-hidden="true">
                                 <i class="fas fa-book"></i>
                             </div>
                             <h4>Ressources Bibliothèque</h4>
@@ -87,8 +116,8 @@
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-3">
-                        <div class="card service-card text-center p-4">
-                            <div class="service-icon">
+                        <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" onclick="showPage('about')" onkeypress="if(event.key==='Enter') showPage('about')">
+                            <div class="service-icon" aria-hidden="true">
                                 <i class="fas fa-language"></i>
                             </div>
                             <h4>Programmes d'Anglais</h4>
@@ -96,8 +125,8 @@
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-3">
-                        <div class="card service-card text-center p-4">
-                            <div class="service-icon">
+                        <div class="card service-card text-center p-4 h-100" role="button" tabindex="0" onclick="showPage('about')" onkeypress="if(event.key==='Enter') showPage('about')">
+                            <div class="service-icon" aria-hidden="true">
                                 <i class="fas fa-users"></i>
                             </div>
                             <h4>Programmes Culturels</h4>
@@ -109,32 +138,32 @@
         </section>
 
         <!-- Quick Access -->
-        <section class="py-5 bg-light">
+        <section class="py-5 bg-light" aria-label="Accès rapide">
             <div class="container">
                 <h2 class="section-title text-center">Accès Rapide</h2>
                 <div class="row g-4">
                     <div class="col-md-4">
-                        <div class="card text-center p-4">
-                            <i class="fas fa-qrcode fa-3x text-primary mb-3"></i>
+                        <div class="card text-center p-4 h-100">
+                            <i class="fas fa-qrcode fa-3x text-primary mb-3" aria-hidden="true"></i>
                             <h4>Système de Présence</h4>
-                            <p>Check-in avec QR code pour le suivi des présences</p>
-                            <button class="btn btn-primary mt-2" onclick="showPage('attendance')">Accéder</button>
+                            <p>Check-in avec QR code pour le suivi des présences.</p>
+                            <button class="btn btn-primary mt-2" onclick="showPage('attendance')" aria-label="Accéder au système de présence">Accéder</button>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card text-center p-4">
-                            <i class="fas fa-id-card fa-3x text-primary mb-3"></i>
+                        <div class="card text-center p-4 h-100">
+                            <i class="fas fa-id-card fa-3x text-primary mb-3" aria-hidden="true"></i>
                             <h4>Générateur QR</h4>
-                            <p>Créez des QR codes personnalisés pour les membres</p>
-                            <button class="btn btn-primary mt-2" onclick="showPage('qr-generator')">Générer</button>
+                            <p>Créez des QR codes personnalisés pour les membres.</p>
+                            <button class="btn btn-primary mt-2" onclick="showPage('qr-generator')" aria-label="Accéder au générateur de QR">Générer</button>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card text-center p-4">
-                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                        <div class="card text-center p-4 h-100">
+                            <i class="fas fa-users fa-3x text-primary mb-3" aria-hidden="true"></i>
                             <h4>Gestion Membres</h4>
-                            <p>Consultez la liste des membres et leurs profils</p>
-                            <button class="btn btn-primary mt-2" onclick="showPage('members')">Voir</button>
+                            <p>Consultez la liste des membres et leurs profils.</p>
+                            <button class="btn btn-primary mt-2" onclick="showPage('members')" aria-label="Voir les membres">Voir</button>
                         </div>
                     </div>
                 </div>
@@ -143,21 +172,159 @@
     </section>
 
     <!-- About Page -->
-    <section id="about" class="page-section py-5">
+    <section id="about" class="page-section py-5" aria-label="À propos">
         <div class="container">
-            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
-                <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
-            </button>
-            <h2 class="section-title text-center">À Propos de Nous</h2>
-            <div class="row align-items-center">
-                <div class="col-md-6 mb-4">
-                    <p class="lead">American Corner Mahajanga est un centre culturel et d'information situé à Mahajanga (Majunga), Madagascar. C'est un partenariat entre l'Ambassade des États-Unis à Madagascar et l'Université de Mahajanga.</p>
-                    <p>Nous servons de ressource pour les étudiants, les professionnels et le grand public qui s'intéressent aux États-Unis, sa culture, son système éducatif et ses politiques.</p>
-                    <p>Les American Corners font partie d'une initiative mondiale du Département d'État américain pour fournir une fenêtre sur les États-Unis dans les villes où il n'y a pas de Centre américain complet ou d'Ambassade.</p>
-                    <p>Notre mission est de promouvoir la compréhension mutuelle entre les peuples de Madagascar et des États-Unis grâce à des programmes éducatifs et culturels.</p>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <button class="btn btn-outline-primary" onclick="showPage('home')" aria-label="Retour à l'accueil">
+                    <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>Retour
+                </button>
+                <div class="ms-3 text-end">
+                    <a class="btn btn-sm btn-outline-secondary me-2" href="#" onclick="showPage('qr-generator')" aria-label="Générateur de QR">Générer QR</a>
+                    <a class="btn btn-sm btn-primary" href="#" onclick="showPage('attendance')" aria-label="Aller au système de présence">Check-In</a>
+                </div>
+            </div>
+
+            <!-- Hero About -->
+            <div class="row align-items-center g-4 mb-5">
+                <div class="col-md-6">
+                    <h2 class="section-title">À Propos de l'American Corner Mahajanga</h2>
+                    <p class="lead">Un espace dédié à l'échange culturel, à l'information et au soutien éducatif pour la communauté de Mahajanga. Nous rapprochons Madagascar et les États‑Unis par des programmes accessibles et inclusifs.</p>
+                    <p>Notre offre comprend: information sur les études aux États‑Unis, ressources de bibliothèque, ateliers d'anglais, événements culturels, et un système moderne de suivi des présences pour faciliter la gestion des activités.</p>
+                    <div class="mt-4">
+                        <a class="btn btn-primary me-2" href="#" onclick="showPage('contact')" aria-label="Nous contacter">Contactez‑nous</a>
+                        <a class="btn btn-outline-primary" href="#" onclick="showPage('members')" aria-label="Voir les membres">Voir les membres</a>
+                    </div>
                 </div>
                 <div class="col-md-6">
-                    <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Students at American Corner" class="img-fluid rounded shadow">
+                    <div class="ratio ratio-16x9 rounded shadow overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Étudiants et ressources à l'American Corner" class="w-100 h-100" style="object-fit: cover;" onerror="this.src='https://placehold.co/800x450/0d6efd/ffffff?text=American+Corner+Mahajanga'">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mission & Vision -->
+            <div class="row mb-5">
+                <div class="col-md-4">
+                    <div class="card h-100 text-center p-3">
+                        <div class="card-body">
+                            <i class="fas fa-bullseye fa-2x text-primary mb-3" aria-hidden="true"></i>
+                            <h5>Notre Mission</h5>
+                            <p class="small text-muted">Promouvoir la compréhension mutuelle et l'accès aux ressources éducatives et culturelles entre Madagascar et les États‑Unis.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 text-center p-3">
+                        <div class="card-body">
+                            <i class="fas fa-eye fa-2x text-primary mb-3" aria-hidden="true"></i>
+                            <h5>Notre Vision</h5>
+                            <p class="small text-muted">Être un hub local d'apprentissage, d'innovation et d'échanges culturels reconnu pour l'excellence et l'inclusion.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 text-center p-3">
+                        <div class="card-body">
+                            <i class="fas fa-hand-holding-heart fa-2x text-primary mb-3" aria-hidden="true"></i>
+                            <h5>Nos Valeurs</h5>
+                            <p class="small text-muted">Accessibilité, respect, collaboration et transparence dans toutes nos actions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline / Histoire -->
+            <div class="mb-5">
+                <h3 class="mb-3">Notre Histoire</h3>
+                <ul class="timeline list-unstyled">
+                    <li class="mb-3">
+                        <strong>2018</strong> — Lancement de l'initiative locale en partenariat avec l'Ambassade des États‑Unis et l'Université de Mahajanga.
+                    </li>
+                    <li class="mb-3">
+                        <strong>2019</strong> — Déploiement des premiers ateliers d'anglais et ouverture de la bibliothèque publique.
+                    </li>
+                    <li class="mb-3">
+                        <strong>2021</strong> — Adoption d'outils numériques pour la gestion des membres et les événements.
+                    </li>
+                    <li>
+                        <strong>2024</strong> — Lancement du système de check‑in par QR code et extension des programmes communautaires.
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Équipe / Partenaires -->
+            <div class="mb-5">
+                <h3 class="mb-4">Équipe & Partenaires</h3>
+                <div class="row g-4" id="aboutTeam">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card h-100 text-center p-3">
+                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=60" alt="Directeur" class="rounded-circle mx-auto d-block mb-3" style="width:96px;height:96px;object-fit:cover;">
+                            <h6 class="mb-0">M. Andry</h6>
+                            <small class="text-muted">Directeur Local</small>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card h-100 text-center p-3">
+                            <img src="https://images.unsplash.com/photo-1545996124-1b59bf11e3c4?auto=format&fit=crop&w=400&q=60" alt="Coordonnateur" class="rounded-circle mx-auto d-block mb-3" style="width:96px;height:96px;object-fit:cover;">
+                            <h6 class="mb-0">Mme. Raharim</h6>
+                            <small class="text-muted">Coordonnatrice Programmes</small>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card h-100 text-center p-3">
+                            <img src="https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?auto=format&fit=crop&w=400&q=60" alt="Bibliothécaire" class="rounded-circle mx-auto d-block mb-3" style="width:96px;height:96px;object-fit:cover;">
+                            <h6 class="mb-0">R. José</h6>
+                            <small class="text-muted">Responsable Bibliothèque</small>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card h-100 text-center p-3">
+                            <img src="https://images.unsplash.com/photo-1541534401786-3a0b5e9d1e2d?auto=format&fit=crop&w=400&q=60" alt="Volunteer" class="rounded-circle mx-auto d-block mb-3" style="width:96px;height:96px;object-fit:cover;">
+                            <h6 class="mb-0">Volontaires</h6>
+                            <small class="text-muted">Équipe Bénévole</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ / Accessibilité -->
+            <div class="mb-5">
+                <h3 class="mb-3">Questions fréquentes</h3>
+                <div class="accordion" id="aboutFaq">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faqOneHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqOne" aria-expanded="false" aria-controls="faqOne">
+                                Comment obtenir un QR code membre ?
+                            </button>
+                        </h2>
+                        <div id="faqOne" class="accordion-collapse collapse" aria-labelledby="faqOneHeader" data-bs-parent="#aboutFaq">
+                            <div class="accordion-body">
+                                Remplissez le formulaire dans la section "QR Codes" et générez votre QR. Vous pouvez aussi vous inscrire sur place à l'American Corner.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faqTwoHeader">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqTwo" aria-expanded="false" aria-controls="faqTwo">
+                                Quels services sont gratuits ?
+                            </button>
+                        </h2>
+                        <div id="faqTwo" class="accordion-collapse collapse" aria-labelledby="faqTwoHeader" data-bs-parent="#aboutFaq">
+                            <div class="accordion-body">
+                                Les conseils éducatifs, l'accès à certaines ressources de la bibliothèque et de nombreux ateliers sont gratuits. Certains programmes spéciaux peuvent être payants.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="text-center py-4 bg-primary text-white rounded">
+                <h4 class="mb-2">Visitez‑nous à l'Université de Mahajanga</h4>
+                <p class="mb-3 small">Rejoignez nos activités et bénéficiez de ressources pour vos projets académiques et professionnels.</p>
+                <div>
+                    <a class="btn btn-light me-2" href="#" onclick="showPage('contact')" aria-label="Planifier une visite">Planifier une visite</a>
+                    <a class="btn btn-outline-light" href="#" onclick="showPage('qr-generator')" aria-label="Créer un QR code">Créer un QR</a>
                 </div>
             </div>
         </div>
@@ -166,7 +333,7 @@
     <!-- Attendance System Page - MODIFIÉ POUR SCANNER.JS -->
     <section id="attendance" class="page-section py-5">
         <div class="container">
-            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
+            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')" aria-label="Retour à l'accueil">
                 <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
             </button>
             <h2 class="section-title text-center">Système de Présence ACM</h2>
@@ -218,7 +385,7 @@
                                 </div>
                                 
                                 <!-- Manual Entry -->
-                                <button class="btn btn-outline-primary mt-3 w-100" onclick="qrScanner.startManualEntry()">
+                                <button class="btn btn-outline-primary mt-3 w-100" onclick="qrScanner.startManualEntry()" aria-label="Entrer manuellement les informations">
                                     <i class="fas fa-keyboard me-2"></i>Entrée Manuelle
                                 </button>
                                 
@@ -226,7 +393,7 @@
                                 <div class="mt-3 p-3 bg-light rounded">
                                     <h6>Mode Démo</h6>
                                     <p class="small mb-2">Testez le système avec des données locales</p>
-                                    <button class="btn btn-outline-info btn-sm w-100" onclick="testScannerWithDemoMember()">
+                                    <button class="btn btn-outline-info btn-sm w-100" onclick="testScannerWithDemoMember()" aria-label="Tester avec le membre ACM001">
                                         Utiliser ACM001 (Linus Torvalds)
                                     </button>
                                 </div>
@@ -270,7 +437,7 @@
     <!-- QR Generator Page -->
     <section id="qr-generator" class="page-section py-5">
         <div class="container">
-            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
+            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')" aria-label="Retour à l'accueil">
                 <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
             </button>
             <h2 class="section-title text-center">Générateur de QR Codes</h2>
@@ -358,10 +525,10 @@
                             <div class="qr-code-display">
                                 <div id="qrcode"></div>
                                 <div class="mt-3">
-                                    <button class="btn btn-success me-2" id="downloadQRBtn">
+                                    <button class="btn btn-success me-2" id="downloadQRBtn" aria-label="Télécharger le QR code">
                                         <i class="fas fa-download me-2"></i>Télécharger
                                     </button>
-                                    <button class="btn btn-outline-primary" id="printQRBtn">
+                                    <button class="btn btn-outline-primary" id="printQRBtn" aria-label="Imprimer le QR code">
                                         <i class="fas fa-print me-2"></i>Imprimer
                                     </button>
                                 </div>
@@ -411,7 +578,7 @@
     <!-- Members Page -->
     <section id="members" class="page-section py-5">
         <div class="container">
-            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
+            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')" aria-label="Retour à l'accueil">
                 <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
             </button>
             <h2 class="section-title text-center">Nos Membres</h2>
@@ -426,7 +593,7 @@
     <!-- Contact Page -->
     <section id="contact" class="page-section py-5 bg-light">
         <div class="container">
-            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')">
+            <button class="btn btn-outline-primary mb-4" onclick="showPage('home')" aria-label="Retour à l'accueil">
                 <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
             </button>
             <h2 class="section-title text-center">Contactez-Nous</h2>
@@ -492,10 +659,10 @@
                     <h5>American Corner Mahajanga</h5>
                     <p>Un partenariat entre l'Ambassade des États-Unis à Madagascar et l'Université de Mahajanga.</p>
                     <div class="social-icons">
-                        <a href="#"><i class="fab fa-facebook"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-youtube"></i></a>
+                        <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
                     </div>
                 </div>
                 <div class="col-md-4 mb-4 mb-md-0">
