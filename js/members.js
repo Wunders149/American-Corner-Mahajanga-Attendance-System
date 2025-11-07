@@ -1279,16 +1279,130 @@ class MembersSystem {
         // Stocker les données du membre pour la page de profil
         sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
         
+        // Essayer différentes méthodes de navigation
         if (window.appController && typeof window.appController.loadPage === 'function') {
-            // Utiliser le contrôleur d'application existant
-            window.appController.loadPage('profile');
-            this.showNotification(`Chargement du profil de ${member.firstName} ${member.lastName}`, 'info');
-        } else if (window.router && typeof window.router.navigate === 'function') {
-            // Utiliser un routeur alternatif
-            window.router.navigate('profile');
+            try {
+                window.appController.loadPage('profile');
+                this.showNotification(`Profil de ${member.firstName} ${member.lastName}`, 'info');
+            } catch (error) {
+                console.warn('❌ Navigation via appController échouée, tentative alternative...', error);
+                this.fallbackToProfilePage();
+            }
         } else {
-            // Redirection directe vers profile.html
-            window.location.href = 'profile.html';
+            this.fallbackToProfilePage();
+        }
+    }
+
+    /**
+     * Méthode de fallback pour la navigation vers le profil
+     */
+    fallbackToProfilePage() {
+        // Méthode 1: Vérifier si la section profile existe dans le DOM
+        const profileSection = document.getElementById('profile');
+        if (profileSection) {
+            console.log('✅ Section profile trouvée dans le DOM');
+            this.showProfileInSection();
+            return;
+        }
+        
+        // Méthode 2: Redirection vers profile.html
+        console.log('🔄 Redirection vers profile.html');
+        window.location.href = 'profile.html';
+    }
+
+    /**
+     * Affiche le profil dans la section existante (pour les applications monopages)
+     */
+    showProfileInSection() {
+        // Cacher toutes les autres sections
+        document.querySelectorAll('.page-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Afficher la section profile
+        const profileSection = document.getElementById('profile');
+        if (profileSection) {
+            profileSection.style.display = 'block';
+            
+            // Charger les données du profil
+            this.loadProfileData();
+            
+            // Scroll vers le haut
+            window.scrollTo(0, 0);
+        }
+    }
+
+    /**
+     * Charge et affiche les données du profil dans la section
+     */
+    loadProfileData() {
+        try {
+            const memberData = sessionStorage.getItem('currentMemberProfile');
+            if (memberData) {
+                const member = JSON.parse(memberData);
+                this.renderProfilePage(member);
+            }
+        } catch (error) {
+            console.error('❌ Erreur chargement données profil:', error);
+            this.showProfileError();
+        }
+    }
+
+    /**
+     * Affiche le profil dans la page
+     * @param {Object} member - Données du membre
+     */
+    renderProfilePage(member) {
+        const profileContent = document.getElementById('profileContent');
+        if (!profileContent) return;
+
+        const profileHTML = this.createProfileHTML(member);
+        profileContent.innerHTML = profileHTML;
+        
+        // Mettre à jour le titre de la page
+        document.title = `${member.firstName} ${member.lastName} - Profil Membre | American Corner Mahajanga`;
+    }
+
+    /**
+     * Crée le HTML du profil (identique à celui de profile.js)
+     */
+    createProfileHTML(member) {
+        // Reprenez exactement le code de la méthode createProfileHTML 
+        // depuis le fichier profile.js que je vous ai fourni précédemment
+        // ... (le code HTML complet)
+    }
+
+    /**
+     * Affiche une erreur dans la section profil
+     */
+    showProfileError() {
+        const profileContent = document.getElementById('profileContent');
+        if (profileContent) {
+            profileContent.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                    <h3 class="text-warning">Erreur</h3>
+                    <p class="text-muted mb-4">Impossible de charger le profil du membre</p>
+                    <button class="btn btn-primary" onclick="membersSystem.returnToMembers()">
+                        <i class="fas fa-arrow-left me-2"></i>Retour aux membres
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Retourne à la liste des membres
+     */
+    returnToMembers() {
+        if (window.appController && typeof window.appController.loadPage === 'function') {
+            window.appController.loadPage('members');
+        } else {
+            // Fallback
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById('members').style.display = 'block';
         }
     }
 

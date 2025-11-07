@@ -2,7 +2,7 @@
 class AppController {
     constructor() {
         this.currentPage = 'home';
-        this.validPages = ['home', 'about', 'attendance', 'qr-generator', 'members', 'contact'];
+        this.validPages = ['home', 'about', 'attendance', 'qr-generator', 'members', 'contact', 'profile'];
         this.isInitialized = false;
         this.modules = {};
         this.init();
@@ -251,7 +251,8 @@ class AppController {
             'attendance': 'Présence',
             'qr-generator': 'Générateur QR',
             'members': 'Membres',
-            'contact': 'Contact'
+            'contact': 'Contact',
+            'profile': 'Profil'
         };
         return titles[pageId] || 'American Corner Mahajanga';
     }
@@ -279,6 +280,12 @@ class AppController {
             case 'contact':
                 await this.initializeContactPage();
                 break;
+            case 'profile':
+                // Profile page initialization if needed
+                console.log('👤 Page Profil initialisée');
+                break;
+            default:
+                console.warn(`Aucune initialisation spécifique pour la page: ${pageId}`);
         }
     }
 
