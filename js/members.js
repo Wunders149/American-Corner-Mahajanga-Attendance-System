@@ -73,7 +73,7 @@ class MembersSystem {
     getInitials(firstName, lastName) {
         const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
         const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : '';
-        return firstInitial + lastInitial;
+        return (firstInitial + lastInitial).substring(0, 2);
     }
 
     formatDate(dateString) {
@@ -110,6 +110,68 @@ class MembersSystem {
             'other': 'dark'
         };
         return colors[occupation] || 'primary';
+    }
+
+    getAvatarColor(member) {
+        const colors = [
+            '#007bff', '#28a745', '#17a2b8', '#ffc107', 
+            '#dc3545', '#6f42c1', '#e83e8c', '#fd7e14',
+            '#20c997', '#0dcaf0', '#6610f2', '#d63384'
+        ];
+        const colorIndex = (member.id || Math.floor(Math.random() * colors.length)) % colors.length;
+        return colors[colorIndex];
+    }
+
+    // VERSION ROBUSTE - Utilisation de CSS pour les avatars
+    getProfileImage(member) {
+        const initials = this.getInitials(member.firstName, member.lastName);
+        const bgColor = this.getAvatarColor(member);
+        const occupationIcon = this.getOccupationIcon(member.occupation);
+        const occupationColor = this.getOccupationColor(member.occupation);
+
+        // Vérifier si l'image existe
+        if (member.profileImage && member.profileImage.trim() !== '') {
+            let imageUrl;
+            
+            if (window.apiService && typeof window.apiService.getProfileImageUrl === 'function') {
+                imageUrl = window.apiService.getProfileImageUrl(member.profileImage);
+            } else {
+                imageUrl = member.profileImage;
+            }
+            
+            // Fallback CSS pour les images qui échouent
+            const fallbackHTML = `
+                <div class="avatar-fallback" style="background-color: ${bgColor};">
+                    <span class="avatar-initials">${initials}</span>
+                </div>
+            `;
+            
+            return `
+                <div class="member-avatar-container">
+                    <img src="${imageUrl}" 
+                         alt="${member.firstName} ${member.lastName}"
+                         class="member-photo actual-photo"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                         onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
+                    ${fallbackHTML}
+                    <div class="occupation-icon bg-${occupationColor}">
+                        <i class="fas ${occupationIcon} text-white"></i>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Si pas de photo, utiliser le fallback CSS directement
+        return `
+            <div class="member-avatar-container">
+                <div class="avatar-fallback" style="background-color: ${bgColor};">
+                    <span class="avatar-initials">${initials}</span>
+                </div>
+                <div class="occupation-icon bg-${occupationColor}">
+                    <i class="fas ${occupationIcon} text-white"></i>
+                </div>
+            </div>
+        `;
     }
 
     // Interface principale améliorée
@@ -706,7 +768,6 @@ class MembersSystem {
         const profileImage = this.getProfileImage(member);
         const joinDate = this.formatDate(member.joinDate);
         const occupation = this.formatOccupation(member.occupation);
-        const occupationIcon = this.getOccupationIcon(member.occupation);
         const occupationColor = this.getOccupationColor(member.occupation);
 
         const highlightText = (text) => {
@@ -720,13 +781,8 @@ class MembersSystem {
             <div class="col-md-6 col-lg-4 col-xl-3">
                 <div class="card member-card h-100" style="animation-delay: ${index * 0.1}s">
                     <div class="card-body p-4">
-                        <!-- Photo de profil -->
-                        <div class="member-avatar" style="width: 100px; height: 100px;">
-                            ${profileImage}
-                            <div class="occupation-icon bg-${occupationColor}">
-                                <i class="fas ${occupationIcon} text-white small"></i>
-                            </div>
-                        </div>
+                        <!-- Photo de profil avec système robuste -->
+                        ${profileImage}
                         
                         <!-- Informations principales -->
                         <div class="text-center mb-3">
@@ -812,7 +868,7 @@ class MembersSystem {
                     <div class="card-body py-3">
                         <div class="row align-items-center">
                             <div class="col-auto">
-                                <div class="member-avatar" style="width: 60px; height: 60px;">
+                                <div style="width: 60px; height: 60px;">
                                     ${profileImage}
                                 </div>
                             </div>
@@ -850,11 +906,13 @@ class MembersSystem {
                                                     title="Générer QR Code">
                                                 <i class="fas fa-qrcode"></i>
                                             </button>
+                                            ${member.email || member.phoneNumber ? `
                                             <button class="btn btn-outline-info" 
                                                     onclick="membersSystem.quickContact(${member.id})"
                                                     title="Contacter">
                                                 <i class="fas fa-envelope"></i>
                                             </button>
+                                            ` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -864,69 +922,6 @@ class MembersSystem {
                 </div>
             </div>
         `;
-    }
-
-    getProfileImage(member) {
-        // Vérifier si l'image existe
-        if (member.profileImage && member.profileImage.trim() !== '') {
-            let imageUrl;
-            
-            if (window.apiService && typeof window.apiService.getProfileImageUrl === 'function') {
-                imageUrl = window.apiService.getProfileImageUrl(member.profileImage);
-            } else {
-                imageUrl = member.profileImage;
-            }
-            
-            // Encoder les initiales pour l'image de fallback SVG
-            const initials = this.getInitials(member.firstName, member.lastName);
-            const svgFallback = this.generateAvatarSVG(initials, '#6C7580');
-            
-            return `
-                <img src="${imageUrl}" 
-                     alt="${member.firstName} ${member.lastName}"
-                     class="rounded-circle member-photo w-100 h-100"
-                     style="object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
-                     onerror="this.onerror=null; this.src='${svgFallback}';"
-                     onload="this.style.display='block';">
-            `;
-        }
-        
-        // Avatar SVG avec initiales si pas de photo
-        const colors = ['#007bff', '#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
-        const colorIndex = (member.id || Math.floor(Math.random() * colors.length)) % colors.length;
-        const bgColor = colors[colorIndex];
-        const initials = this.getInitials(member.firstName, member.lastName);
-        
-        return this.generateAvatarSVG(initials, bgColor);
-    }
-
-    generateAvatarSVG(initials, backgroundColor) {
-        const svg = `
-            <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:${backgroundColor};stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:${this.darkenColor(backgroundColor, 20)};stop-opacity:1" />
-                    </linearGradient>
-                </defs>
-                <circle cx="50" cy="50" r="48" fill="url(#gradient)" stroke="#fff" stroke-width="4"/>
-                <text x="50" y="58" text-anchor="middle" fill="white" font-size="32" font-family="Arial, sans-serif" font-weight="bold" dy=".3em">
-                    ${initials}
-                </text>
-            </svg>
-        `;
-        return `data:image/svg+xml;base64,${btoa(svg)}`;
-    }
-
-    darkenColor(color, percent) {
-        const num = parseInt(color.replace("#", ""), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = (num >> 16) - amt;
-        const G = (num >> 8 & 0x00FF) - amt;
-        const B = (num & 0x0000FF) - amt;
-        return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
-            (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
     }
 
     viewMemberDetails(memberId) {
@@ -964,16 +959,56 @@ class MembersSystem {
         if (!member) return;
 
         const contactOptions = [];
-        if (member.email) contactOptions.push(`Email: ${member.email}`);
-        if (member.phoneNumber) contactOptions.push(`Téléphone: ${member.phoneNumber}`);
+        if (member.email) contactOptions.push(`📧 Email: ${member.email}`);
+        if (member.phoneNumber) contactOptions.push(`📞 Téléphone: ${member.phoneNumber}`);
         
         if (contactOptions.length === 0) {
             this.showNotification('Aucune information de contact disponible', 'warning');
             return;
         }
 
-        const message = `Options de contact pour ${member.firstName} ${member.lastName}:\n\n${contactOptions.join('\n')}`;
-        this.showNotification(message, 'info');
+        const message = `Contact: ${member.firstName} ${member.lastName}\n\n${contactOptions.join('\n')}`;
+        
+        // Créer une modal de contact
+        const modalHTML = `
+            <div class="modal fade" id="contactModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-envelope me-2"></i>
+                                Contacter ${member.firstName} ${member.lastName}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="contact-options">
+                                ${contactOptions.map(option => `
+                                    <div class="contact-option mb-3 p-3 border rounded">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas ${option.includes('Email') ? 'fa-envelope text-primary' : 'fa-phone text-success'} me-3 fa-lg"></i>
+                                            <div>
+                                                <strong>${option.split(': ')[0]}</strong>
+                                                <div class="text-muted">${option.split(': ')[1]}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const existingModal = document.getElementById('contactModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        new bootstrap.Modal(document.getElementById('contactModal')).show();
     }
 
     async refreshData() {
@@ -1174,16 +1209,34 @@ class MembersSystem {
         const occupation = this.formatOccupation(member.occupation);
         const occupationColor = this.getOccupationColor(member.occupation);
         const hasProfileImage = !!member.profileImage && member.profileImage.trim() !== '';
+        const bgColor = this.getAvatarColor(member);
         
-        // Générer l'image de profil pour la modal
-        const profileImageHTML = hasProfileImage ? 
-            `<img src="${profileImageUrl}" 
-                  alt="${member.firstName} ${member.lastName}" 
-                  class="rounded-circle w-100 h-100"
-                  style="object-fit: cover; border: 6px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"
-                  onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                  onload="this.style.display='block'; this.nextElementSibling.style.display='none';">` : 
-            '';
+        // Avatar pour la modal utilisant le même système robuste
+        const profileImageHTML = hasProfileImage ? `
+            <div class="member-avatar-container" style="width: 120px; height: 120px;">
+                <img src="${profileImageUrl}" 
+                      alt="${member.firstName} ${member.lastName}"
+                      class="member-photo actual-photo"
+                      style="border: 6px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                      onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
+                <div class="avatar-fallback" style="background-color: ${bgColor}; display: none;">
+                    <span class="avatar-initials" style="font-size: 2.5rem;">${initials}</span>
+                </div>
+                <div class="occupation-icon bg-${occupationColor}" style="width: 36px; height: 36px;">
+                    <i class="fas ${this.getOccupationIcon(member.occupation)} text-white"></i>
+                </div>
+            </div>
+        ` : `
+            <div class="member-avatar-container" style="width: 120px; height: 120px;">
+                <div class="avatar-fallback" style="background-color: ${bgColor};">
+                    <span class="avatar-initials" style="font-size: 2.5rem;">${initials}</span>
+                </div>
+                <div class="occupation-icon bg-${occupationColor}" style="width: 36px; height: 36px;">
+                    <i class="fas ${this.getOccupationIcon(member.occupation)} text-white"></i>
+                </div>
+            </div>
+        `;
         
         const modalHTML = `
             <div class="modal fade" id="memberProfileModal" tabindex="-1" aria-hidden="true">
@@ -1200,13 +1253,7 @@ class MembersSystem {
                             <!-- En-tête du profil -->
                             <div class="row align-items-center mb-4">
                                 <div class="col-md-3 text-center">
-                                    <div class="position-relative mx-auto" style="width: 120px; height: 120px;">
-                                        ${profileImageHTML}
-                                        <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center text-white fw-bold ${hasProfileImage ? 'd-none' : ''}"
-                                             style="width: 120px; height: 120px; font-size: 2.5rem; background: linear-gradient(135deg, #667eea, #764ba2);">
-                                            ${initials}
-                                        </div>
-                                    </div>
+                                    ${profileImageHTML}
                                 </div>
                                 <div class="col-md-9">
                                     <h3 class="mb-2">${member.firstName} ${member.lastName}</h3>
@@ -1327,7 +1374,7 @@ class MembersSystem {
     }
 
     async loadMockMembers() {
-        // Données mock de secours (sans images pour éviter les 404)
+        // Données mock de secours
         return [
             {
                 id: 1,
@@ -1366,6 +1413,19 @@ class MembersSystem {
                 address: 'Mahajanga, Madagascar',
                 studyOrWorkPlace: 'Société ABC',
                 joinDate: new Date('2023-06-10').toISOString(),
+                profileImage: null
+            },
+            {
+                id: 4,
+                registrationNumber: 'ACM004',
+                firstName: 'Emily',
+                lastName: 'Johnson',
+                email: 'emily.johnson@campus.edu',
+                occupation: 'student',
+                phoneNumber: '+261 33 987 6543',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'UCLA',
+                joinDate: new Date('2023-01-12').toISOString(),
                 profileImage: null
             }
         ];
