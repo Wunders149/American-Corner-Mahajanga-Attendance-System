@@ -1,0 +1,316 @@
+/* Styles spécifiques pour la page membres */
+.page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 3rem 2rem;
+    border-radius: 20px;
+    color: white;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.page-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="rgba(255,255,255,0.1)"><polygon points="0,0 1000,50 1000,100 0,100"/></svg>') no-repeat;
+    background-size: cover;
+}
+
+.page-header h1 {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.page-header .lead {
+    opacity: 0.9;
+}
+
+/* Cartes de statistiques */
+.stat-card {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    min-width: 120px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Cartes de membres améliorées */
+.member-card {
+    border: none;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.member-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.member-card:hover::before {
+    transform: scaleX(1);
+}
+
+.member-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.member-avatar {
+    position: relative;
+    margin: 0 auto 1.5rem;
+}
+
+.member-photo {
+    border: 4px solid #fff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.member-card:hover .member-photo {
+    transform: scale(1.05);
+    border-color: #667eea;
+}
+
+.occupation-icon {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #fff;
+    transition: all 0.3s ease;
+}
+
+.member-card:hover .occupation-icon {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.member-name {
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.member-id {
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.member-occupation .badge {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 50px;
+    font-weight: 600;
+}
+
+.member-contact div {
+    margin-bottom: 0.25rem;
+    transition: color 0.3s ease;
+}
+
+.member-card:hover .member-contact div {
+    color: #667eea;
+}
+
+.member-location {
+    background: #f8f9fa;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+}
+
+.member-join-date {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+/* Actions des cartes */
+.member-actions {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.member-card:hover .member-actions {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Barre de contrôle améliorée */
+.controls-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    margin-bottom: 2rem;
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-container .input-group-text {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    color: white;
+    border-radius: 15px 0 0 15px;
+}
+
+.search-container .form-control {
+    border: 2px solid #e9ecef;
+    border-left: none;
+    border-radius: 0 15px 15px 0;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.search-container .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Filtres et tris */
+.filter-group .btn {
+    border-radius: 50px;
+    padding: 0.5rem 1rem;
+    margin: 0.25rem;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.filter-group .btn:hover {
+    transform: translateY(-2px);
+}
+
+.sort-dropdown .dropdown-toggle {
+    border-radius: 50px;
+    padding: 0.5rem 1rem;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.sort-dropdown .dropdown-toggle:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+/* États de chargement */
+.loading-state {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page-header {
+        padding: 2rem 1rem;
+        border-radius: 15px;
+    }
+    
+    .stat-card {
+        padding: 1rem 0.5rem;
+        min-width: 100px;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+    
+    .member-card {
+        margin-bottom: 1.5rem;
+    }
+    
+    .controls-card .row > div {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Animation d'apparition des cartes */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.member-card {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.member-card:nth-child(odd) {
+    animation-delay: 0.1s;
+}
+
+.member-card:nth-child(even) {
+    animation-delay: 0.2s;
+}
+
+/* Badge mode démo */
+.demo-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Highlight de recherche */
+mark {
+    background: linear-gradient(120deg, #ffd700 0%, #ffd700 100%);
+    background-repeat: no-repeat;
+    background-size: 100% 0.2em;
+    background-position: 0 88%;
+    padding: 0.1em 0.2em;
+    border-radius: 3px;
+}

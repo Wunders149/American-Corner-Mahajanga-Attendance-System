@@ -1,14 +1,60 @@
 <!-- Members Page -->
 <section id="members" class="page-section py-5">
     <div class="container">
-        <button class="btn btn-outline-primary mb-4" data-page="home" aria-label="Retour à l'accueil">
-            <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
-        </button>
-        <h2 class="section-title text-center">Nos Membres</h2>
-        <p class="text-center mb-5">Découvrez nos membres dédiés qui participent aux activités de l'American Corner.</p>
-        
+        <!-- Header avec navigation et actions -->
+        <div class="row align-items-center mb-4">
+            <div class="col-md-6">
+                <button class="btn btn-outline-primary" data-page="home" aria-label="Retour à l'accueil">
+                    <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+                </button>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <div class="d-flex gap-2 justify-content-md-end">
+                    <button class="btn btn-outline-success btn-sm" onclick="membersSystem.exportMembers()">
+                        <i class="fas fa-download me-1"></i>Exporter
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="membersSystem.showStats()">
+                        <i class="fas fa-chart-bar me-1"></i>Statistiques
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- En-tête de page -->
+        <div class="row mb-5">
+            <div class="col-12 text-center">
+                <div class="page-header">
+                    <h1 class="display-5 fw-bold text-primary mb-3">Nos Membres</h1>
+                    <p class="lead text-muted mb-4">Découvrez notre communauté dynamique de membres engagés dans les activités de l'American Corner Mahajanga</p>
+                    
+                    <!-- Indicateurs rapides -->
+                    <div class="row justify-content-center">
+                        <div class="col-auto">
+                            <div class="stat-card">
+                                <div class="stat-number text-primary" id="totalMembers">0</div>
+                                <div class="stat-label">Membres Total</div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="stat-card">
+                                <div class="stat-number text-success" id="activeMembers">0</div>
+                                <div class="stat-label">Actifs Ce Mois</div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="stat-card">
+                                <div class="stat-number text-info" id="newMembers">0</div>
+                                <div class="stat-label">Nouveaux</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteneur principal des membres -->
         <div class="row g-4" id="membersContainer">
-            <!-- Members will be loaded here -->
+            <!-- Les membres seront chargés ici dynamiquement -->
         </div>
     </div>
 </section>

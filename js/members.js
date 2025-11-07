@@ -8,6 +8,7 @@ class MembersSystem {
         this.searchQuery = '';
         this.searchTimeout = null;
         this.isInitialized = false;
+        this.viewMode = 'grid'; // 'grid' ou 'list'
         this.init();
     }
 
@@ -100,7 +101,18 @@ class MembersSystem {
         return icons[occupation] || 'fa-user';
     }
 
-    // Interface principale
+    getOccupationColor(occupation) {
+        const colors = {
+            'student': 'success',
+            'employee': 'info',
+            'entrepreneur': 'warning',
+            'unemployed': 'secondary',
+            'other': 'dark'
+        };
+        return colors[occupation] || 'primary';
+    }
+
+    // Interface principale améliorée
     async loadMembersPage() {
         console.log('📄 Chargement de la page membres...');
         const container = document.getElementById('membersContainer');
@@ -109,8 +121,8 @@ class MembersSystem {
             return;
         }
         
-        // Afficher le loading
-        container.innerHTML = this.getLoadingHTML();
+        // Afficher le loading amélioré
+        container.innerHTML = this.getEnhancedLoadingHTML();
         
         // S'assurer que les membres sont chargés
         if (this.members.length === 0) {
@@ -122,6 +134,9 @@ class MembersSystem {
             return;
         }
         
+        // Mettre à jour les statistiques
+        this.updateQuickStats();
+        
         // Vérifier les images de profil
         this.checkProfileImages();
         
@@ -129,27 +144,69 @@ class MembersSystem {
         this.filteredMembers = [...this.members];
         
         // Afficher l'interface complète
-        this.renderControls();
+        this.renderEnhancedControls();
         this.renderMembers();
         
         console.log(`✅ ${this.members.length} membres chargés, ${this.filteredMembers.length} affichés`);
     }
 
-    getLoadingHTML() {
+    getEnhancedLoadingHTML() {
         return `
             <div class="col-12">
                 <div class="text-center py-5">
-                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
-                    <h4 class="text-primary">Chargement des membres...</h4>
-                    <p class="text-muted">Récupération des profils en cours</p>
-                    <div class="mt-3">
-                        <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.retryLoad()">
-                            <i class="fas fa-sync me-1"></i>Réessayer
+                    <div class="loading-spinner mb-4">
+                        <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;"></div>
+                    </div>
+                    <h3 class="text-primary mb-3">Chargement des membres</h3>
+                    <p class="text-muted mb-4">Nous préparons les profils de notre communauté</p>
+                    <div class="progress mb-3" style="height: 6px; max-width: 300px; margin: 0 auto;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 75%"></div>
+                    </div>
+                    <div class="mt-4">
+                        <button class="btn btn-outline-primary btn-lg" onclick="membersSystem.retryLoad()">
+                            <i class="fas fa-sync me-2"></i>Actualiser
                         </button>
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    updateQuickStats() {
+        const total = this.members.length;
+        const active = this.members.filter(m => {
+            const joinDate = new Date(m.joinDate);
+            const monthsDiff = (new Date() - joinDate) / (1000 * 60 * 60 * 24 * 30);
+            return monthsDiff <= 6; // Actif si membre depuis moins de 6 mois
+        }).length;
+        
+        const newMembers = this.members.filter(m => {
+            const joinDate = new Date(m.joinDate);
+            const daysDiff = (new Date() - joinDate) / (1000 * 60 * 60 * 24);
+            return daysDiff <= 30; // Nouveau si membre depuis moins de 30 jours
+        }).length;
+
+        // Mettre à jour les éléments DOM
+        const totalEl = document.getElementById('totalMembers');
+        const activeEl = document.getElementById('activeMembers');
+        const newEl = document.getElementById('newMembers');
+
+        if (totalEl) this.animateCounter(totalEl, total);
+        if (activeEl) this.animateCounter(activeEl, active);
+        if (newEl) this.animateCounter(newEl, newMembers);
+    }
+
+    animateCounter(element, target) {
+        let current = 0;
+        const increment = target / 50;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+            element.textContent = Math.floor(current);
+        }, 30);
     }
 
     async retryLoad() {
@@ -189,67 +246,89 @@ class MembersSystem {
         return membersWithImage;
     }
 
-    renderControls() {
+    renderEnhancedControls() {
         const container = document.getElementById('membersContainer');
         if (!container) return;
         
         const stats = this.getStats();
         const controlsHTML = `
             <div class="col-12 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <!-- En-tête avec compteur -->
-                        <div class="row align-items-center mb-3">
+                <div class="card controls-card">
+                    <div class="card-body p-4">
+                        <!-- En-tête avec compteur et mode de vue -->
+                        <div class="row align-items-center mb-4">
                             <div class="col-md-6">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-users me-2 text-primary"></i>
-                                    Nos Membres
-                                    <span class="badge bg-primary ms-2" id="membersCount">${this.filteredMembers.length}/${this.members.length}</span>
-                                    ${stats.demoMode ? '<span class="badge bg-warning ms-1">Démo</span>' : ''}
-                                </h5>
+                                <div class="d-flex align-items-center">
+                                    <div class="section-icon me-3">
+                                        <i class="fas fa-users fa-2x text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="card-title mb-0">Gestion des Membres</h4>
+                                        <p class="text-muted mb-0" id="membersSubtitle">${this.getFilteredMembersText()}</p>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6 text-md-end">
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    ${this.getFilteredMembersText()}
-                                </small>
-                            </div>
-                        </div>
-                        
-                        <!-- Barre de recherche -->
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <div class="input-group">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-search"></i>
-                                    </span>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="membersSearch" 
-                                           placeholder="Rechercher un membre par nom, numéro, téléphone..."
-                                           value="${this.searchQuery}">
-                                    <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn" ${!this.searchQuery ? 'disabled' : ''}>
-                                        <i class="fas fa-times"></i>
-                                    </button>
+                                <div class="d-flex align-items-center justify-content-md-end gap-3">
+                                    <span class="badge bg-primary fs-6" id="membersCount">${this.filteredMembers.length}/${this.members.length}</span>
+                                    ${stats.demoMode ? '<span class="badge bg-warning demo-badge">Mode Démo</span>' : ''}
+                                    
+                                    <!-- Sélecteur de vue -->
+                                    <div class="btn-group view-toggle" role="group">
+                                        <button type="button" class="btn btn-outline-secondary ${this.viewMode === 'grid' ? 'active' : ''}" 
+                                                onclick="membersSystem.setViewMode('grid')" title="Vue Grille">
+                                            <i class="fas fa-th"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary ${this.viewMode === 'list' ? 'active' : ''}" 
+                                                onclick="membersSystem.setViewMode('list')" title="Vue Liste">
+                                            <i class="fas fa-list"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Filtres et tris -->
-                        <div class="row">
+                        <!-- Barre de recherche améliorée -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="search-container">
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="membersSearch" 
+                                               placeholder="Rechercher un membre par nom, numéro, téléphone, email..."
+                                               value="${this.searchQuery}">
+                                        <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn" ${!this.searchQuery ? 'disabled' : ''}>
+                                            <i class="fas fa-times"></i> Effacer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Filtres et tris améliorés -->
+                        <div class="row align-items-center">
                             <div class="col-md-8">
-                                <div class="d-flex flex-wrap gap-2 align-items-center">
-                                    <span class="text-muted small">Filtrer:</span>
-                                    <div class="btn-group" role="group">
-                                        ${this.renderFilterButtons()}
+                                <div class="d-flex flex-wrap align-items-center gap-3">
+                                    <span class="text-muted fw-bold">Filtrer par :</span>
+                                    <div class="filter-group d-flex flex-wrap">
+                                        ${this.renderEnhancedFilterButtons()}
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="d-flex justify-content-md-end gap-2">
-                                    ${this.renderSortDropdown()}
-                                    <button class="btn btn-outline-success btn-sm" onclick="membersSystem.refreshData()" title="Rafraîchir les données">
+                                <div class="d-flex justify-content-md-end gap-2 align-items-center">
+                                    <div class="sort-dropdown">
+                                        ${this.renderEnhancedSortDropdown()}
+                                    </div>
+                                    <button class="btn btn-success" onclick="membersSystem.refreshData()" title="Rafraîchir les données">
                                         <i class="fas fa-sync"></i>
+                                    </button>
+                                    <button class="btn btn-info" onclick="membersSystem.exportMembers()" title="Exporter les membres">
+                                        <i class="fas fa-download"></i>
                                     </button>
                                 </div>
                             </div>
@@ -265,7 +344,7 @@ class MembersSystem {
         container.innerHTML = controlsHTML;
         
         // Configurer les événements
-        this.setupControlsEventListeners();
+        this.setupEnhancedControlsEventListeners();
         
         // Focus sur la barre de recherche
         const searchInput = document.getElementById('membersSearch');
@@ -282,41 +361,42 @@ class MembersSystem {
         };
     }
 
-    renderFilterButtons() {
+    renderEnhancedFilterButtons() {
         const filters = [
-            { value: 'all', label: 'Tous', icon: 'fa-users' },
-            { value: 'student', label: 'Étudiants', icon: 'fa-graduation-cap' },
-            { value: 'employee', label: 'Employés', icon: 'fa-briefcase' },
-            { value: 'entrepreneur', label: 'Entrepreneurs', icon: 'fa-lightbulb' },
-            { value: 'other', label: 'Autres', icon: 'fa-user' }
+            { value: 'all', label: 'Tous', icon: 'fa-users', color: 'primary' },
+            { value: 'student', label: 'Étudiants', icon: 'fa-graduation-cap', color: 'success' },
+            { value: 'employee', label: 'Employés', icon: 'fa-briefcase', color: 'info' },
+            { value: 'entrepreneur', label: 'Entrepreneurs', icon: 'fa-lightbulb', color: 'warning' },
+            { value: 'other', label: 'Autres', icon: 'fa-user', color: 'secondary' }
         ];
         
         return filters.map(filter => `
             <button type="button" 
-                    class="btn btn-sm ${this.currentFilter === filter.value ? 'btn-primary' : 'btn-outline-primary'}" 
+                    class="btn btn-${this.currentFilter === filter.value ? filter.color : 'outline-' + filter.color}" 
                     data-filter="${filter.value}"
                     title="${filter.label}">
-                <i class="fas ${filter.icon} me-1"></i>${filter.label}
+                <i class="fas ${filter.icon} me-2"></i>${filter.label}
             </button>
         `).join('');
     }
 
-    renderSortDropdown() {
+    renderEnhancedSortDropdown() {
         const sortOptions = [
             { value: 'name', label: 'Nom A-Z', icon: 'fa-sort-alpha-down' },
             { value: 'name-desc', label: 'Nom Z-A', icon: 'fa-sort-alpha-down-alt' },
-            { value: 'recent', label: 'Récents', icon: 'fa-calendar-plus' },
-            { value: 'oldest', label: 'Anciens', icon: 'fa-calendar-minus' }
+            { value: 'recent', label: 'Plus récents', icon: 'fa-calendar-plus' },
+            { value: 'oldest', label: 'Plus anciens', icon: 'fa-calendar-minus' },
+            { value: 'occupation', label: 'Par occupation', icon: 'fa-briefcase' }
         ];
         
         const currentSortOption = sortOptions.find(opt => opt.value === this.currentSort) || sortOptions[0];
         
         return `
             <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="fas ${currentSortOption.icon} me-1"></i>${currentSortOption.label}
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas ${currentSortOption.icon} me-2"></i>${currentSortOption.label}
                 </button>
-                <ul class="dropdown-menu">
+                <ul class="dropdown-menu dropdown-menu-end">
                     ${sortOptions.map(option => `
                         <li>
                             <a class="dropdown-item ${this.currentSort === option.value ? 'active' : ''}" 
@@ -330,7 +410,7 @@ class MembersSystem {
         `;
     }
 
-    setupControlsEventListeners() {
+    setupEnhancedControlsEventListeners() {
         // Recherche
         const searchInput = document.getElementById('membersSearch');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
@@ -412,6 +492,23 @@ class MembersSystem {
         this.applyFilters();
     }
 
+    setViewMode(mode) {
+        this.viewMode = mode;
+        this.renderMembers();
+        this.updateViewModeButtons();
+    }
+
+    updateViewModeButtons() {
+        document.querySelectorAll('.view-toggle .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        const activeBtn = document.querySelector(`.view-toggle .btn[onclick*="${this.viewMode}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
+    }
+
     applyFilters() {
         let filtered = this.filterBySearch(this.members);
         filtered = this.filterByOccupation(filtered);
@@ -457,6 +554,10 @@ class MembersSystem {
                 return members.sort((a, b) => new Date(b.joinDate || 0) - new Date(a.joinDate || 0));
             case 'oldest':
                 return members.sort((a, b) => new Date(a.joinDate || 0) - new Date(b.joinDate || 0));
+            case 'occupation':
+                return members.sort((a, b) => 
+                    this.formatOccupation(a.occupation).localeCompare(this.formatOccupation(b.occupation))
+                );
             default:
                 return members;
         }
@@ -473,17 +574,27 @@ class MembersSystem {
         // Mettre à jour les boutons de filtre actifs
         document.querySelectorAll('[data-filter]').forEach(button => {
             const filter = button.getAttribute('data-filter');
+            const filterConfig = {
+                'all': { color: 'primary' },
+                'student': { color: 'success' },
+                'employee': { color: 'info' },
+                'entrepreneur': { color: 'warning' },
+                'other': { color: 'secondary' }
+            };
+            
+            const config = filterConfig[filter] || { color: 'primary' };
+            
             if (filter === this.currentFilter) {
-                button.classList.replace('btn-outline-primary', 'btn-primary');
+                button.className = button.className.replace(/btn-outline-\w+/, `btn-${config.color}`);
             } else {
-                button.classList.replace('btn-primary', 'btn-outline-primary');
+                button.className = button.className.replace(/btn-\w+/, `btn-outline-${config.color}`);
             }
         });
         
         // Mettre à jour le texte d'information
-        const infoElement = document.querySelector('.text-muted i')?.parentElement;
+        const infoElement = document.getElementById('membersSubtitle');
         if (infoElement) {
-            infoElement.innerHTML = `<i class="fas fa-info-circle me-1"></i>${this.getFilteredMembersText()}`;
+            infoElement.textContent = this.getFilteredMembersText();
         }
         
         // Mettre à jour le bouton clear search
@@ -501,12 +612,12 @@ class MembersSystem {
         } else if (this.currentFilter !== 'all') {
             return `${this.getFilterLabel(this.currentFilter)} seulement`;
         }
-        return 'Tous les membres';
+        return 'Tous les membres de notre communauté';
     }
 
     getFilterLabel(filter) {
         const labels = {
-            'all': 'Tous',
+            'all': 'Tous les membres',
             'student': 'Étudiants',
             'employee': 'Employés',
             'entrepreneur': 'Entrepreneurs',
@@ -520,16 +631,22 @@ class MembersSystem {
         if (!container) return;
         
         if (this.filteredMembers.length === 0) {
-            container.innerHTML = this.getNoResultsHTML();
+            container.innerHTML = this.getEnhancedNoResultsHTML();
             return;
         }
         
-        container.innerHTML = this.filteredMembers.map(member => 
-            this.createMemberCard(member)
-        ).join('');
+        if (this.viewMode === 'list') {
+            container.innerHTML = this.filteredMembers.map(member => 
+                this.createMemberListCard(member)
+            ).join('');
+        } else {
+            container.innerHTML = this.filteredMembers.map((member, index) => 
+                this.createMemberGridCard(member, index)
+            ).join('');
+        }
     }
 
-    getNoResultsHTML() {
+    getEnhancedNoResultsHTML() {
         let message = 'Aucun membre trouvé';
         let suggestion = 'Vérifiez les filtres ou la recherche';
         let actions = '';
@@ -572,8 +689,10 @@ class MembersSystem {
         return `
             <div class="col-12">
                 <div class="text-center py-5">
-                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                    <h4 class="text-muted">${message}</h4>
+                    <div class="no-results-icon mb-4">
+                        <i class="fas fa-search fa-4x text-muted"></i>
+                    </div>
+                    <h3 class="text-muted mb-3">${message}</h3>
                     <p class="text-muted mb-4">${suggestion}</p>
                     <div class="d-flex gap-2 justify-content-center flex-wrap">
                         ${actions}
@@ -583,74 +702,163 @@ class MembersSystem {
         `;
     }
 
-    createMemberCard(member) {
+    createMemberGridCard(member, index) {
         const profileImage = this.getProfileImage(member);
         const joinDate = this.formatDate(member.joinDate);
         const occupation = this.formatOccupation(member.occupation);
         const occupationIcon = this.getOccupationIcon(member.occupation);
+        const occupationColor = this.getOccupationColor(member.occupation);
 
-        // Mise en évidence de la recherche
         const highlightText = (text) => {
             if (!this.searchQuery || !text) return text;
             const escapedQuery = this.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(`(${escapedQuery})`, 'gi');
-            return text.replace(regex, '<mark class="bg-warning px-1 rounded">$1</mark>');
+            return text.replace(regex, '<mark class="search-highlight">$1</mark>');
         };
 
         return `
-            <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
-                <div class="card member-card h-100 shadow-sm">
-                    <div class="card-body text-center p-4">
+            <div class="col-md-6 col-lg-4 col-xl-3">
+                <div class="card member-card h-100" style="animation-delay: ${index * 0.1}s">
+                    <div class="card-body p-4">
                         <!-- Photo de profil -->
-                        <div class="member-avatar mb-3 position-relative mx-auto" style="width: 80px;">
+                        <div class="member-avatar" style="width: 100px; height: 100px;">
                             ${profileImage}
-                            <div class="occupation-icon position-absolute bottom-0 end-0 bg-white rounded-circle p-1 shadow-sm">
-                                <i class="fas ${occupationIcon} text-primary small"></i>
+                            <div class="occupation-icon bg-${occupationColor}">
+                                <i class="fas ${occupationIcon} text-white small"></i>
                             </div>
                         </div>
                         
                         <!-- Informations principales -->
-                        <h5 class="member-name mb-1">${highlightText(member.firstName)} ${highlightText(member.lastName)}</h5>
-                        <div class="member-id text-primary fw-bold mb-2">${highlightText(member.registrationNumber)}</div>
+                        <div class="text-center mb-3">
+                            <h5 class="member-name">${highlightText(member.firstName)} ${highlightText(member.lastName)}</h5>
+                            <div class="member-id">${highlightText(member.registrationNumber)}</div>
+                        </div>
                         
                         <!-- Occupation -->
-                        <div class="member-occupation mb-2">
-                            <span class="badge bg-light text-dark border">${occupation}</span>
+                        <div class="member-occupation text-center mb-3">
+                            <span class="badge bg-${occupationColor} text-white">${occupation}</span>
                         </div>
                         
                         <!-- Informations de contact -->
                         <div class="member-contact text-muted small mb-3">
-                            ${member.email ? `<div class="text-truncate" title="${member.email}"><i class="fas fa-envelope me-1"></i>${highlightText(member.email)}</div>` : ''}
-                            ${member.phoneNumber ? `<div><i class="fas fa-phone me-1"></i>${highlightText(member.phoneNumber)}</div>` : ''}
+                            ${member.email ? `
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-envelope me-2 text-primary"></i>
+                                    <span class="text-truncate" title="${member.email}">${highlightText(member.email)}</span>
+                                </div>
+                            ` : ''}
+                            ${member.phoneNumber ? `
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-phone me-2 text-success"></i>
+                                    <span>${highlightText(member.phoneNumber)}</span>
+                                </div>
+                            ` : ''}
                         </div>
                         
                         <!-- Lieu d'étude/travail -->
                         ${member.studyOrWorkPlace ? `
-                            <div class="member-location text-muted small mb-3">
-                                <i class="fas fa-building me-1"></i>
-                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${member.studyOrWorkPlace}">
-                                    ${highlightText(member.studyOrWorkPlace)}
-                                </span>
+                            <div class="member-location mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-building me-2 text-info"></i>
+                                    <span class="text-truncate" title="${member.studyOrWorkPlace}">
+                                        ${highlightText(member.studyOrWorkPlace)}
+                                    </span>
+                                </div>
                             </div>
                         ` : ''}
                         
                         <!-- Date d'adhésion -->
-                        <div class="member-join-date text-muted small">
-                            <i class="fas fa-calendar-alt me-1"></i>Membre depuis ${joinDate}
+                        <div class="member-join-date text-center">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-alt me-1"></i>Membre depuis ${joinDate}
+                            </small>
                         </div>
                     </div>
                     
                     <!-- Actions -->
-                    <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <div class="card-footer bg-transparent border-top-0 pt-0 member-actions">
                         <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary btn-sm" 
+                            <button class="btn btn-primary btn-sm" 
                                     onclick="membersSystem.viewMemberDetails(${member.id})">
-                                <i class="fas fa-eye me-1"></i>Voir profil
+                                <i class="fas fa-eye me-1"></i>Voir le Profil
                             </button>
                             <button class="btn btn-outline-secondary btn-sm" 
                                     onclick="membersSystem.generateMemberQR('${member.registrationNumber}')">
-                                <i class="fas fa-qrcode me-1"></i>Générer QR
+                                <i class="fas fa-qrcode me-1"></i>Carte QR
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    createMemberListCard(member) {
+        const profileImage = this.getProfileImage(member);
+        const joinDate = this.formatDate(member.joinDate);
+        const occupation = this.formatOccupation(member.occupation);
+        const occupationColor = this.getOccupationColor(member.occupation);
+
+        const highlightText = (text) => {
+            if (!this.searchQuery || !text) return text;
+            const escapedQuery = this.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapedQuery})`, 'gi');
+            return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+        };
+
+        return `
+            <div class="col-12 mb-3">
+                <div class="card member-card">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="member-avatar" style="width: 60px; height: 60px;">
+                                    ${profileImage}
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="row align-items-center">
+                                    <div class="col-md-3">
+                                        <h6 class="mb-1 fw-bold">${highlightText(member.firstName)} ${highlightText(member.lastName)}</h6>
+                                        <small class="text-primary">${highlightText(member.registrationNumber)}</small>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <span class="badge bg-${occupationColor}">${occupation}</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${member.email || ''}">
+                                                ${member.email ? highlightText(member.email) : 'Non renseigné'}
+                                            </span>
+                                        </small>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i>${joinDate}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-2 text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" 
+                                                    onclick="membersSystem.viewMemberDetails(${member.id})"
+                                                    title="Voir le profil">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary" 
+                                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
+                                                    title="Générer QR Code">
+                                                <i class="fas fa-qrcode"></i>
+                                            </button>
+                                            <button class="btn btn-outline-info" 
+                                                    onclick="membersSystem.quickContact(${member.id})"
+                                                    title="Contacter">
+                                                <i class="fas fa-envelope"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -677,14 +885,14 @@ class MembersSystem {
                 <img src="${imageUrl}" 
                      alt="${member.firstName} ${member.lastName}"
                      class="rounded-circle member-photo w-100 h-100"
-                     style="object-fit: cover; border: 3px solid #f8f9fa;"
+                     style="object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
                      onerror="this.onerror=null; this.src='${svgFallback}';"
                      onload="this.style.display='block';">
             `;
         }
         
         // Avatar SVG avec initiales si pas de photo
-        const colors = ['#007bff', '#28a745', '#17a2b8', '#ffc107', '#dc3545'];
+        const colors = ['#007bff', '#28a745', '#17a2b8', '#ffc107', '#dc3545', '#6f42c1', '#e83e8c'];
         const colorIndex = (member.id || Math.floor(Math.random() * colors.length)) % colors.length;
         const bgColor = colors[colorIndex];
         const initials = this.getInitials(member.firstName, member.lastName);
@@ -694,14 +902,31 @@ class MembersSystem {
 
     generateAvatarSVG(initials, backgroundColor) {
         const svg = `
-            <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                <rect width="80" height="80" fill="${backgroundColor}" rx="40"/>
-                <text x="40" y="45" text-anchor="middle" fill="white" font-size="24" font-family="Arial, sans-serif" font-weight="bold">
+            <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:${backgroundColor};stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:${this.darkenColor(backgroundColor, 20)};stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="48" fill="url(#gradient)" stroke="#fff" stroke-width="4"/>
+                <text x="50" y="58" text-anchor="middle" fill="white" font-size="32" font-family="Arial, sans-serif" font-weight="bold" dy=".3em">
                     ${initials}
                 </text>
             </svg>
         `;
         return `data:image/svg+xml;base64,${btoa(svg)}`;
+    }
+
+    darkenColor(color, percent) {
+        const num = parseInt(color.replace("#", ""), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) - amt;
+        const G = (num >> 8 & 0x00FF) - amt;
+        const B = (num & 0x0000FF) - amt;
+        return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+            (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
     }
 
     viewMemberDetails(memberId) {
@@ -734,11 +959,210 @@ class MembersSystem {
         }
     }
 
+    quickContact(memberId) {
+        const member = this.members.find(m => m.id === memberId);
+        if (!member) return;
+
+        const contactOptions = [];
+        if (member.email) contactOptions.push(`Email: ${member.email}`);
+        if (member.phoneNumber) contactOptions.push(`Téléphone: ${member.phoneNumber}`);
+        
+        if (contactOptions.length === 0) {
+            this.showNotification('Aucune information de contact disponible', 'warning');
+            return;
+        }
+
+        const message = `Options de contact pour ${member.firstName} ${member.lastName}:\n\n${contactOptions.join('\n')}`;
+        this.showNotification(message, 'info');
+    }
+
     async refreshData() {
         console.log('🔄 Rafraîchissement des données membres...');
+        this.showNotification('Mise à jour des données en cours...', 'info');
+        
         await this.loadMembers();
         await this.loadMembersPage();
-        this.showNotification('Données mises à jour', 'success');
+        
+        this.showNotification('Données mises à jour avec succès', 'success');
+    }
+
+    exportMembers() {
+        if (this.filteredMembers.length === 0) {
+            this.showNotification('Aucun membre à exporter', 'warning');
+            return;
+        }
+
+        const data = this.filteredMembers.map(member => ({
+            'Numéro': member.registrationNumber,
+            'Nom': member.lastName,
+            'Prénom': member.firstName,
+            'Occupation': this.formatOccupation(member.occupation),
+            'Email': member.email || '',
+            'Téléphone': member.phoneNumber || '',
+            'Lieu d\'étude/travail': member.studyOrWorkPlace || '',
+            'Adresse': member.address || '',
+            'Date d\'adhésion': this.formatDate(member.joinDate)
+        }));
+
+        // Créer un fichier CSV
+        const csv = this.convertToCSV(data);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        link.setAttribute('href', url);
+        link.setAttribute('download', `membres_american_corner_${timestamp}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showNotification(`Liste de ${this.filteredMembers.length} membres exportée avec succès`, 'success');
+    }
+
+    convertToCSV(data) {
+        if (data.length === 0) return '';
+        
+        const headers = Object.keys(data[0]);
+        const csv = [
+            headers.join(','),
+            ...data.map(row => 
+                headers.map(header => {
+                    const value = row[header] || '';
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                }).join(',')
+            )
+        ].join('\n');
+        
+        return '\uFEFF' + csv; // BOM pour Excel
+    }
+
+    showStats() {
+        const stats = this.calculateStats();
+        const modalHTML = `
+            <div class="modal fade" id="statsModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Statistiques des Membres
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="border-bottom pb-2">Répartition par Occupation</h6>
+                                    <div id="occupationChart">
+                                        ${Object.entries(stats.byOccupation)
+                                            .sort((a, b) => b[1] - a[1])
+                                            .map(([occ, count]) => {
+                                                const percentage = ((count / stats.total) * 100).toFixed(1);
+                                                const occupationColor = this.getOccupationColor(occ);
+                                                return `
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <span class="fw-medium">${this.formatOccupation(occ)}</span>
+                                                        <div>
+                                                            <span class="badge bg-${occupationColor} me-2">${count}</span>
+                                                            <small class="text-muted">${percentage}%</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="progress" style="height: 8px;">
+                                                        <div class="progress-bar bg-${occupationColor}" 
+                                                             style="width: ${percentage}%"
+                                                             role="progressbar">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `}).join('')}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="border-bottom pb-2">Informations Générales</h6>
+                                    <div class="list-group">
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Total des membres</span>
+                                            <strong class="text-primary">${stats.total}</strong>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Avec photo de profil</span>
+                                            <div>
+                                                <strong>${stats.withProfileImage}</strong>
+                                                <small class="text-muted ms-2">(${((stats.withProfileImage / stats.total) * 100).toFixed(1)}%)</small>
+                                            </div>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Membres récents (30j)</span>
+                                            <strong class="text-success">${stats.recentMembers}</strong>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Membres actifs (6 mois)</span>
+                                            <strong class="text-info">${stats.activeMembers}</strong>
+                                        </div>
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>Mode de données</span>
+                                            <strong class="${stats.demoMode ? 'text-warning' : 'text-success'}">
+                                                ${stats.demoMode ? 'Démo' : 'Live'}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                            <button type="button" class="btn btn-primary" onclick="membersSystem.exportMembers()">
+                                <i class="fas fa-download me-1"></i>Exporter les données
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Gérer la modal existante
+        const existingModal = document.getElementById('statsModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById('statsModal'));
+        modal.show();
+        
+        // Nettoyer après fermeture
+        document.getElementById('statsModal').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
+    }
+
+    calculateStats() {
+        const stats = {
+            total: this.members.length,
+            byOccupation: {},
+            withProfileImage: 0,
+            recentMembers: 0,
+            activeMembers: 0,
+            demoMode: window.apiService ? window.apiService.isUsingDemoData() : true
+        };
+
+        this.members.forEach(member => {
+            const occupation = member.occupation || 'other';
+            stats.byOccupation[occupation] = (stats.byOccupation[occupation] || 0) + 1;
+            
+            if (member.profileImage && member.profileImage.trim() !== '') {
+                stats.withProfileImage++;
+            }
+            
+            const joinDate = new Date(member.joinDate);
+            const daysSinceJoin = (new Date() - joinDate) / (1000 * 60 * 60 * 24);
+            if (daysSinceJoin <= 30) stats.recentMembers++;
+            if (daysSinceJoin <= 180) stats.activeMembers++; // 6 mois
+        });
+
+        return stats;
     }
 
     showMemberModal(member) {
@@ -748,6 +1172,7 @@ class MembersSystem {
             member.profileImage;
         const joinDate = this.formatDate(member.joinDate);
         const occupation = this.formatOccupation(member.occupation);
+        const occupationColor = this.getOccupationColor(member.occupation);
         const hasProfileImage = !!member.profileImage && member.profileImage.trim() !== '';
         
         // Générer l'image de profil pour la modal
@@ -755,12 +1180,10 @@ class MembersSystem {
             `<img src="${profileImageUrl}" 
                   alt="${member.firstName} ${member.lastName}" 
                   class="rounded-circle w-100 h-100"
-                  style="object-fit: cover;"
+                  style="object-fit: cover; border: 6px solid #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"
                   onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';"
                   onload="this.style.display='block'; this.nextElementSibling.style.display='none';">` : 
             '';
-        
-        const avatarSVG = this.generateAvatarSVG(initials, '#6C7580');
         
         const modalHTML = `
             <div class="modal fade" id="memberProfileModal" tabindex="-1" aria-hidden="true">
@@ -777,26 +1200,32 @@ class MembersSystem {
                             <!-- En-tête du profil -->
                             <div class="row align-items-center mb-4">
                                 <div class="col-md-3 text-center">
-                                    <div class="position-relative mx-auto" style="width: 100px; height: 100px;">
+                                    <div class="position-relative mx-auto" style="width: 120px; height: 120px;">
                                         ${profileImageHTML}
                                         <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center text-white fw-bold ${hasProfileImage ? 'd-none' : ''}"
-                                             style="width: 100px; height: 100px; font-size: 2rem; background-color: #6C7580;">
+                                             style="width: 120px; height: 120px; font-size: 2.5rem; background: linear-gradient(135deg, #667eea, #764ba2);">
                                             ${initials}
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-9">
-                                    <h3 class="mb-1">${member.firstName} ${member.lastName}</h3>
-                                    <span class="badge bg-primary fs-6 mb-2">${occupation}</span>
-                                    <p class="text-muted mb-2">
-                                        <i class="fas fa-id-card me-1"></i>
-                                        <strong>Numéro d'enregistrement:</strong> 
-                                        <span class="member-id-display">${member.registrationNumber}</span>
-                                    </p>
-                                    <p class="text-muted mb-0">
-                                        <i class="fas fa-calendar me-1"></i>
-                                        <strong>Membre depuis:</strong> ${joinDate}
-                                    </p>
+                                    <h3 class="mb-2">${member.firstName} ${member.lastName}</h3>
+                                    <span class="badge bg-${occupationColor} fs-6 mb-3">${occupation}</span>
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <p class="text-muted mb-2">
+                                                <i class="fas fa-id-card me-2"></i>
+                                                <strong>Numéro d'enregistrement:</strong> 
+                                                <span class="member-id-display">${member.registrationNumber}</span>
+                                            </p>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <p class="text-muted mb-0">
+                                                <i class="fas fa-calendar me-2"></i>
+                                                <strong>Membre depuis:</strong> ${joinDate}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -806,37 +1235,63 @@ class MembersSystem {
                             <div class="row">
                                 <div class="col-md-6">
                                     <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-primary"></i>Informations personnelles</h5>
-                                    <table class="table table-borderless">
-                                        <tr>
-                                            <td width="40%"><strong><i class="fas fa-phone me-2 text-muted"></i>Téléphone:</strong></td>
-                                            <td>${member.phoneNumber || '<span class="text-muted">Non renseigné</span>'}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong><i class="fas fa-envelope me-2 text-muted"></i>Email:</strong></td>
-                                            <td>${member.email || '<span class="text-muted">Non renseigné</span>'}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong><i class="fas fa-map-marker-alt me-2 text-muted"></i>Adresse:</strong></td>
-                                            <td>${member.address || '<span class="text-muted">Non renseigné</span>'}</td>
-                                        </tr>
-                                    </table>
+                                    <div class="info-grid">
+                                        ${member.phoneNumber ? `
+                                            <div class="info-item">
+                                                <i class="fas fa-phone text-muted"></i>
+                                                <div>
+                                                    <strong>Téléphone</strong>
+                                                    <div>${member.phoneNumber}</div>
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                        ${member.email ? `
+                                            <div class="info-item">
+                                                <i class="fas fa-envelope text-muted"></i>
+                                                <div>
+                                                    <strong>Email</strong>
+                                                    <div>${member.email}</div>
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                        ${member.address ? `
+                                            <div class="info-item">
+                                                <i class="fas fa-map-marker-alt text-muted"></i>
+                                                <div>
+                                                    <strong>Adresse</strong>
+                                                    <div>${member.address}</div>
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <h5 class="mb-3"><i class="fas fa-briefcase me-2 text-primary"></i>Activité professionnelle</h5>
-                                    <table class="table table-borderless">
-                                        <tr>
-                                            <td width="40%"><strong><i class="fas fa-user-tie me-2 text-muted"></i>Occupation:</strong></td>
-                                            <td>${occupation}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong><i class="fas fa-building me-2 text-muted"></i>Lieu d'étude/travail:</strong></td>
-                                            <td>${member.studyOrWorkPlace || '<span class="text-muted">Non renseigné</span>'}</td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong><i class="fas fa-calendar-alt me-2 text-muted"></i>Date d'adhésion:</strong></td>
-                                            <td>${joinDate}</td>
-                                        </tr>
-                                    </table>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <i class="fas fa-user-tie text-muted"></i>
+                                            <div>
+                                                <strong>Occupation</strong>
+                                                <div>${occupation}</div>
+                                            </div>
+                                        </div>
+                                        ${member.studyOrWorkPlace ? `
+                                            <div class="info-item">
+                                                <i class="fas fa-building text-muted"></i>
+                                                <div>
+                                                    <strong>Lieu d'étude/travail</strong>
+                                                    <div>${member.studyOrWorkPlace}</div>
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                        <div class="info-item">
+                                            <i class="fas fa-calendar-alt text-muted"></i>
+                                            <div>
+                                                <strong>Date d'adhésion</strong>
+                                                <div>${joinDate}</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -899,6 +1354,19 @@ class MembersSystem {
                 studyOrWorkPlace: 'Université de Mahajanga',
                 joinDate: new Date('2023-03-20').toISOString(),
                 profileImage: null
+            },
+            {
+                id: 3,
+                registrationNumber: 'ACM003',
+                firstName: 'Jean',
+                lastName: 'Rakoto',
+                email: 'jean.rakoto@company.mg',
+                occupation: 'employee',
+                phoneNumber: '+261 32 44 556 67',
+                address: 'Mahajanga, Madagascar',
+                studyOrWorkPlace: 'Société ABC',
+                joinDate: new Date('2023-06-10').toISOString(),
+                profileImage: null
             }
         ];
     }
@@ -917,8 +1385,11 @@ class MembersSystem {
             alert.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
             alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
             alert.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <div class="d-flex align-items-center">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>
+                    <div class="flex-grow-1">${message}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
             `;
             document.body.appendChild(alert);
             
