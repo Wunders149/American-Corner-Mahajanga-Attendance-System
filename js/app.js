@@ -266,12 +266,14 @@ class AppController {
             try {
                 await this.loadModule(module.name, module.globalVar);
                 
-                // Initialiser le module s'il est disponible
-                if (this.modules[module.name] && this.modules[module.name].isAvailable !== false) {
+                // Initialiser le module s'il est disponible (SAUF profile qui s'initialisera plus tard)
+                if (this.modules[module.name] && this.modules[module.name].isAvailable !== false && module.name !== 'profile') {
                     if (typeof this.modules[module.name].init === 'function') {
                         await this.modules[module.name].init();
                         console.log(`✅ Module ${module.name} initialisé`);
                     }
+                } else if (module.name === 'profile') {
+                    console.log(`📝 Module ${module.name} chargé mais non initialisé (sera initialisé lors de la navigation)`);
                 } else {
                     console.log(`⚠️ Module ${module.name} non disponible, continuation sans...`);
                 }
@@ -712,29 +714,33 @@ class AppController {
         try {
             await new Promise(resolve => setTimeout(resolve, 100));
             
+            const memberData = this.getMemberDataForProfile();
+            
+            if (!memberData) {
+                console.warn('⚠️ Aucune donnée membre disponible pour le profil');
+                this.showProfileFallback();
+                return;
+            }
+
+            console.log('✅ Données membre disponibles pour le profil:', memberData.registrationNumber);
+            
+            // Stocker les données pour le module profile
+            sessionStorage.setItem('currentMemberProfile', JSON.stringify(memberData));
+            
             // Vérifier si le module profile est disponible
             if (this.modules.profile && this.modules.profile.isAvailable !== false) {
                 console.log('✅ Utilisation du module profil');
                 
-                const memberData = this.getMemberDataForProfile();
-                
-                if (memberData) {
-                    console.log('✅ Données membre disponibles pour le profil:', memberData.registrationNumber);
-                    
-                    // Stocker les données pour le module profile
-                    sessionStorage.setItem('currentMemberProfile', JSON.stringify(memberData));
-                    
-                    // Initialiser le système de profil
-                    if (typeof this.modules.profile.init === 'function') {
-                        await this.modules.profile.init();
-                    } else if (typeof initializeProfileSystem === 'function') {
-                        await initializeProfileSystem();
-                    }
-                    
+                // Initialiser le système de profil avec les données du membre
+                if (typeof this.modules.profile.init === 'function') {
+                    await this.modules.profile.init(memberData);
+                } else if (typeof initializeProfileSystem === 'function') {
+                    const profileSystem = initializeProfileSystem();
+                    await profileSystem.init(memberData);
                 } else {
-                    console.warn('⚠️ Aucune donnée membre disponible pour le profil');
-                    this.showProfileFallback();
+                    throw new Error('Aucun système profil disponible');
                 }
+                
             } else {
                 console.warn('⚠️ Module profil non disponible, utilisation du fallback');
                 this.initializeProfileFallback();
@@ -850,6 +856,17 @@ class AppController {
                         );
                         if (member) {
                             console.log('✅ Membre trouvé via API Service:', member.registrationNumber);
+                            return member;
+                        }
+                    }
+
+                    // Chercher dans membersSystem
+                    if (window.membersSystem && window.membersSystem.members) {
+                        const member = window.membersSystem.members.find(m => 
+                            m.registrationNumber === registrationNumber
+                        );
+                        if (member) {
+                            console.log('✅ Membre trouvé via membersSystem:', member.registrationNumber);
                             return member;
                         }
                     }
@@ -1358,8 +1375,12 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 // Fonctions globales
-window.openMemberProfile = function(registrationNumber) {
+window.openMemberProfile = function(registrationNumber, memberData = null) {
     if (window.appController) {
+        // Stocker les données si fournies
+        if (memberData) {
+            sessionStorage.setItem('currentMemberProfile', JSON.stringify(memberData));
+        }
         window.appController.navigateToProfile(registrationNumber);
     } else {
         window.location.href = `https://acm-attendance-system.netlify.app/#profile${registrationNumber}`;

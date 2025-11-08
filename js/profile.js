@@ -6,7 +6,7 @@ class ProfileSystem {
     }
 
     // ==================== INITIALISATION ====================
-    async init() {
+    async init(memberData = null) {
         if (this.isInitialized) {
             console.log('👤 Profil déjà initialisé');
             return;
@@ -15,7 +15,15 @@ class ProfileSystem {
         console.log('👤 Initialisation du système de profil...');
         
         try {
-            await this.loadMemberData();
+            // Si des données membre sont fournies, les utiliser directement
+            if (memberData) {
+                this.member = memberData;
+                console.log('✅ Données membre fournies directement:', this.member.registrationNumber);
+            } else {
+                // Sinon, essayer de charger depuis les sources habituelles
+                await this.loadMemberData();
+            }
+            
             await this.waitForDOM();
             this.renderProfile();
             this.setupEventListeners();
@@ -43,6 +51,8 @@ class ProfileSystem {
     // ==================== GESTION DES DONNÉES ====================
     async loadMemberData() {
         try {
+            console.log('🔍 Recherche des données membre...');
+            
             // Essayer d'abord de récupérer depuis l'URL
             const memberFromURL = this.getMemberFromURL();
             if (memberFromURL) {
@@ -53,15 +63,82 @@ class ProfileSystem {
             
             // Fallback: sessionStorage
             const memberData = sessionStorage.getItem('currentMemberProfile');
-            if (!memberData) {
-                throw new Error('Aucune donnée membre trouvée');
+            if (memberData) {
+                this.member = JSON.parse(memberData);
+                console.log('✅ Données membre chargées depuis sessionStorage:', this.member.registrationNumber);
+                return;
             }
+
+            // Fallback: chercher dans les systèmes disponibles
+            const memberFromSystems = await this.findMemberInSystems();
+            if (memberFromSystems) {
+                this.member = memberFromSystems;
+                console.log('✅ Membre trouvé via systèmes:', this.member.registrationNumber);
+                return;
+            }
+
+            throw new Error('Aucune donnée membre trouvée');
             
-            this.member = JSON.parse(memberData);
-            console.log('✅ Données membre chargées depuis sessionStorage:', this.member.registrationNumber);
         } catch (error) {
             console.error('❌ Erreur chargement données membre:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Cherche le membre dans les différents systèmes disponibles
+     */
+    async findMemberInSystems() {
+        try {
+            const hash = window.location.hash;
+            if (!hash || !hash.includes('profile')) {
+                return null;
+            }
+
+            const registrationNumber = hash.replace('#profile', '');
+            if (!registrationNumber) {
+                return null;
+            }
+
+            console.log('🔗 Recherche du membre:', registrationNumber);
+
+            // 1. Chercher dans membersSystem
+            if (window.membersSystem && window.membersSystem.members) {
+                const member = window.membersSystem.members.find(m => 
+                    m.registrationNumber === registrationNumber
+                );
+                if (member) {
+                    console.log('✅ Membre trouvé dans membersSystem');
+                    return member;
+                }
+            }
+
+            // 2. Chercher dans apiService
+            if (window.apiService && window.apiService.members) {
+                const member = window.apiService.members.find(m => 
+                    m.registrationNumber === registrationNumber
+                );
+                if (member) {
+                    console.log('✅ Membre trouvé dans apiService');
+                    return member;
+                }
+            }
+
+            // 3. Chercher dans appController dataStore
+            if (window.appController && window.appController.dataStore) {
+                const member = window.appController.dataStore.getMemberByRegistration(registrationNumber);
+                if (member) {
+                    console.log('✅ Membre trouvé dans appController dataStore');
+                    return member;
+                }
+            }
+
+            console.warn('⚠️ Membre non trouvé dans les systèmes:', registrationNumber);
+            return null;
+
+        } catch (error) {
+            console.error('❌ Erreur recherche membre dans systèmes:', error);
+            return null;
         }
     }
 
@@ -736,17 +813,21 @@ class ProfileSystem {
 // ==================== GESTION GLOBALE ====================
 let profileSystem = null;
 
-function initializeProfileSystem() {
+function initializeProfileSystem(memberData = null) {
     if (!profileSystem) {
         console.log('👤 Création nouvelle instance ProfileSystem...');
         profileSystem = new ProfileSystem();
-        profileSystem.init().catch(console.error);
     } else {
         console.log('👤 Réutilisation instance existante...');
-        profileSystem.loadMemberData().then(() => {
-            profileSystem.renderProfile();
-        });
+        // Réinitialiser pour permettre une nouvelle initialisation
+        profileSystem.isInitialized = false;
     }
+    
+    // Initialiser avec les données si fournies
+    if (memberData) {
+        profileSystem.init(memberData).catch(console.error);
+    }
+    
     return profileSystem;
 }
 
