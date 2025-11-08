@@ -281,11 +281,8 @@ class AppController {
                 await this.initializeContactPage();
                 break;
             case 'profile':
-                // Profile page initialization if needed
-                console.log('👤 Page Profil initialisée');
+                await this.initializeProfilePage();
                 break;
-            default:
-                console.warn(`Aucune initialisation spécifique pour la page: ${pageId}`);
         }
     }
 
@@ -323,6 +320,11 @@ class AppController {
         } else {
             console.warn('QR Scanner non disponible');
         }
+    }
+
+    async initializeProfilePage() {
+        console.log('👤 Page Profil initialisée');
+        // Le profile.js s'initialise automatiquement
     }
 
     // Nouvelle méthode pour configurer les écouteurs d'événements du scanner

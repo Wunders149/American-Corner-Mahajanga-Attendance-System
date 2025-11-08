@@ -44,7 +44,7 @@ class ProfileSystem {
         document.getElementById('profileContent').innerHTML = profileHTML;
         
         // Mettre à jour le titre de la page
-        document.title = `${this.member.firstName} ${this.member.lastName} - Profil Membre`;
+        document.title = `${this.member.firstName} ${this.member.lastName} - Profil Membre | American Corner Mahajanga`;
     }
 
     /**
@@ -261,7 +261,7 @@ class ProfileSystem {
     }
 
     /**
-     * Méthodes utilitaires (reprises de members.js)
+     * Méthodes utilitaires
      */
     getInitials(firstName, lastName) {
         const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
@@ -353,7 +353,6 @@ class ProfileSystem {
     }
 
     getQRGeneratedCount() {
-        // Compter les QR codes générés pour ce membre
         try {
             const recentQRCodes = JSON.parse(localStorage.getItem('recentQRCodes') || '[]');
             return recentQRCodes.filter(qr => qr.registrationNumber === this.member.registrationNumber).length;
@@ -363,7 +362,6 @@ class ProfileSystem {
     }
 
     getLastActivity() {
-        // Dernière génération de QR code
         try {
             const recentQRCodes = JSON.parse(localStorage.getItem('recentQRCodes') || '[]');
             const memberQRCodes = recentQRCodes.filter(qr => qr.registrationNumber === this.member.registrationNumber);
@@ -413,7 +411,6 @@ class ProfileSystem {
      * Gestion des événements
      */
     setupEventListeners() {
-        // Événements spécifiques à la page profil
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 goBack();
@@ -438,34 +435,40 @@ class ProfileSystem {
     }
 
     showNotification(message, type = 'info') {
-        // Système de notification simple
-        const alertClass = type === 'error' ? 'alert-danger' : 
-                         type === 'success' ? 'alert-success' : 
-                         type === 'warning' ? 'alert-warning' : 'alert-info';
-        
-        const alert = document.createElement('div');
-        alert.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
-        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-        alert.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>
-                <div class="flex-grow-1">${message}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        document.body.appendChild(alert);
-        
-        setTimeout(() => {
-            if (alert.parentNode) {
-                alert.remove();
-            }
-        }, 5000);
+        if (window.appController && typeof window.appController.showNotification === 'function') {
+            window.appController.showNotification(message, type);
+        } else {
+            // Fallback simple
+            const alertClass = type === 'error' ? 'alert-danger' : 
+                             type === 'success' ? 'alert-success' : 
+                             type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+            alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alert.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>
+                    <div class="flex-grow-1">${message}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
     }
 }
 
 // Fonction globale pour retourner en arrière
 function goBack() {
-    if (window.history.length > 1) {
+    if (window.appController && typeof window.appController.loadPage === 'function') {
+        window.appController.loadPage('members');
+    } else if (window.history.length > 1) {
         window.history.back();
     } else {
         window.location.href = 'index.html#members';
