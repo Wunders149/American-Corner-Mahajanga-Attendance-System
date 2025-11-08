@@ -110,16 +110,16 @@ class ProfileSystem {
                         </div>
                     </div>
 
-                    <!-- Actions rapides -->
+                    // Actions rapides
                     <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-primary" onclick="profileSystem.generateQRCode()">
+                        <button class="btn btn-primary" onclick="window.profileSystem.generateQRCode ? window.profileSystem.generateQRCode() : alert('Système non prêt')">
                             <i class="fas fa-qrcode me-2"></i>Générer Carte QR
                         </button>
-                        <button class="btn btn-outline-success" onclick="profileSystem.quickGenerateQR()">
+                        <button class="btn btn-outline-success" onclick="window.profileSystem.quickGenerateQR ? window.profileSystem.quickGenerateQR() : alert('Système non prêt')">
                             <i class="fas fa-bolt me-2"></i>QR Rapide
                         </button>
                         ${this.member.email || this.member.phoneNumber ? `
-                        <button class="btn btn-outline-info" onclick="profileSystem.showContactOptions()">
+                        <button class="btn btn-outline-info" onclick="window.profileSystem.showContactOptions ? window.profileSystem.showContactOptions() : alert('Système non prêt')">
                             <i class="fas fa-envelope me-2"></i>Contacter
                         </button>
                         ` : ''}
@@ -376,28 +376,62 @@ class ProfileSystem {
     }
 
     /**
-     * Actions du profil
+     * Actions du profil avec vérifications robustes
      */
     generateQRCode() {
+        console.log('🔍 generateQRCode appelé, membre:', this.member);
+        
+        if (!this.member || !this.member.registrationNumber) {
+            console.error('❌ Données membre manquantes pour génération QR');
+            this.showNotification('Erreur: données membre non disponibles', 'error');
+            return;
+        }
+
         if (window.membersSystem) {
+            console.log('🎯 Génération QR pour:', this.member.registrationNumber);
             window.membersSystem.generateMemberQR(this.member.registrationNumber);
         } else {
+            console.error('❌ membersSystem non disponible');
             this.showNotification('Système de génération QR non disponible', 'warning');
         }
     }
 
     quickGenerateQR() {
+        console.log('🔍 quickGenerateQR appelé, membre:', this.member);
+        
+        if (!this.member || !this.member.registrationNumber) {
+            console.error('❌ Données membre manquantes pour génération QR rapide');
+            this.showNotification('Erreur: données membre non disponibles', 'error');
+            return;
+        }
+
         if (window.membersSystem) {
+            console.log('⚡ Génération QR rapide pour:', this.member.registrationNumber);
             window.membersSystem.generateQuickQR(this.member.registrationNumber);
         } else {
+            console.error('❌ membersSystem non disponible');
             this.showNotification('Système de génération QR non disponible', 'warning');
         }
     }
 
     showContactOptions() {
+        console.log('🔍 showContactOptions appelé, membre:', this.member);
+        
+        if (!this.member) {
+            console.error('❌ Données membre manquantes pour contact');
+            this.showNotification('Erreur: données membre non disponibles', 'error');
+            return;
+        }
+
         const contactOptions = [];
-        if (this.member.email) contactOptions.push(`📧 Email: ${this.member.email}`);
-        if (this.member.phoneNumber) contactOptions.push(`📞 Téléphone: ${this.member.phoneNumber}`);
+        
+        if (this.member.email) {
+            contactOptions.push(`📧 Email: ${this.member.email}`);
+        }
+        
+        if (this.member.phoneNumber) {
+            contactOptions.push(`📞 Téléphone: ${this.member.phoneNumber}`);
+        }
         
         if (contactOptions.length === 0) {
             this.showNotification('Aucune information de contact disponible', 'warning');
@@ -464,24 +498,42 @@ class ProfileSystem {
     }
 }
 
-// Fonction globale pour retourner en arrière
-function goBack() {
-    if (window.appController && typeof window.appController.loadPage === 'function') {
-        window.appController.loadPage('members');
-    } else if (window.history.length > 1) {
-        window.history.back();
-    } else {
-        window.location.href = 'index.html#members';
+    // Fonction globale pour retourner en arrière
+    function goBack() {
+        if (window.appController && typeof window.appController.loadPage === 'function') {
+            window.appController.loadPage('members');
+        } else if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.href = 'index.html#members';
+        }
     }
-}
 
-// Initialisation
-let profileSystem;
+    // Instance unique globale
+    let profileSystem = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-    profileSystem = new ProfileSystem();
-});
+    // Fonction d'initialisation contrôlée
+    function initializeProfileSystem() {
+        if (!profileSystem) {
+            console.log('👤 Création de la nouvelle instance ProfileSystem...');
+            profileSystem = new ProfileSystem();
+            profileSystem.init().catch(error => {
+                console.error('❌ Erreur initialisation profil:', error);
+            });
+        } else {
+            console.log('👤 ProfileSystem déjà initialisé, réutilisation...');
+            // Recharger les données si nécessaire
+            profileSystem.loadMemberData().then(() => {
+                profileSystem.renderProfile();
+            });
+        }
+        return profileSystem;
+    }
 
-// Exposer globalement
-window.profileSystem = profileSystem;
-window.goBack = goBack;
+    // Initialisation uniquement quand appelée explicitement
+    console.log('👤 Script profile.js chargé - En attente d\'initialisation...');
+
+    // Exposer globalement
+    window.profileSystem = { init: initializeProfileSystem };
+    window.goBack = goBack;
+    window.initializeProfileSystem = initializeProfileSystem;

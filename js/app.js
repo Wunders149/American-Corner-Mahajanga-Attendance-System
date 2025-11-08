@@ -325,13 +325,24 @@ class AppController {
     async initializeProfilePage() {
         console.log('👤 Initialisation de la page profil...');
         
-        // Attendre que le DOM soit complètement chargé
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                this.initializeProfileSystem();
-            });
-        } else {
-            await this.initializeProfileSystem();
+        try {
+            // Attendre un peu que le DOM soit complètement chargé
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Initialiser le système de profil de manière contrôlée
+            if (typeof initializeProfileSystem === 'function') {
+                window.profileSystem = initializeProfileSystem();
+                console.log('✅ Système profil initialisé via appController');
+            } else if (typeof ProfileSystem !== 'undefined') {
+                // Fallback
+                window.profileSystem = new ProfileSystem();
+                await window.profileSystem.init();
+                console.log('✅ Système profil initialisé via fallback');
+            } else {
+                console.error('❌ Aucun système profil disponible');
+            }
+        } catch (error) {
+            console.error('❌ Erreur initialisation page profil:', error);
         }
     }
 
