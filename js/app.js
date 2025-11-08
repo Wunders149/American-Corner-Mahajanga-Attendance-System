@@ -294,44 +294,33 @@ class AppController {
     setupEventListeners() {
         // Navigation event delegation - enhanced to handle all dynamic content
         document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            
+            if (!link) return;
+
             // NE PAS INTERCEPTER les liens avec target="_blank" ou href externes
-            const externalLink = e.target.closest('a[target="_blank"]');
-            if (externalLink) {
-                console.log('🔗 Lien externe détecté, laisser le navigateur gérer:', externalLink.href);
+            if (link.target === '_blank' || link.hostname !== window.location.hostname) {
+                console.log('🔗 Lien externe détecté, laisser le navigateur gérer:', link.href);
                 return;
             }
 
             // Handle data-page navigation - ONLY for internal SPA navigation
-            const navLink = e.target.closest('[data-page]');
-            if (navLink && !navLink.hasAttribute('href')) {
+            const pageId = link.getAttribute('data-page');
+            const href = link.getAttribute('href');
+            
+            if (pageId && href && href.startsWith('#')) {
                 e.preventDefault();
-                const pageId = navLink.getAttribute('data-page');
                 this.loadPage(pageId);
                 return;
             }
             
-            // Handle button clicks with data-page
-            const button = e.target.closest('button[data-page]');
-            if (button) {
+            // Handle hash links
+            if (href && href.startsWith('#')) {
                 e.preventDefault();
-                const pageId = button.getAttribute('data-page');
-                this.loadPage(pageId);
-                return;
-            }
-            
-            // Handle logo click
-            const logo = e.target.closest('#nav-home');
-            if (logo) {
-                e.preventDefault();
-                this.loadPage('home');
-                return;
-            }
-            
-            // Handle back buttons
-            const backButton = e.target.closest('.btn-outline-primary');
-            if (backButton && backButton.textContent.includes('Retour')) {
-                e.preventDefault();
-                this.loadPage('home');
+                const hashPage = href.substring(1);
+                if (this.validPages.includes(hashPage)) {
+                    this.loadPage(hashPage);
+                }
                 return;
             }
         });
@@ -340,6 +329,12 @@ class AppController {
         window.addEventListener('popstate', (event) => {
             if (event.state && event.state.page) {
                 this.loadPage(event.state.page);
+            } else {
+                // Handle hash-based navigation
+                const hash = window.location.hash.substring(1);
+                if (hash && this.validPages.includes(hash)) {
+                    this.loadPage(hash);
+                }
             }
         });
 
@@ -499,7 +494,7 @@ class AppController {
         }
     }
 
-    // Show page and update navigation
+    // Show page and update navigation - CORRIGÉE
     showPage(pageId) {
         console.log('🎯 showPage appelé avec:', pageId);
         
@@ -519,19 +514,23 @@ class AppController {
         // Update navigation
         document.querySelectorAll('.nav-link').forEach(link => {
             link.classList.remove('active');
+            
+            // Activer le lien correspondant à la page de base
+            const linkPage = link.getAttribute('data-page');
+            if (linkPage === basePageId) {
+                link.classList.add('active');
+                // Mettre à jour le href pour correspondre à la navigation actuelle
+                link.href = `#${pageId}`;
+            } else if (linkPage) {
+                // Réinitialiser les autres liens vers leurs pages de base
+                link.href = `#${linkPage}`;
+            }
         });
         
         // Show the selected page
         const targetPage = document.getElementById(basePageId);
         if (targetPage) {
             targetPage.classList.add('active');
-            
-            // Update active nav link
-            const navLinks = document.querySelectorAll(`[data-page="${basePageId}"]`);
-            navLinks.forEach(link => {
-                link.classList.add('active');
-            });
-            
             this.currentPage = basePageId;
             
             // Update browser history - garder l'URL complète
