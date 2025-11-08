@@ -117,9 +117,9 @@ class AppController {
     setupEventListeners() {
         // Navigation event delegation - enhanced to handle all dynamic content
         document.addEventListener('click', (e) => {
-            // Handle data-page navigation
+            // Handle data-page navigation - ONLY for internal SPA navigation
             const navLink = e.target.closest('[data-page]');
-            if (navLink) {
+            if (navLink && !navLink.hasAttribute('href')) {
                 e.preventDefault();
                 const pageId = navLink.getAttribute('data-page');
                 this.loadPage(pageId);
@@ -140,6 +140,13 @@ class AppController {
             if (logo) {
                 e.preventDefault();
                 this.loadPage('home');
+                return;
+            }
+            
+            // NE PAS INTERCEPTER les liens avec href qui ouvrent de nouveaux onglets
+            const externalLink = e.target.closest('a[target="_blank"]');
+            if (externalLink) {
+                // Laisser le navigateur gérer les liens externes
                 return;
             }
             
@@ -176,8 +183,9 @@ class AppController {
         // Gestion du changement d'hash pour la navigation SPA
         window.addEventListener('hashchange', () => {
             const hash = window.location.hash.substring(1);
-            if (hash && this.validPages.includes(hash)) {
-                this.loadPage(hash);
+            if (hash && this.validPages.includes(hash.split(/[0-9]/)[0])) {
+                const pageId = hash.split(/[0-9]/)[0]; // Extraire "profile" de "profileACM001"
+                this.loadPage(pageId);
             }
         });
     }
@@ -185,16 +193,19 @@ class AppController {
     // Main page loading function
     async loadPage(pageId) {
         try {
-            if (!this.validPages.includes(pageId)) {
+            // Extraire le nom de page de l'URL (gérer profileACM001 -> profile)
+            const basePageId = pageId.replace(/[0-9]/g, '');
+            
+            if (!this.validPages.includes(basePageId)) {
                 throw new Error(`Page invalide: ${pageId}`);
             }
 
-            console.log(`📄 Chargement de la page: ${pageId}`);
+            console.log(`📄 Chargement de la page: ${basePageId} (URL: ${pageId})`);
             
             // Afficher un indicateur de chargement
             this.showLoadingIndicator();
             
-            const response = await fetch(`pages/${pageId}.html`);
+            const response = await fetch(`pages/${basePageId}.html`);
             if (!response.ok) {
                 throw new Error('Page non trouvée');
             }
@@ -202,8 +213,8 @@ class AppController {
             const html = await response.text();
             document.getElementById('main-content').innerHTML = html;
             
-            this.showPage(pageId);
-            await this.initializePage(pageId);
+            this.showPage(basePageId);
+            await this.initializePage(basePageId);
             
             // Masquer l'indicateur de chargement
             this.hideLoadingIndicator();
@@ -226,6 +237,9 @@ class AppController {
 
     // Show page and update navigation
     showPage(pageId) {
+        // Extraire le nom de page de base
+        const basePageId = pageId.replace(/[0-9]/g, '');
+        
         // Hide all pages
         document.querySelectorAll('.page-section').forEach(page => {
             page.classList.remove('active');
@@ -237,26 +251,26 @@ class AppController {
         });
         
         // Show the selected page
-        const targetPage = document.getElementById(pageId);
+        const targetPage = document.getElementById(basePageId);
         if (targetPage) {
             targetPage.classList.add('active');
             
             // Update active nav link
-            const navLinks = document.querySelectorAll(`[data-page="${pageId}"]`);
+            const navLinks = document.querySelectorAll(`[data-page="${basePageId}"]`);
             navLinks.forEach(link => {
                 link.classList.add('active');
             });
             
-            this.currentPage = pageId;
+            this.currentPage = basePageId;
             
-            // Update browser history
+            // Update browser history - garder l'URL complète
             history.pushState({page: pageId}, '', `#${pageId}`);
             
             // Scroll to top
             window.scrollTo(0, 0);
             
             // Update document title
-            document.title = this.getPageTitle(pageId) + ' - American Corner Mahajanga';
+            document.title = this.getPageTitle(basePageId) + ' - American Corner Mahajanga';
         }
     }
 
@@ -395,6 +409,10 @@ class AppController {
                             return member;
                         }
                     }
+                    
+                    // Si le membre n'est pas trouvé, afficher une erreur
+                    console.error('❌ Membre non trouvé:', registrationNumber);
+                    this.showNotification(`Membre ${registrationNumber} non trouvé`, 'error');
                 }
             }
             
@@ -404,16 +422,6 @@ class AppController {
                 const member = JSON.parse(sessionData);
                 console.log('✅ Membre trouvé dans sessionStorage:', member.registrationNumber);
                 return member;
-            }
-            
-            // 3. Essayer depuis localStorage (cache)
-            const cachedData = localStorage.getItem('cachedMembers');
-            if (cachedData) {
-                const members = JSON.parse(cachedData);
-                if (members.length > 0) {
-                    console.log('✅ Membre trouvé dans cache:', members[0].registrationNumber);
-                    return members[0];
-                }
             }
             
             return null;

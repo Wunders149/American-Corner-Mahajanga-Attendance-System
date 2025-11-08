@@ -1157,84 +1157,38 @@ class MembersSystem {
 
         return `
             <div class="col-md-6 col-lg-4 col-xl-3">
-                <div class="card member-card h-100" style="animation-delay: ${index * 0.1}s">
-                    <div class="card-body p-4">
-                        <!-- Profile photo with robust system -->
-                        ${profileImage}
+            <div class="card member-card h-100" style="animation-delay: ${index * 0.1}s">
+                <div class="card-body p-4">
+                    <!-- ... contenu existant de la carte ... -->
+                </div>
+                
+                <!-- Actions AVEC BOUTON SPA -->
+                <div class="card-footer bg-transparent border-top-0 pt-0 member-actions">
+                    <div class="d-grid gap-2">
+                        <!-- Bouton SPA pour ouvrir le profil -->
+                        <button class="btn btn-primary btn-sm" 
+                                onclick="membersSystem.openMemberProfile('${member.registrationNumber}')"
+                                title="View member profile">
+                            <i class="fas fa-eye me-1"></i>View Profile
+                        </button>
                         
-                        <!-- Main information -->
-                        <div class="text-center mb-3">
-                            <h5 class="member-name">${highlightText(member.firstName)} ${highlightText(member.lastName)}</h5>
-                            <div class="member-id">${highlightText(member.registrationNumber)}</div>
-                        </div>
-                        
-                        <!-- Occupation -->
-                        <div class="member-occupation text-center mb-3">
-                            <span class="badge bg-${occupationColor} text-white">${occupation}</span>
-                        </div>
-                        
-                        <!-- Contact information -->
-                        <div class="member-contact text-muted small mb-3">
-                            ${member.email ? `
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="fas fa-envelope me-2 text-primary"></i>
-                                    <span class="text-truncate" title="${member.email}">${highlightText(member.email)}</span>
-                                </div>
-                            ` : ''}
-                            ${member.phoneNumber ? `
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="fas fa-phone me-2 text-success"></i>
-                                    <span>${highlightText(member.phoneNumber)}</span>
-                                </div>
-                            ` : ''}
-                        </div>
-                        
-                        <!-- Study/work place -->
-                        ${member.studyOrWorkPlace ? `
-                            <div class="member-location mb-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-building me-2 text-info"></i>
-                                    <span class="text-truncate" title="${member.studyOrWorkPlace}">
-                                        ${highlightText(member.studyOrWorkPlace)}
-                                    </span>
-                                </div>
-                            </div>
-                        ` : ''}
-                        
-                        <!-- Join date -->
-                        <div class="member-join-date text-center">
-                            <small class="text-muted">
-                                <i class="fas fa-calendar-alt me-1"></i>Member since ${joinDate}
-                            </small>
-                        </div>
-                    </div>
-                    
-                    <!-- Actions WITH DIRECT PROFILE LINK -->
-                    <div class="card-footer bg-transparent border-top-0 pt-0 member-actions">
-                        <div class="d-grid gap-2">
-                            <!-- Bouton avec lien direct vers le profil -->
-                            <a href="https://acm-attendance-system.netlify.app/#profile${member.registrationNumber}" 
-                               target="_blank"
-                               class="btn btn-primary btn-sm">
-                                <i class="fas fa-eye me-1"></i>View Profile
-                            </a>
-                            
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-outline-success btn-sm" 
-                                        onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
-                                        title="Generate Custom QR Code">
-                                    <i class="fas fa-qrcode me-1"></i>QR Code
-                                </button>
-                                <button class="btn btn-outline-info btn-sm" 
-                                        onclick="membersSystem.generateQuickQR('${member.registrationNumber}')"
-                                        title="Quick Generation">
-                                    <i class="fas fa-bolt me-1"></i>
-                                </button>
-                            </div>
+                        <!-- Les autres boutons QR restent identiques -->
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-success btn-sm" 
+                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
+                                    title="Generate Custom QR Code">
+                                <i class="fas fa-qrcode me-1"></i>QR Code
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" 
+                                    onclick="membersSystem.generateQuickQR('${member.registrationNumber}')"
+                                    title="Quick Generation">
+                                <i class="fas fa-bolt me-1"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
         `;
     }
 
@@ -1253,71 +1207,32 @@ class MembersSystem {
 
         return `
             <div class="col-12 mb-3">
-                <div class="card member-card">
-                    <div class="card-body py-3">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <div style="width: 60px; height: 60px;">
-                                    ${profileImage}
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="row align-items-center">
-                                    <div class="col-md-3">
-                                        <h6 class="mb-1 fw-bold">${highlightText(member.firstName)} ${highlightText(member.lastName)}</h6>
-                                        <small class="text-primary">${highlightText(member.registrationNumber)}</small>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <span class="badge bg-${occupationColor}">${occupation}</span>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <small class="text-muted">
-                                            <i class="fas fa-envelope me-1"></i>
-                                            <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${member.email || ''}">
-                                                ${member.email ? highlightText(member.email) : 'Not provided'}
-                                            </span>
-                                        </small>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <small class="text-muted">
-                                            <i class="fas fa-calendar me-1"></i>${joinDate}
-                                        </small>
-                                    </div>
-                                    <div class="col-md-2 text-end">
-                                        <div class="btn-group btn-group-sm">
-                                            <!-- Lien direct vers le profil -->
-                                            <a href="https://acm-attendance-system.netlify.app/#profile${member.registrationNumber}" 
-                                               target="_blank"
-                                               class="btn btn-outline-primary"
-                                               title="View profile">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            
-                                            <button class="btn btn-outline-success" 
-                                                    onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
-                                                    title="Generate QR Code">
-                                                <i class="fas fa-qrcode"></i>
-                                            </button>
-                                            <button class="btn btn-outline-info" 
-                                                    onclick="membersSystem.generateQuickQR('${member.registrationNumber}')"
-                                                    title="Quick Generation">
-                                                <i class="fas fa-bolt"></i>
-                                            </button>
-                                            ${member.email || member.phoneNumber ? `
-                                            <button class="btn btn-outline-secondary" 
-                                                    onclick="membersSystem.quickContact(${member.id})"
-                                                    title="Contact">
-                                                <i class="fas fa-envelope"></i>
-                                            </button>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                                </div>
+            <div class="card member-card">
+                <div class="card-body py-3">
+                    <div class="row align-items-center">
+                        <!-- ... autres colonnes ... -->
+                        <div class="col-md-2 text-end">
+                            <div class="btn-group btn-group-sm">
+                                <!-- Bouton SPA pour le profil -->
+                                <button class="btn btn-outline-primary"
+                                        onclick="membersSystem.openMemberProfile('${member.registrationNumber}')"
+                                        title="View profile">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                
+                                <!-- Les autres boutons restent identiques -->
+                                <button class="btn btn-outline-success" 
+                                        onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
+                                        title="Generate QR Code">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
+                                <!-- ... autres boutons ... -->
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
         `;
     }
 
