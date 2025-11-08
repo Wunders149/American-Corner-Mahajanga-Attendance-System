@@ -47,9 +47,20 @@ class AppController {
             // 2. Initialiser les modules
             await this.initializeModules();
             
-            // 3. Charger la page initiale
+            // 3. Charger la page initiale - CORRECTION ICI
             const hash = window.location.hash.substring(1);
-            const initialPage = hash && this.validPages.includes(hash) ? hash : 'home';
+            console.log('🔗 Hash initial:', hash);
+            
+            let initialPage;
+            if (hash && hash.startsWith('profile')) {
+                initialPage = hash; // Garder 'profileACM001' complet
+            } else if (hash && this.validPages.includes(hash)) {
+                initialPage = hash;
+            } else {
+                initialPage = 'home';
+            }
+            
+            console.log('📄 Page initiale:', initialPage);
             await this.loadPage(initialPage);
             
         } catch (error) {
@@ -117,6 +128,14 @@ class AppController {
     setupEventListeners() {
         // Navigation event delegation - enhanced to handle all dynamic content
         document.addEventListener('click', (e) => {
+            // NE PAS INTERCEPTER les liens avec target="_blank" ou href externes
+            const externalLink = e.target.closest('a[target="_blank"]');
+            if (externalLink) {
+                // Laisser le navigateur gérer les liens externes
+                console.log('🔗 Lien externe détecté, laisser le navigateur gérer:', externalLink.href);
+                return; // NE PAS faire e.preventDefault()
+            }
+
             // Handle data-page navigation - ONLY for internal SPA navigation
             const navLink = e.target.closest('[data-page]');
             if (navLink && !navLink.hasAttribute('href')) {
@@ -140,13 +159,6 @@ class AppController {
             if (logo) {
                 e.preventDefault();
                 this.loadPage('home');
-                return;
-            }
-            
-            // NE PAS INTERCEPTER les liens avec href qui ouvrent de nouveaux onglets
-            const externalLink = e.target.closest('a[target="_blank"]');
-            if (externalLink) {
-                // Laisser le navigateur gérer les liens externes
                 return;
             }
             
@@ -180,22 +192,47 @@ class AppController {
             this.showNotification('Connexion perdue - Mode hors ligne', 'warning');
         });
 
-        // Gestion du changement d'hash pour la navigation SPA
+        // Gestion du changement d'hash pour la navigation SPA - CORRECTION
         window.addEventListener('hashchange', () => {
             const hash = window.location.hash.substring(1);
-            if (hash && this.validPages.includes(hash.split(/[0-9]/)[0])) {
-                const pageId = hash.split(/[0-9]/)[0]; // Extraire "profile" de "profileACM001"
-                this.loadPage(pageId);
+            console.log('🔗 Hash change détecté:', hash);
+            
+            if (hash) {
+                // Vérifier si c'est une page valide (profile, members, etc.)
+                const basePage = this.extractBasePageFromHash(hash);
+                if (basePage && this.validPages.includes(basePage)) {
+                    this.loadPage(hash); // Charger avec l'hash complet
+                }
             }
         });
+    }
+
+    // Nouvelle méthode pour extraire la page de base depuis l'hash
+    extractBasePageFromHash(hash) {
+        if (hash.startsWith('profile')) {
+            return 'profile';
+        }
+        // Ajouter d'autres cas si nécessaire
+        return this.validPages.includes(hash) ? hash : null;
     }
 
     // Main page loading function
     async loadPage(pageId) {
         try {
-            // Extraire le nom de page de l'URL (gérer profileACM001 -> profile)
-            const basePageId = pageId.replace(/[0-9]/g, '');
+            console.log('📄 loadPage appelé avec:', pageId);
             
+            // Déterminer la page de base à charger
+            let basePageId;
+            let registrationNumber = null;
+
+            if (pageId.startsWith('profile')) {
+                basePageId = 'profile';
+                registrationNumber = pageId.replace('profile', '');
+                console.log('👤 Page profil détectée pour:', registrationNumber);
+            } else {
+                basePageId = pageId;
+            }
+
             if (!this.validPages.includes(basePageId)) {
                 throw new Error(`Page invalide: ${pageId}`);
             }
@@ -213,7 +250,7 @@ class AppController {
             const html = await response.text();
             document.getElementById('main-content').innerHTML = html;
             
-            this.showPage(basePageId);
+            this.showPage(pageId); // Passer l'ID complet
             await this.initializePage(basePageId);
             
             // Masquer l'indicateur de chargement
@@ -237,8 +274,15 @@ class AppController {
 
     // Show page and update navigation
     showPage(pageId) {
-        // Extraire le nom de page de base
-        const basePageId = pageId.replace(/[0-9]/g, '');
+        console.log('🎯 showPage appelé avec:', pageId);
+        
+        // Déterminer la page de base pour la navigation
+        let basePageId;
+        if (pageId.startsWith('profile')) {
+            basePageId = 'profile';
+        } else {
+            basePageId = pageId;
+        }
         
         // Hide all pages
         document.querySelectorAll('.page-section').forEach(page => {
@@ -271,6 +315,10 @@ class AppController {
             
             // Update document title
             document.title = this.getPageTitle(basePageId) + ' - American Corner Mahajanga';
+            
+            console.log('✅ Page affichée:', basePageId, 'URL:', pageId);
+        } else {
+            console.error('❌ Page non trouvée:', basePageId);
         }
     }
 
@@ -802,6 +850,17 @@ class AppController {
         // Mettre à jour l'URL
         window.location.hash = `profile${registrationNumber}`;
     }
+
+    // Méthode de débogage
+    debugNavigation() {
+        console.log('🐛 DEBUG NAVIGATION:');
+        console.log('- Current URL:', window.location.href);
+        console.log('- Current hash:', window.location.hash);
+        console.log('- Current page:', this.currentPage);
+        console.log('- AppController:', this);
+        console.log('- MembersSystem:', window.membersSystem);
+        console.log('- API Service:', window.apiService);
+    }
 }
 
 // Initialize app when DOM is loaded
@@ -828,5 +887,14 @@ window.openMemberProfile = function(registrationNumber) {
     } else {
         // Fallback direct
         window.location.href = `https://acm-attendance-system.netlify.app/#profile${registrationNumber}`;
+    }
+};
+
+// Fonction globale pour le débogage
+window.debugApp = function() {
+    if (window.appController) {
+        window.appController.debugNavigation();
+    } else {
+        console.log('❌ AppController non disponible');
     }
 };
