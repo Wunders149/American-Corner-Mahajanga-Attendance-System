@@ -4,17 +4,548 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profil Membre - American Corner Mahajanga</title>
+    <style>
+        /* ==================== VARIABLES CSS ==================== */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            --card-shadow-hover: 0 20px 60px rgba(0, 0, 0, 0.15);
+            --transition-smooth: all 0.3s ease;
+            --border-radius-lg: 20px;
+            --border-radius-md: 15px;
+            --border-radius-sm: 12px;
+        }
+
+        /* ==================== HEADER DU PROFIL ==================== */
+        .profile-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            backdrop-filter: blur(10px);
+            margin-bottom: 2rem;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* ==================== SECTION HÉRO ==================== */
+        .profile-hero {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .profile-avatar-section {
+            flex-shrink: 0;
+        }
+
+        .profile-avatar-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .profile-photo {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .avatar-fallback {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 2.5rem;
+        }
+
+        .occupation-badge {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid white;
+            font-size: 0.9rem;
+        }
+
+        /* ==================== INFORMATIONS DU PROFIL ==================== */
+        .profile-info-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .profile-name {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .profile-badges {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .occupation-badge-lg {
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+        }
+
+        .badge-outline {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        /* ==================== ACTIONS DU PROFIL ==================== */
+        .profile-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: var(--transition-smooth);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ==================== CONTENU PRINCIPAL ==================== */
+        .profile-content {
+            padding-bottom: 3rem;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--card-shadow);
+            border: none;
+            overflow: hidden;
+            transition: var(--transition-smooth);
+        }
+
+        .profile-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .card-header-custom {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #495057;
+        }
+
+        .card-body-custom {
+            padding: 2rem;
+        }
+
+        /* ==================== LISTE D'INFORMATIONS ==================== */
+        .info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition-smooth);
+        }
+
+        .info-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .info-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .info-icon.text-primary { background: rgba(0, 123, 255, 0.1); color: #007bff; }
+        .info-icon.text-success { background: rgba(40, 167, 69, 0.1); color: #28a745; }
+        .info-icon.text-warning { background: rgba(255, 193, 7, 0.1); color: #ffc107; }
+        .info-icon.text-info { background: rgba(23, 162, 184, 0.1); color: #17a2b8; }
+        .info-icon.text-secondary { background: rgba(108, 117, 125, 0.1); color: #6c757d; }
+        .info-icon.text-muted { background: rgba(108, 117, 125, 0.1); color: #6c757d; }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-content label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.25rem;
+            display: block;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            color: #212529;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* ==================== STATISTIQUES ==================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: var(--border-radius-md);
+            transition: var(--transition-smooth);
+        }
+
+        .stat-card:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: var(--border-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #212529;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ==================== MODALS ET POPUPS ==================== */
+        .modal-profile {
+            border-radius: var(--border-radius-lg);
+            border: none;
+        }
+
+        .modal-profile .modal-header {
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+            padding: 1.5rem 2rem;
+        }
+
+        .modal-profile .modal-title {
+            font-weight: 600;
+        }
+
+        .modal-profile .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-profile .btn-close {
+            filter: invert(1);
+        }
+
+        /* Options de contact */
+        .contact-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .contact-option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition-smooth);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .contact-option:hover {
+            border-color: #007bff;
+            background-color: #f8f9ff;
+            transform: translateX(5px);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .contact-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .contact-email .contact-icon {
+            background: rgba(0, 123, 255, 0.1);
+            color: #007bff;
+        }
+
+        .contact-phone .contact-icon {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .contact-content {
+            flex: 1;
+        }
+
+        .contact-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.25rem;
+        }
+
+        .contact-value {
+            color: #212529;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Prévisualisation QR */
+        .qr-preview-container {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .qr-code-display {
+            max-width: 200px;
+            margin: 0 auto 1.5rem;
+            border: 10px solid white;
+            border-radius: var(--border-radius-md);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .qr-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        /* ==================== ANIMATIONS ==================== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+        /* ==================== DESIGN RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .profile-hero {
+                flex-direction: column;
+                text-align: center;
+                gap: 2rem;
+            }
+            
+            .profile-name {
+                font-size: 2rem;
+            }
+            
+            .profile-badges {
+                justify-content: center;
+            }
+            
+            .profile-actions {
+                justify-content: center;
+            }
+            
+            .btn-action {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .card-body-custom {
+                padding: 1.5rem;
+            }
+            
+            .modal-profile .modal-body {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .profile-header {
+                padding: 1.5rem 0;
+            }
+            
+            .profile-avatar-container {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .avatar-fallback {
+                font-size: 2rem;
+            }
+            
+            .profile-name {
+                font-size: 1.75rem;
+            }
+            
+            .profile-badges {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .info-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.5rem;
+            }
+            
+            .stat-card {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* ==================== ACCESSIBILITÉ ==================== */
+        @media (prefers-reduced-motion: reduce) {
+            .profile-card,
+            .btn-action,
+            .contact-option,
+            .stat-card {
+                transition: none;
+                animation: none;
+            }
+        }
+
+        /* ==================== ÉTATS DE CHARGEMENT ==================== */
+        .profile-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            flex-direction: column;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Amélioration du bouton retour existant */
+        .btn-outline-primary {
+            transition: var(--transition-smooth);
+        }
+
+        .btn-outline-primary:hover {
+            transform: translateX(-5px);
+        }
+    </style>
 </head>
 <body>
     <div id="profile" class="page-section">
         <div class="container py-5">
-            <!-- En-tête avec bouton retour -->
+            <!-- En-tête avec bouton retour amélioré -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <button class="btn btn-outline-primary mb-3" onclick="goBack()">
+                    <button class="btn btn-back" onclick="goBack()">
                         <i class="fas fa-arrow-left me-2"></i>Retour aux membres
                     </button>
-                    <h1 class="text-primary">
+                    <h1 class="profile-title">
                         <i class="fas fa-user-circle me-2"></i>Profil du Membre
                     </h1>
                 </div>
@@ -22,11 +553,9 @@
 
             <!-- Contenu du profil -->
             <div id="profileContent">
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement du profil...</span>
-                    </div>
-                    <p class="mt-2">Chargement du profil...</p>
+                <div class="profile-loading">
+                    <div class="loading-spinner"></div>
+                    <p class="mt-3 text-muted">Chargement du profil en cours...</p>
                 </div>
             </div>
         </div>
@@ -34,5 +563,26 @@
 
     <!-- Inclure le script de profil -->
     <script src="js/profile.js"></script>
+
+    <script>
+        // Fonction de retour globale
+        function goBack() {
+            if (window.appController && typeof window.appController.loadPage === 'function') {
+                window.appController.loadPage('members');
+            } else if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html#members';
+            }
+        }
+
+        // Initialisation automatique quand la page est prête
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 Page profil chargée, initialisation...');
+            if (window.initializeProfileSystem) {
+                window.initializeProfileSystem();
+            }
+        });
+    </script>
 </body>
 </html>
