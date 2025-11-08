@@ -5,6 +5,120 @@ class AppController {
         this.validPages = ['home', 'about', 'attendance', 'qr-generator', 'members', 'contact', 'profile'];
         this.isInitialized = false;
         this.modules = {};
+        this.pageCache = new Map();
+        
+        // Nouveaux états et stores
+        this.appState = {
+            isOnline: navigator.onLine,
+            isLoading: false,
+            currentUser: null,
+            permissions: [],
+            dataVersion: 0,
+            language: localStorage.getItem('preferred_language') || 'fr'
+        };
+        
+        this.dataStore = {
+            members: [],
+            attendance: [],
+            settings: {},
+            
+            getMemberByRegistration(regNumber) {
+                return this.members.find(m => m.registrationNumber === regNumber);
+            },
+            
+            updateMember(regNumber, updates) {
+                const index = this.members.findIndex(m => m.registrationNumber === regNumber);
+                if (index !== -1) {
+                    this.members[index] = { ...this.members[index], ...updates };
+                    this.persistData();
+                }
+            },
+            
+            persistData() {
+                try {
+                    localStorage.setItem('acm_data_store', JSON.stringify({
+                        members: this.members,
+                        attendance: this.attendance,
+                        settings: this.settings,
+                        timestamp: new Date().toISOString()
+                    }));
+                } catch (error) {
+                    console.warn('Impossible de persister les données:', error);
+                }
+            },
+            
+            restoreData() {
+                try {
+                    const saved = localStorage.getItem('acm_data_store');
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        this.members = data.members || [];
+                        this.attendance = data.attendance || [];
+                        this.settings = data.settings || {};
+                        console.log('📀 Données restaurées:', this.members.length + ' membres');
+                    }
+                } catch (error) {
+                    console.warn('Impossible de restaurer les données:', error);
+                }
+            }
+        };
+        
+        // Système d'internationalisation
+        this.i18n = {
+            currentLang: this.appState.language,
+            strings: {
+                fr: {
+                    welcome: 'Bienvenue',
+                    error: 'Erreur',
+                    loading: 'Chargement...',
+                    success: 'Succès',
+                    warning: 'Attention',
+                    online: 'En ligne',
+                    offline: 'Hors ligne',
+                    demo_mode: 'Mode démo actif',
+                    access_denied: 'Accès non autorisé',
+                    data_updated: 'Données mises à jour',
+                    connection_restored: 'Connexion rétablie',
+                    connection_lost: 'Connexion perdue'
+                },
+                en: {
+                    welcome: 'Welcome',
+                    error: 'Error',
+                    loading: 'Loading...',
+                    success: 'Success',
+                    warning: 'Warning',
+                    online: 'Online',
+                    offline: 'Offline',
+                    demo_mode: 'Demo mode active',
+                    access_denied: 'Access denied',
+                    data_updated: 'Data updated',
+                    connection_restored: 'Connection restored',
+                    connection_lost: 'Connection lost'
+                }
+            },
+            
+            t(key) {
+                return this.strings[this.currentLang]?.[key] || key;
+            },
+            
+            setLanguage(lang) {
+                if (this.strings[lang]) {
+                    this.currentLang = lang;
+                    localStorage.setItem('preferred_language', lang);
+                    if (window.appController) {
+                        window.appController.emitAppStateChange();
+                    }
+                }
+            }
+        };
+        
+        // Système de rôles
+        this.userRoles = {
+            admin: ['view_members', 'edit_members', 'generate_qr', 'view_attendance', 'export_data', 'manage_system'],
+            manager: ['view_members', 'generate_qr', 'view_attendance', 'scan_qr'],
+            viewer: ['view_members', 'view_attendance']
+        };
+
         this.init();
     }
 
@@ -14,6 +128,12 @@ class AppController {
             
             // Set as global reference immediately
             window.appController = this;
+            
+            // Restaurer les données sauvegardées
+            this.dataStore.restoreData();
+            
+            // Setup enhanced error handling
+            this.setupErrorHandling();
             
             // Setup event listeners first
             this.setupEventListeners();
@@ -29,13 +149,16 @@ class AppController {
             
         } catch (error) {
             console.error('❌ Erreur lors de l\'initialisation:', error);
-            this.showErrorPage('Erreur lors du démarrage de l\'application');
+            this.showErrorPage('Erreur lors du démarrage de l\'application', error);
         }
     }
 
     async initializeApp() {
         try {
             console.log('🔄 Initialisation des services...');
+            
+            // Mettre à jour l'état de chargement
+            this.setAppState({ isLoading: true });
             
             // 1. Charger les membres (ne pas attendre si l'API est lente)
             this.loadMembers().then(() => {
@@ -47,13 +170,13 @@ class AppController {
             // 2. Initialiser les modules
             await this.initializeModules();
             
-            // 3. Charger la page initiale - CORRECTION ICI
+            // 3. Charger la page initiale
             const hash = window.location.hash.substring(1);
             console.log('🔗 Hash initial:', hash);
             
             let initialPage;
             if (hash && hash.startsWith('profile')) {
-                initialPage = hash; // Garder 'profileACM001' complet
+                initialPage = hash;
             } else if (hash && this.validPages.includes(hash)) {
                 initialPage = hash;
             } else {
@@ -63,10 +186,42 @@ class AppController {
             console.log('📄 Page initiale:', initialPage);
             await this.loadPage(initialPage);
             
+            // Mettre à jour l'état de chargement
+            this.setAppState({ isLoading: false });
+            
         } catch (error) {
             console.error('❌ Erreur initialisation app:', error);
+            this.setAppState({ isLoading: false });
             throw error;
         }
+    }
+
+    // Gestion améliorée des états
+    setAppState(newState) {
+        this.appState = { ...this.appState, ...newState };
+        this.emitAppStateChange();
+    }
+
+    emitAppStateChange() {
+        const event = new CustomEvent('appStateChanged', { 
+            detail: this.appState 
+        });
+        window.dispatchEvent(event);
+    }
+
+    // Gestion des permissions
+    hasPermission(permission) {
+        if (!this.appState.currentUser) return false;
+        const userRole = this.appState.currentUser.role || 'viewer';
+        return this.userRoles[userRole]?.includes(permission) || false;
+    }
+
+    checkPermission(permission) {
+        if (!this.hasPermission(permission)) {
+            this.showNotification(this.i18n.t('access_denied'), 'error');
+            return false;
+        }
+        return true;
     }
 
     // Méthode loadMembers améliorée
@@ -75,53 +230,64 @@ class AppController {
             if (typeof apiService !== 'undefined') {
                 console.log('⏳ Chargement des données membres...');
                 await apiService.fetchMembers();
+                
+                // Mettre à jour le store local
+                if (apiService.members && apiService.members.length > 0) {
+                    this.dataStore.members = apiService.members;
+                    this.dataStore.persistData();
+                }
+                
                 console.log(`📊 ${apiService.members.length} membres disponibles`);
             } else {
                 console.warn('⚠️ Service API non disponible');
+                // Utiliser les données du store local
+                if (this.dataStore.members.length > 0) {
+                    console.log(`📊 ${this.dataStore.members.length} membres restaurés du cache`);
+                }
             }
         } catch (error) {
             console.warn('⚠️ Avertissement chargement membres:', error);
-            // Continuer avec les données démo
+            // Continuer avec les données du store local
         }
     }
 
-    // Dans app.js - méthode initializeModules()
+    // Initialisation des modules avec lazy loading
     async initializeModules() {
         console.log('🔧 Initialisation des modules...');
         
-        // Initialize scanner module
-        if (typeof qrScanner !== 'undefined') {
-            this.modules.scanner = qrScanner;
-            console.log('🔍 Module Scanner détecté');
-        } else {
-            console.warn('❌ Module Scanner non disponible');
-        }
-        
-        // Initialize QR generator module
-        if (typeof qrGenerator !== 'undefined') {
-            this.modules.qrGenerator = qrGenerator;
-            console.log('📱 Module QR Generator détecté');
-        } else {
-            console.warn('❌ Module QR Generator non disponible');
-        }
-        
-        // Initialize members module - CORRECTION ICI
-        if (typeof membersSystem !== 'undefined') {
-            this.modules.members = membersSystem;
-            console.log('👥 Module MembersSystem détecté');
-        } else if (typeof members !== 'undefined') {
-            this.modules.members = members;
-            console.log('👥 Module Members (legacy) détecté');
-        } else {
-            console.warn('❌ Module Members non disponible');
-        }
+        const modulesToLoad = [
+            { name: 'scanner', globalVar: 'qrScanner' },
+            { name: 'qrgGenerator', globalVar: 'qrGenerator' },
+            { name: 'members', globalVar: 'membersSystem' },
+            { name: 'profile', globalVar: 'ProfileSystem' }
+        ];
 
-        // Initialize profile module
-        if (typeof ProfileSystem !== 'undefined') {
-            this.modules.profile = ProfileSystem;
-            console.log('👤 Module ProfileSystem détecté');
-        } else {
-            console.warn('❌ Module ProfileSystem non disponible');
+        for (const module of modulesToLoad) {
+            try {
+                await this.loadModule(module.name, module.globalVar);
+            } catch (error) {
+                console.warn(`❌ Module ${module.name} non disponible:`, error);
+            }
+        }
+    }
+
+    async loadModule(moduleName, globalVar) {
+        if (this.modules[moduleName]) return this.modules[moduleName];
+        
+        if (typeof window[globalVar] !== 'undefined') {
+            this.modules[moduleName] = window[globalVar];
+            console.log(`✅ Module ${moduleName} détecté`);
+            return this.modules[moduleName];
+        }
+        
+        // Fallback: essayer de charger dynamiquement
+        try {
+            const module = await import(`./modules/${moduleName}.js`);
+            this.modules[moduleName] = module.default || module;
+            console.log(`✅ Module ${moduleName} chargé dynamiquement`);
+            return this.modules[moduleName];
+        } catch (error) {
+            throw new Error(`Module ${moduleName} non trouvé`);
         }
     }
 
@@ -131,9 +297,8 @@ class AppController {
             // NE PAS INTERCEPTER les liens avec target="_blank" ou href externes
             const externalLink = e.target.closest('a[target="_blank"]');
             if (externalLink) {
-                // Laisser le navigateur gérer les liens externes
                 console.log('🔗 Lien externe détecté, laisser le navigateur gérer:', externalLink.href);
-                return; // NE PAS faire e.preventDefault()
+                return;
             }
 
             // Handle data-page navigation - ONLY for internal SPA navigation
@@ -178,32 +343,49 @@ class AppController {
             }
         });
 
-        // Global error handler
-        window.addEventListener('error', (event) => {
-            console.error('Erreur globale:', event.error);
-        });
+        // Enhanced error handling
+        this.setupErrorHandling();
 
         // Online/offline detection
         window.addEventListener('online', () => {
-            this.showNotification('Connexion rétablie', 'success');
+            this.setAppState({ isOnline: true });
+            this.showNotification(this.i18n.t('connection_restored'), 'success');
+            this.syncOfflineData();
         });
 
         window.addEventListener('offline', () => {
-            this.showNotification('Connexion perdue - Mode hors ligne', 'warning');
+            this.setAppState({ isOnline: false });
+            this.showNotification(this.i18n.t('connection_lost') + ' - ' + this.i18n.t('offline'), 'warning');
         });
 
-        // Gestion du changement d'hash pour la navigation SPA - CORRECTION
+        // Gestion du changement d'hash pour la navigation SPA
         window.addEventListener('hashchange', () => {
             const hash = window.location.hash.substring(1);
             console.log('🔗 Hash change détecté:', hash);
             
             if (hash) {
-                // Vérifier si c'est une page valide (profile, members, etc.)
                 const basePage = this.extractBasePageFromHash(hash);
                 if (basePage && this.validPages.includes(basePage)) {
-                    this.loadPage(hash); // Charger avec l'hash complet
+                    this.loadPage(hash);
                 }
             }
+        });
+
+        // Écouter les changements d'état de l'application
+        window.addEventListener('appStateChanged', (event) => {
+            this.updateUIForAppState(event.detail);
+        });
+    }
+
+    setupErrorHandling() {
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Promise rejetée non gérée:', event.reason);
+            this.trackEvent('error', 'unhandled_promise_rejection', event.reason?.message);
+        });
+        
+        window.addEventListener('error', (event) => {
+            console.error('Erreur globale:', event.error);
+            this.trackEvent('error', 'global_error', event.error?.message);
         });
     }
 
@@ -212,14 +394,16 @@ class AppController {
         if (hash.startsWith('profile')) {
             return 'profile';
         }
-        // Ajouter d'autres cas si nécessaire
         return this.validPages.includes(hash) ? hash : null;
     }
 
-    // Main page loading function
+    // Main page loading function with cache
     async loadPage(pageId) {
         try {
             console.log('📄 loadPage appelé avec:', pageId);
+            
+            // Track navigation
+            this.trackEvent('navigation', 'page_load', pageId);
             
             // Déterminer la page de base à charger
             let basePageId;
@@ -239,9 +423,20 @@ class AppController {
 
             console.log(`📄 Chargement de la page: ${basePageId} (URL: ${pageId})`);
             
+            // Vérifier le cache d'abord
+            if (this.pageCache.has(pageId)) {
+                console.log('💾 Utilisation du cache pour:', pageId);
+                const cachedHtml = this.pageCache.get(pageId);
+                document.getElementById('main-content').innerHTML = cachedHtml;
+                this.showPage(pageId);
+                await this.initializePage(basePageId);
+                return;
+            }
+            
             // Afficher un indicateur de chargement
             this.showLoadingIndicator();
-            
+            this.setAppState({ isLoading: true });
+
             const response = await fetch(`pages/${basePageId}.html`);
             if (!response.ok) {
                 throw new Error('Page non trouvée');
@@ -250,26 +445,58 @@ class AppController {
             const html = await response.text();
             document.getElementById('main-content').innerHTML = html;
             
-            this.showPage(pageId); // Passer l'ID complet
+            // Mettre en cache
+            this.pageCache.set(pageId, html);
+            
+            this.showPage(pageId);
             await this.initializePage(basePageId);
             
             // Masquer l'indicateur de chargement
             this.hideLoadingIndicator();
+            this.setAppState({ isLoading: false });
             
         } catch (error) {
             console.error(`Erreur chargement page ${pageId}:`, error);
             this.hideLoadingIndicator();
-            this.showErrorPage(`Impossible de charger la page ${pageId}`);
+            this.setAppState({ isLoading: false });
+            this.showErrorPage(`Impossible de charger la page ${pageId}`, error);
         }
     }
 
     showLoadingIndicator() {
-        // Vous pouvez ajouter un indicateur de chargement global ici
         document.documentElement.style.cursor = 'wait';
+        
+        // Ajouter un overlay de chargement si nécessaire
+        if (!document.getElementById('global-loading')) {
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'global-loading';
+            loadingOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(255,255,255,0.8);
+                z-index: 9998;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            `;
+            loadingOverlay.innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">${this.i18n.t('loading')}</span>
+                </div>
+            `;
+            document.body.appendChild(loadingOverlay);
+        }
     }
 
     hideLoadingIndicator() {
         document.documentElement.style.cursor = 'default';
+        const loadingOverlay = document.getElementById('global-loading');
+        if (loadingOverlay) {
+            loadingOverlay.remove();
+        }
     }
 
     // Show page and update navigation
@@ -339,6 +566,19 @@ class AppController {
     async initializePage(pageId) {
         console.log(`🔧 Initialisation page: ${pageId}`);
         
+        // Vérifier les permissions si nécessaire
+        if (pageId === 'members' && !this.checkPermission('view_members')) {
+            return;
+        }
+        
+        if (pageId === 'qr-generator' && !this.checkPermission('generate_qr')) {
+            return;
+        }
+        
+        if (pageId === 'attendance' && !this.checkPermission('view_attendance')) {
+            return;
+        }
+        
         switch(pageId) {
             case 'home':
                 await this.initializeHomePage();
@@ -370,28 +610,33 @@ class AppController {
         
         // Service cards interaction
         this.setupServiceCards();
+        
+        // Update stats from data store
+        this.updateHomePageStats();
+    }
+
+    updateHomePageStats() {
+        const totalMembers = this.dataStore.members.length;
+        const totalAttendance = this.dataStore.attendance.length;
+        
+        // Mettre à jour les compteurs si ils existent
+        const memberCounter = document.querySelector('[data-target="' + totalMembers + '"]');
+        if (memberCounter) {
+            memberCounter.setAttribute('data-target', totalMembers);
+        }
     }
 
     async initializeAboutPage() {
-        // FAQ accordion is handled by Bootstrap
         console.log('📖 Page À Propos initialisée');
     }
 
     async initializeAttendancePage() {
-        // Initialize scanner if available - CORRECTION ICI
         if (this.modules.scanner) {
             try {
-                // Le scanner n'a pas de méthode initialize(), il est déjà prêt
-                // On vérifie juste qu'il fonctionne et on met à jour l'UI
                 console.log('🔍 Vérification du scanner QR...');
-                
-                // Mettre à jour l'interface utilisateur
                 this.modules.scanner.updateScannerUI('stopped');
-                
-                // Configurer les écouteurs d'événements pour les boutons du scanner
                 this.setupScannerEventListeners();
-                
-                console.log('✅ Scanner QR prêt - utilisez les boutons pour démarrer');
+                console.log('✅ Scanner QR prêt');
             } catch (error) {
                 console.warn('Avertissement initialisation scanner:', error);
             }
@@ -404,10 +649,8 @@ class AppController {
         console.log('👤 Initialisation de la page profil...');
         
         try {
-            // Attendre un peu que le DOM soit complètement chargé
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Vérifier si on a des données de membre à afficher
             const memberData = this.getMemberDataForProfile();
             
             if (memberData) {
@@ -424,9 +667,6 @@ class AppController {
         }
     }
 
-    /**
-     * Récupère les données du membre pour la page profil
-     */
     getMemberDataForProfile() {
         try {
             // 1. Essayer depuis l'URL (navigation directe)
@@ -436,7 +676,14 @@ class AppController {
                 if (registrationNumber) {
                     console.log('🔗 Numéro d\'enregistrement détecté dans URL:', registrationNumber);
                     
-                    // Chercher le membre dans les données disponibles
+                    // Chercher dans le store de données
+                    const member = this.dataStore.getMemberByRegistration(registrationNumber);
+                    if (member) {
+                        console.log('✅ Membre trouvé dans dataStore:', member.registrationNumber);
+                        return member;
+                    }
+                    
+                    // Chercher dans API Service
                     if (window.apiService && window.apiService.members) {
                         const member = window.apiService.members.find(m => 
                             m.registrationNumber === registrationNumber
@@ -447,24 +694,12 @@ class AppController {
                         }
                     }
                     
-                    // Chercher dans membersSystem
-                    if (window.membersSystem && window.membersSystem.members) {
-                        const member = window.membersSystem.members.find(m => 
-                            m.registrationNumber === registrationNumber
-                        );
-                        if (member) {
-                            console.log('✅ Membre trouvé via MembersSystem:', member.registrationNumber);
-                            return member;
-                        }
-                    }
-                    
-                    // Si le membre n'est pas trouvé, afficher une erreur
                     console.error('❌ Membre non trouvé:', registrationNumber);
                     this.showNotification(`Membre ${registrationNumber} non trouvé`, 'error');
                 }
             }
             
-            // 2. Essayer depuis sessionStorage (navigation depuis la liste des membres)
+            // 2. Essayer depuis sessionStorage
             const sessionData = sessionStorage.getItem('currentMemberProfile');
             if (sessionData) {
                 const member = JSON.parse(sessionData);
@@ -480,20 +715,14 @@ class AppController {
         }
     }
 
-    /**
-     * Initialise le profil avec les données du membre
-     */
     async initializeProfileWithData(memberData) {
         try {
-            // Stocker les données dans sessionStorage pour le système de profil
             sessionStorage.setItem('currentMemberProfile', JSON.stringify(memberData));
             
-            // Initialiser le système de profil
             if (typeof initializeProfileSystem === 'function') {
                 window.profileSystem = initializeProfileSystem();
                 console.log('✅ Système profil initialisé via appController');
             } else if (typeof ProfileSystem !== 'undefined') {
-                // Fallback - créer une nouvelle instance
                 window.profileSystem = new ProfileSystem();
                 await window.profileSystem.init();
                 console.log('✅ Système profil initialisé via fallback');
@@ -507,9 +736,6 @@ class AppController {
         }
     }
 
-    /**
-     * Affiche un fallback quand le profil ne peut pas être chargé
-     */
     showProfileFallback() {
         const profileContent = document.getElementById('profileContent');
         if (profileContent) {
@@ -534,9 +760,7 @@ class AppController {
         }
     }
 
-    // Nouvelle méthode pour configurer les écouteurs d'événements du scanner
     setupScannerEventListeners() {
-        // Écouteur pour le bouton "Activer le Scanner"
         const startBtn = document.getElementById('startScannerBtn');
         if (startBtn && this.modules.scanner) {
             startBtn.addEventListener('click', () => {
@@ -544,7 +768,6 @@ class AppController {
             });
         }
 
-        // Écouteur pour le bouton "Arrêter le Scanner"
         const stopBtn = document.getElementById('stopScannerBtn');
         if (stopBtn && this.modules.scanner) {
             stopBtn.addEventListener('click', () => {
@@ -552,7 +775,6 @@ class AppController {
             });
         }
 
-        // Écouteur pour le bouton "Entrée Manuelle"
         const manualBtn = document.getElementById('manualEntryBtn');
         if (manualBtn && this.modules.scanner) {
             manualBtn.addEventListener('click', () => {
@@ -560,7 +782,6 @@ class AppController {
             });
         }
 
-        // Écouteur pour le bouton de démo
         const demoBtn = document.getElementById('demoScannerBtn');
         if (demoBtn && this.modules.scanner) {
             demoBtn.addEventListener('click', () => {
@@ -572,16 +793,12 @@ class AppController {
     }
 
     async initializeQRGeneratorPage() {
-        // Initialize QR generator if available
         if (this.modules.qrGenerator) {
             try {
-                // Try different possible initialization methods
                 if (typeof this.modules.qrGenerator.initialize === 'function') {
                     await this.modules.qrGenerator.initialize();
                 } else if (typeof this.modules.qrGenerator.init === 'function') {
                     await this.modules.qrGenerator.init();
-                } else {
-                    console.log('📱 QR Generator prêt à utiliser');
                 }
                 console.log('📱 QR Generator initialisé avec succès');
             } catch (error) {
@@ -592,26 +809,20 @@ class AppController {
         }
     }
 
-    // Dans app.js - méthode initializeMembersPage()
     async initializeMembersPage() {
-        // Load members if available
         if (this.modules.members) {
             try {
                 console.log('👥 Initialisation de la page membres...');
                 
-                // Essayer différentes méthodes d'initialisation
                 if (typeof this.modules.members.loadMembersPage === 'function') {
                     await this.modules.members.loadMembersPage();
-                    console.log('✅ Page membres chargée avec loadMembersPage()');
                 } else if (typeof this.modules.members.loadMembers === 'function') {
                     await this.modules.members.loadMembers();
-                    console.log('✅ Page membres chargée avec loadMembers()');
                 } else if (typeof this.modules.members.init === 'function') {
                     await this.modules.members.init();
-                    console.log('✅ Page membres chargée avec init()');
-                } else {
-                    console.log('👥 Module membres prêt à utiliser');
                 }
+                
+                console.log('✅ Page membres chargée avec succès');
                 
             } catch (error) {
                 console.error('❌ Erreur initialisation members:', error);
@@ -624,7 +835,6 @@ class AppController {
         }
     }
 
-    // Nouvelle méthode de fallback
     showMembersFallback() {
         const container = document.getElementById('membersContainer');
         if (container) {
@@ -651,7 +861,6 @@ class AppController {
     }
 
     async initializeContactPage() {
-        // Contact form initialization
         const contactForm = document.getElementById('contactForm');
         if (contactForm) {
             contactForm.addEventListener('submit', (e) => {
@@ -714,25 +923,40 @@ class AppController {
         form.reset();
     }
 
-    // Error page display
-    showErrorPage(message) {
+    // Enhanced Error page display
+    showErrorPage(message, error = null) {
+        const errorId = Math.random().toString(36).substr(2, 9);
+        console.error(`Erreur ${errorId}:`, error);
+        
         document.getElementById('main-content').innerHTML = `
             <div class="container py-5">
-                <div class="alert alert-danger text-center">
-                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                    <h4>Erreur</h4>
-                    <p>${message}</p>
-                    <button class="btn btn-primary mt-2" data-page="home">
-                        Retour à l'accueil
-                    </button>
+                <div class="alert alert-danger">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                        <h4 class="mb-0">${this.i18n.t('error')} ${errorId}</h4>
+                    </div>
+                    <p class="mb-3">${message}</p>
+                    ${error ? `<details class="mb-3"><summary>Détails techniques</summary><code>${error.toString()}</code></details>` : ''}
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-primary" data-page="home">
+                            <i class="fas fa-home me-2"></i>Accueil
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="location.reload()">
+                            <i class="fas fa-redo me-2"></i>Recharger
+                        </button>
+                        ${!this.appState.isOnline ? `
+                        <button class="btn btn-warning">
+                            <i class="fas fa-wifi-slash me-2"></i>${this.i18n.t('offline')}
+                        </button>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    // Notification system
+    // Enhanced Notification system
     showNotification(message, type = 'info') {
-        // Create notification element
         const notification = document.createElement('div');
         notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
         notification.style.cssText = `
@@ -758,10 +982,8 @@ class AppController {
             </div>
         `;
         
-        // Add to page
         document.body.appendChild(notification);
         
-        // Auto remove after 5 seconds
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.remove();
@@ -790,26 +1012,28 @@ class AppController {
         }
     }
 
-    // Nouvelle méthode pour surveiller l'état du système
+    // Enhanced system status
     showSystemStatus() {
         const status = {
             api: typeof apiService !== 'undefined',
-            members: apiService ? apiService.members.length : 0,
+            members: this.dataStore.members.length,
             demoMode: apiService ? apiService.useDemoData : true,
             modules: Object.keys(this.modules).length,
-            online: navigator.onLine
+            online: this.appState.isOnline,
+            cache: this.pageCache.size,
+            language: this.appState.language
         };
         
         console.log('📊 Statut système:', status);
         
         if (status.demoMode) {
             setTimeout(() => {
-                this.showNotification('Mode démo actif - Données locales utilisées', 'info');
+                this.showNotification(this.i18n.t('demo_mode'), 'info');
             }, 2000);
         }
         
         if (!status.online) {
-            this.showNotification('Mode hors ligne - Fonctionnalités limitées', 'warning');
+            this.showNotification(this.i18n.t('connection_lost') + ' - ' + this.i18n.t('offline'), 'warning');
         }
     }
 
@@ -817,49 +1041,138 @@ class AppController {
     async refreshAllData() {
         console.log('🔄 Rafraîchissement de toutes les données...');
         
-        if (window.apiService && typeof apiService.refreshData === 'function') {
-            await apiService.refreshData();
-        }
+        this.setAppState({ isLoading: true });
         
-        if (this.modules.members && typeof this.modules.members.refreshData === 'function') {
-            await this.modules.members.refreshData();
+        try {
+            if (window.apiService && typeof apiService.refreshData === 'function') {
+                await apiService.refreshData();
+            }
+            
+            if (this.modules.members && typeof this.modules.members.refreshData === 'function') {
+                await this.modules.members.refreshData();
+            }
+            
+            // Mettre à jour le store local
+            if (apiService && apiService.members) {
+                this.dataStore.members = apiService.members;
+                this.dataStore.persistData();
+            }
+            
+            this.showNotification(this.i18n.t('data_updated'), 'success');
+            
+        } catch (error) {
+            console.error('❌ Erreur rafraîchissement données:', error);
+            this.showNotification('Erreur lors de la mise à jour', 'error');
+        } finally {
+            this.setAppState({ isLoading: false });
         }
-        
-        this.showNotification('Données mises à jour', 'success');
     }
 
-    /**
-     * Méthode utilitaire pour naviguer vers un profil spécifique
-     */
+    // Navigation vers profil
     navigateToProfile(registrationNumber) {
         console.log('🧭 Navigation vers profil:', registrationNumber);
         
         // Stocker les données si disponibles
-        if (window.membersSystem && window.membersSystem.members) {
-            const member = window.membersSystem.members.find(m => 
-                m.registrationNumber === registrationNumber
-            );
-            if (member) {
-                sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
-            }
+        const member = this.dataStore.getMemberByRegistration(registrationNumber);
+        if (member) {
+            sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
         }
         
-        // Naviguer vers la page profil
         this.loadPage('profile');
-        
-        // Mettre à jour l'URL
         window.location.hash = `profile${registrationNumber}`;
     }
 
-    // Méthode de débogage
+    // Analytics et tracking
+    trackEvent(category, action, label = null) {
+        const eventData = {
+            category,
+            action,
+            label,
+            timestamp: new Date().toISOString(),
+            page: this.currentPage,
+            user: this.appState.currentUser?.registrationNumber || 'anonymous',
+            online: this.appState.isOnline
+        };
+        
+        console.log('📈 Event:', eventData);
+        
+        // Envoyer à Google Analytics si disponible
+        if (typeof gtag !== 'undefined') {
+            gtag('event', action, {
+                event_category: category,
+                event_label: label
+            });
+        }
+        
+        // Stocker localement pour backup
+        this.storeEventLocally(eventData);
+    }
+
+    storeEventLocally(eventData) {
+        try {
+            const events = JSON.parse(localStorage.getItem('acm_events') || '[]');
+            events.push(eventData);
+            
+            // Garder seulement les 100 derniers événements
+            if (events.length > 100) {
+                events.splice(0, events.length - 100);
+            }
+            
+            localStorage.setItem('acm_events', JSON.stringify(events));
+        } catch (error) {
+            console.warn('Impossible de stocker l\'événement:', error);
+        }
+    }
+
+    // Sync des données hors ligne
+    async syncOfflineData() {
+        if (!this.appState.isOnline) return;
+        
+        console.log('🔄 Synchronisation des données hors ligne...');
+        
+        // Implémenter la logique de sync ici
+        // Par exemple, envoyer les événements stockés localement
+    }
+
+    // Mise à jour de l'UI basée sur l'état
+    updateUIForAppState(state) {
+        // Mettre à jour l'indicateur de connexion
+        const onlineIndicator = document.getElementById('online-indicator');
+        if (onlineIndicator) {
+            onlineIndicator.className = `badge bg-${state.isOnline ? 'success' : 'warning'}`;
+            onlineIndicator.innerHTML = `<i class="fas fa-wifi${state.isOnline ? '' : '-slash'} me-1"></i>${state.isOnline ? this.i18n.t('online') : this.i18n.t('offline')}`;
+        }
+        
+        // Masquer/afficher le loading global
+        if (state.isLoading) {
+            this.showLoadingIndicator();
+        } else {
+            this.hideLoadingIndicator();
+        }
+    }
+
+    // Méthode de débogage améliorée
     debugNavigation() {
         console.log('🐛 DEBUG NAVIGATION:');
         console.log('- Current URL:', window.location.href);
         console.log('- Current hash:', window.location.hash);
         console.log('- Current page:', this.currentPage);
-        console.log('- AppController:', this);
-        console.log('- MembersSystem:', window.membersSystem);
-        console.log('- API Service:', window.apiService);
+        console.log('- App State:', this.appState);
+        console.log('- Data Store:', {
+            members: this.dataStore.members.length,
+            attendance: this.dataStore.attendance.length
+        });
+        console.log('- Page Cache:', this.pageCache.size);
+        console.log('- Modules:', Object.keys(this.modules));
+        console.log('- Online:', this.appState.isOnline);
+        console.log('- Language:', this.appState.language);
+    }
+
+    // Nettoyage
+    destroy() {
+        this.pageCache.clear();
+        sessionStorage.removeItem('currentMemberProfile');
+        console.log('🧹 AppController nettoyé');
     }
 }
 
@@ -870,31 +1183,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Quick start function for immediate feedback
 (function() {
-    // Masquer immédiatement l'indicateur de chargement initial
     const loadingElement = document.querySelector('.spinner-border');
     if (loadingElement) {
         setTimeout(() => {
             loadingElement.style.display = 'none';
-            loadingElement.nextElementSibling.style.display = 'none';
+            if (loadingElement.nextElementSibling) {
+                loadingElement.nextElementSibling.style.display = 'none';
+            }
         }, 500);
     }
 })();
 
-// Fonction globale pour la navigation vers les profils
+// Fonctions globales
 window.openMemberProfile = function(registrationNumber) {
     if (window.appController) {
         window.appController.navigateToProfile(registrationNumber);
     } else {
-        // Fallback direct
         window.location.href = `https://acm-attendance-system.netlify.app/#profile${registrationNumber}`;
     }
 };
 
-// Fonction globale pour le débogage
 window.debugApp = function() {
     if (window.appController) {
         window.appController.debugNavigation();
     } else {
         console.log('❌ AppController non disponible');
+    }
+};
+
+window.refreshAppData = function() {
+    if (window.appController) {
+        window.appController.refreshAllData();
+    }
+};
+
+window.changeLanguage = function(lang) {
+    if (window.appController) {
+        window.appController.i18n.setLanguage(lang);
     }
 };
