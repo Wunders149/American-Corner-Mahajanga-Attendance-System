@@ -323,8 +323,30 @@ class AppController {
     }
 
     async initializeProfilePage() {
-        console.log('👤 Page Profil initialisée');
-        // Le profile.js s'initialise automatiquement
+        console.log('👤 Initialisation de la page profil...');
+        
+        // Attendre que le DOM soit complètement chargé
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.initializeProfileSystem();
+            });
+        } else {
+            await this.initializeProfileSystem();
+        }
+    }
+
+    async initializeProfileSystem() {
+        try {
+            // Vérifier que profileSystem existe
+            if (typeof ProfileSystem !== 'undefined') {
+                window.profileSystem = new ProfileSystem();
+                await window.profileSystem.init();
+            } else {
+                console.error('❌ ProfileSystem non disponible');
+            }
+        } catch (error) {
+            console.error('❌ Erreur initialisation profil:', error);
+        }
     }
 
     // Nouvelle méthode pour configurer les écouteurs d'événements du scanner

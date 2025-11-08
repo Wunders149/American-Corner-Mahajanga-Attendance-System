@@ -2,43 +2,14 @@
 class ProfileSystem {
     constructor() {
         this.member = null;
-        this.isInitialized = false;
+        this.init();
     }
 
     async init() {
         console.log('👤 Initialisation du système de profil...');
-        
-        // Attendre que le DOM soit complètement chargé
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                this.initializeProfile();
-            });
-        } else {
-            await this.initializeProfile();
-        }
-    }
-
-    async initializeProfile() {
-        try {
-            await this.loadMemberData();
-            
-            // Vérifier que l'élément profileContent existe
-            const profileContent = document.getElementById('profileContent');
-            if (!profileContent) {
-                console.error('❌ Élément profileContent non trouvé dans le DOM');
-                this.showError('Erreur d\'affichage du profil');
-                return;
-            }
-            
-            this.renderProfile();
-            this.setupEventListeners();
-            this.isInitialized = true;
-            console.log('✅ Profil initialisé avec succès');
-            
-        } catch (error) {
-            console.error('❌ Erreur initialisation profil:', error);
-            this.showError('Erreur lors du chargement du profil');
-        }
+        await this.loadMemberData();
+        this.renderProfile();
+        this.setupEventListeners();
     }
 
     /**
@@ -51,12 +22,12 @@ class ProfileSystem {
                 this.member = JSON.parse(memberData);
                 console.log('✅ Données membre chargées:', this.member.registrationNumber);
             } else {
-                console.warn('⚠️ Aucune donnée membre trouvée dans sessionStorage');
-                throw new Error('Aucune donnée de membre disponible');
+                console.warn('⚠️ Aucune donnée membre trouvée');
+                this.showError('Aucune donnée de membre disponible');
             }
         } catch (error) {
             console.error('❌ Erreur chargement données membre:', error);
-            throw error;
+            this.showError('Erreur lors du chargement du profil');
         }
     }
 
@@ -69,14 +40,8 @@ class ProfileSystem {
             return;
         }
 
-        const profileContent = document.getElementById('profileContent');
-        if (!profileContent) {
-            console.error('❌ Impossible de trouver profileContent pour le rendu');
-            return;
-        }
-
         const profileHTML = this.createProfileHTML();
-        profileContent.innerHTML = profileHTML;
+        document.getElementById('profileContent').innerHTML = profileHTML;
         
         // Mettre à jour le titre de la page
         document.title = `${this.member.firstName} ${this.member.lastName} - Profil Membre | American Corner Mahajanga`;
@@ -147,14 +112,14 @@ class ProfileSystem {
 
                     <!-- Actions rapides -->
                     <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-primary" onclick="window.profileSystem.generateQRCode()">
+                        <button class="btn btn-primary" onclick="profileSystem.generateQRCode()">
                             <i class="fas fa-qrcode me-2"></i>Générer Carte QR
                         </button>
-                        <button class="btn btn-outline-success" onclick="window.profileSystem.quickGenerateQR()">
+                        <button class="btn btn-outline-success" onclick="profileSystem.quickGenerateQR()">
                             <i class="fas fa-bolt me-2"></i>QR Rapide
                         </button>
                         ${this.member.email || this.member.phoneNumber ? `
-                        <button class="btn btn-outline-info" onclick="window.profileSystem.showContactOptions()">
+                        <button class="btn btn-outline-info" onclick="profileSystem.showContactOptions()">
                             <i class="fas fa-envelope me-2"></i>Contacter
                         </button>
                         ` : ''}
@@ -457,33 +422,16 @@ class ProfileSystem {
      * Gestion des erreurs
      */
     showError(message) {
-        const profileContent = document.getElementById('profileContent');
-        if (profileContent) {
-            profileContent.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
-                    <h3 class="text-warning">Erreur</h3>
-                    <p class="text-muted mb-4">${message}</p>
-                    <button class="btn btn-primary" onclick="goBack()">
-                        <i class="fas fa-arrow-left me-2"></i>Retour aux membres
-                    </button>
-                </div>
-            `;
-        } else {
-            // Fallback si profileContent n'existe toujours pas
-            document.body.innerHTML = `
-                <div class="container py-5">
-                    <div class="alert alert-danger text-center">
-                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                        <h4>Erreur Critique</h4>
-                        <p>${message}</p>
-                        <button class="btn btn-primary mt-2" onclick="goBack()">
-                            Retour aux membres
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
+        document.getElementById('profileContent').innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                <h3 class="text-warning">Erreur</h3>
+                <p class="text-muted mb-4">${message}</p>
+                <button class="btn btn-primary" onclick="goBack()">
+                    <i class="fas fa-arrow-left me-2"></i>Retour aux membres
+                </button>
+            </div>
+        `;
     }
 
     showNotification(message, type = 'info') {
@@ -527,24 +475,13 @@ function goBack() {
     }
 }
 
-// Initialisation différée
+// Initialisation
 let profileSystem;
 
-// Attendre que le DOM soit complètement chargé
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('👤 DOM chargé, initialisation du profil...');
-        profileSystem = new ProfileSystem();
-        profileSystem.init();
-    });
-} else {
-    console.log('👤 DOM déjà chargé, initialisation immédiate du profil...');
+document.addEventListener('DOMContentLoaded', () => {
     profileSystem = new ProfileSystem();
-    profileSystem.init();
-}
+});
 
 // Exposer globalement
 window.profileSystem = profileSystem;
 window.goBack = goBack;
-
-console.log('👤 Script profile.js chargé');
