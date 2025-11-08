@@ -1,50 +1,50 @@
-<!-- Members Page - VERSION AMÉLIORÉE -->
+<!-- Members Page - ENHANCED VERSION -->
 <section id="members" class="page-section py-5">
     <div class="container">
-        <!-- Header avec navigation et actions -->
+        <!-- Header with navigation and actions -->
         <div class="row align-items-center mb-4">
             <div class="col-md-6">
-                <button class="btn btn-outline-primary" data-page="home" aria-label="Retour à l'accueil">
-                    <i class="fas fa-arrow-left me-2"></i>Retour à l'Accueil
+                <button class="btn btn-outline-primary" data-page="home" aria-label="Return to homepage">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Home
                 </button>
             </div>
             <div class="col-md-6 text-md-end">
                 <div class="d-flex gap-2 justify-content-md-end">
-                    <button class="btn btn-outline-success btn-sm" onclick="membersSystem.exportMembers()" aria-label="Exporter les membres">
-                        <i class="fas fa-download me-1"></i>Exporter
+                    <button class="btn btn-outline-success btn-sm" onclick="membersSystem.exportMembers()" aria-label="Export members">
+                        <i class="fas fa-download me-1"></i>Export
                     </button>
-                    <button class="btn btn-outline-info btn-sm" onclick="membersSystem.showStats()" aria-label="Voir les statistiques">
-                        <i class="fas fa-chart-bar me-1"></i>Statistiques
+                    <button class="btn btn-outline-info btn-sm" onclick="membersSystem.showStats()" aria-label="View statistics">
+                        <i class="fas fa-chart-bar me-1"></i>Statistics
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- En-tête de page -->
+        <!-- Page header -->
         <div class="row mb-5">
             <div class="col-12 text-center">
                 <div class="page-header">
-                    <h1 class="display-5 fw-bold text-primary mb-3">Nos Membres</h1>
-                    <p class="lead text-muted mb-4">Découvrez notre communauté dynamique de membres engagés dans les activités de l'American Corner Mahajanga</p>
+                    <h1 class="display-5 fw-bold text-primary mb-3">Our Members</h1>
+                    <p class="lead text-muted mb-4">Discover our dynamic community of members engaged in American Corner Mahajanga activities</p>
                     
-                    <!-- Indicateurs rapides -->
+                    <!-- Quick indicators -->
                     <div class="row justify-content-center">
                         <div class="col-auto">
                             <div class="stat-card">
                                 <div class="stat-number text-primary" id="totalMembers">0</div>
-                                <div class="stat-label">Membres Total</div>
+                                <div class="stat-label">Total Members</div>
                             </div>
                         </div>
                         <div class="col-auto">
                             <div class="stat-card">
                                 <div class="stat-number text-success" id="activeMembers">0</div>
-                                <div class="stat-label">Actifs Ce Mois</div>
+                                <div class="stat-label">Active This Month</div>
                             </div>
                         </div>
                         <div class="col-auto">
                             <div class="stat-card">
                                 <div class="stat-number text-info" id="newMembers">0</div>
-                                <div class="stat-label">Nouveaux</div>
+                                <div class="stat-label">New Members</div>
                             </div>
                         </div>
                     </div>
@@ -52,9 +52,9 @@
             </div>
         </div>
 
-        <!-- Conteneur principal des membres -->
+        <!-- Main members container -->
         <div class="row g-4" id="membersContainer">
-            <!-- Les membres seront chargés ici dynamiquement avec skeleton loading -->
+            <!-- Members will be loaded here dynamically with skeleton loading -->
         </div>
     </div>
 </section>
