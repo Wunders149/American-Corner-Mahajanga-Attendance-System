@@ -1,4 +1,4 @@
-// members.js - Complete member management system for American Corner Mahajanga - VERSION WITH QR LINKAGE
+// members.js - Complete member management system for American Corner Mahajanga - VERSION WITH PROFILE NAVIGATION
 class MembersSystem {
     constructor() {
         this.members = [];
@@ -278,6 +278,61 @@ class MembersSystem {
         }
         
         return null;
+    }
+
+    // ==================== PROFILE PAGE NAVIGATION ====================
+
+    /**
+     * Navigates to member profile page in new tab
+     * @param {Object} member - Member data
+     */
+    navigateToProfilePage(member) {
+        console.log('🧭 Navigating to profile of:', member.registrationNumber);
+        
+        // Store member data for profile page
+        sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
+        
+        // Use the specific URL format requested
+        const profileUrl = `https://acm-attendance-system.netlify.app/#profile${member.registrationNumber}`;
+        
+        console.log('🔗 Opening profile URL:', profileUrl);
+        
+        // Open in new tab/window
+        window.open(profileUrl, '_blank');
+        
+        this.showNotification(`Profile of ${member.firstName} ${member.lastName} opened in new tab`, 'info');
+    }
+
+    /**
+     * Alternative method to open profile in current tab
+     */
+    navigateToProfilePageCurrentTab(member) {
+        console.log('🧭 Navigating to profile in current tab:', member.registrationNumber);
+        
+        // Store member data for profile page
+        sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
+        
+        // Use the specific URL format requested
+        const profileUrl = `https://acm-attendance-system.netlify.app/#profile${member.registrationNumber}`;
+        
+        console.log('🔗 Redirecting to profile URL:', profileUrl);
+        
+        // Redirect current tab
+        window.location.href = profileUrl;
+    }
+
+    /**
+     * Displays detailed member profile
+     * @param {number} memberId - Member ID
+     */
+    viewMemberDetails(memberId) {
+        const member = this.members.find(m => m.id === memberId);
+        if (member) {
+            console.log('👤 Displaying profile:', member.registrationNumber);
+            this.navigateToProfilePage(member);
+        } else {
+            this.showNotification('Member not found', 'error');
+        }
     }
 
     // ==================== EXISTING FUNCTIONS (WITH UPDATES) ====================
@@ -1154,13 +1209,16 @@ class MembersSystem {
                         </div>
                     </div>
                     
-                    <!-- Actions WITH ENHANCED QR BUTTONS -->
+                    <!-- Actions WITH DIRECT PROFILE LINK -->
                     <div class="card-footer bg-transparent border-top-0 pt-0 member-actions">
                         <div class="d-grid gap-2">
-                            <button class="btn btn-primary btn-sm" 
-                                    onclick="membersSystem.viewMemberDetails(${member.id})">
+                            <!-- Bouton avec lien direct vers le profil -->
+                            <a href="https://acm-attendance-system.netlify.app/#profile${member.registrationNumber}" 
+                               target="_blank"
+                               class="btn btn-primary btn-sm">
                                 <i class="fas fa-eye me-1"></i>View Profile
-                            </button>
+                            </a>
+                            
                             <div class="btn-group" role="group">
                                 <button class="btn btn-outline-success btn-sm" 
                                         onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
@@ -1227,11 +1285,14 @@ class MembersSystem {
                                     </div>
                                     <div class="col-md-2 text-end">
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" 
-                                                    onclick="membersSystem.viewMemberDetails(${member.id})"
-                                                    title="View profile">
+                                            <!-- Lien direct vers le profil -->
+                                            <a href="https://acm-attendance-system.netlify.app/#profile${member.registrationNumber}" 
+                                               target="_blank"
+                                               class="btn btn-outline-primary"
+                                               title="View profile">
                                                 <i class="fas fa-eye"></i>
-                                            </button>
+                                            </a>
+                                            
                                             <button class="btn btn-outline-success" 
                                                     onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
                                                     title="Generate QR Code">
@@ -1260,181 +1321,7 @@ class MembersSystem {
         `;
     }
 
-    /**
-     * Displays detailed member profile
-     * @param {number} memberId - Member ID
-     */
-    viewMemberDetails(memberId) {
-        const member = this.members.find(m => m.id === memberId);
-        if (member) {
-            console.log('👤 Displaying profile:', member.registrationNumber);
-            this.navigateToProfilePage(member);
-        } else {
-            this.showNotification('Member not found', 'error');
-        }
-    }
-
-    /**
-     * Navigates to member profile page
-     * @param {Object} member - Member data
-     */
-    navigateToProfilePage(member) {
-        console.log('🧭 Navigating to profile of:', member.registrationNumber);
-        
-        // Store member data for profile page
-        sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
-        
-        // Use application controller to navigate
-        if (window.appController && typeof window.appController.loadPage === 'function') {
-            window.appController.loadPage('profile');
-            this.showNotification(`Profile of ${member.firstName} ${member.lastName}`, 'info');
-        } else {
-            // Fallback: direct redirect
-            console.warn('AppController unavailable, fallback to profile.html');
-            window.location.href = 'profile.html';
-        }
-    }
-
-    /**
-     * Navigates to member profile page
-     * @param {Object} member - Member data
-     */
-    navigateToProfilePage(member) {
-        console.log('🧭 Navigating to profile of:', member.registrationNumber);
-        
-        // Store member data for profile page
-        sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
-        
-        // Try different navigation methods
-        if (window.appController && typeof window.appController.loadPage === 'function') {
-            try {
-                window.appController.loadPage('profile');
-                this.showNotification(`Profile of ${member.firstName} ${member.lastName}`, 'info');
-            } catch (error) {
-                console.warn('❌ Navigation via appController failed, trying alternative...', error);
-                this.fallbackToProfilePage();
-            }
-        } else {
-            this.fallbackToProfilePage();
-        }
-    }
-
-    /**
-     * Fallback method for profile page navigation
-     */
-    fallbackToProfilePage() {
-        // Method 1: Check if profile section exists in DOM
-        const profileSection = document.getElementById('profile');
-        if (profileSection) {
-            console.log('✅ Profile section found in DOM');
-            this.showProfileInSection();
-            return;
-        }
-        
-        // Method 2: Redirect to profile.html
-        console.log('🔄 Redirecting to profile.html');
-        window.location.href = 'profile.html';
-    }
-
-    /**
-     * Displays profile in existing section (for single-page applications)
-     */
-    showProfileInSection() {
-        // Hide all other sections
-        document.querySelectorAll('.page-section').forEach(section => {
-            section.style.display = 'none';
-        });
-        
-        // Show profile section
-        const profileSection = document.getElementById('profile');
-        if (profileSection) {
-            profileSection.style.display = 'block';
-            
-            // Load profile data
-            this.loadProfileData();
-            
-            // Scroll to top
-            window.scrollTo(0, 0);
-        }
-    }
-
-    /**
-     * Loads and displays profile data in section
-     */
-    loadProfileData() {
-        try {
-            const memberData = sessionStorage.getItem('currentMemberProfile');
-            if (memberData) {
-                const member = JSON.parse(memberData);
-                this.renderProfilePage(member);
-            }
-        } catch (error) {
-            console.error('❌ Profile data loading error:', error);
-            this.showProfileError();
-        }
-    }
-
-    /**
-     * Displays profile in page
-     * @param {Object} member - Member data
-     */
-    renderProfilePage(member) {
-        const profileContent = document.getElementById('profileContent');
-        if (!profileContent) return;
-
-        const profileHTML = this.createProfileHTML(member);
-        profileContent.innerHTML = profileHTML;
-        
-        // Update page title
-        document.title = `${member.firstName} ${member.lastName} - Member Profile | American Corner Mahajanga`;
-    }
-
-    /**
-     * Creates profile HTML (identical to profile.js)
-     */
-    createProfileHTML(member) {
-        // Use exactly the same code from createProfileHTML method
-        // from the profile.js file I provided earlier
-        // ... (complete HTML code)
-    }
-
-    /**
-     * Displays error in profile section
-     */
-    showProfileError() {
-        const profileContent = document.getElementById('profileContent');
-        if (profileContent) {
-            profileContent.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
-                    <h3 class="text-warning">Error</h3>
-                    <p class="text-muted mb-4">Unable to load member profile</p>
-                    <button class="btn btn-primary" onclick="membersSystem.returnToMembers()">
-                        <i class="fas fa-arrow-left me-2"></i>Back to members
-                    </button>
-                </div>
-            `;
-        }
-    }
-
-    /**
-     * Returns to members list
-     */
-    returnToMembers() {
-        if (window.appController && typeof window.appController.loadPage === 'function') {
-            window.appController.loadPage('members');
-        } else {
-            // Fallback
-            document.querySelectorAll('.page-section').forEach(section => {
-                section.style.display = 'none';
-            });
-            document.getElementById('members').style.display = 'block';
-        }
-    }
-
-    // In showMemberModal method - Replace all modal management with:
-
-showMemberModal(member) {
+    showMemberModal(member) {
         const initials = this.getInitials(member.firstName, member.lastName);
         const profileImageUrl = window.apiService ? 
             window.apiService.getProfileImageUrl(member.profileImage) : 
@@ -1581,6 +1468,12 @@ showMemberModal(member) {
                                     onclick="membersSystem.generateMemberQR('${member.registrationNumber}'); bootstrap.Modal.getInstance(document.getElementById('memberProfileModal')).hide();">
                                 <i class="fas fa-qrcode me-1"></i>Generate QR card
                             </button>
+                            <!-- Nouveau bouton pour ouvrir le profil complet -->
+                            <a href="https://acm-attendance-system.netlify.app/#profile${member.registrationNumber}" 
+                               target="_blank"
+                               class="btn btn-success">
+                                <i class="fas fa-external-link-alt me-1"></i>Open Full Profile
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -2047,5 +1940,5 @@ window.membersSystem = membersSystem;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('👥 Member system ready with QR linkage');
+    console.log('👥 Member system ready with Profile navigation');
 });
