@@ -1,4 +1,4 @@
-// American Corner Mahajanga - Main Application Controller
+// American Corner Mahajanga - Contrôleur Principal d'Application
 class AppController {
     constructor() {
         this.currentPage = 'home';
@@ -251,13 +251,13 @@ class AppController {
         }
     }
 
-    // Initialisation des modules avec lazy loading
+    // Initialisation des modules avec lazy loading - CORRIGÉE
     async initializeModules() {
         console.log('🔧 Initialisation des modules...');
         
         const modulesToLoad = [
             { name: 'scanner', globalVar: 'qrScanner' },
-            { name: 'qrgGenerator', globalVar: 'qrGenerator' },
+            { name: 'qrGenerator', globalVar: 'qrGenerator' },
             { name: 'members', globalVar: 'membersSystem' },
             { name: 'profile', globalVar: 'ProfileSystem' }
         ];
@@ -265,34 +265,95 @@ class AppController {
         for (const module of modulesToLoad) {
             try {
                 await this.loadModule(module.name, module.globalVar);
+                
+                // Initialiser le module s'il est disponible
+                if (this.modules[module.name] && this.modules[module.name].isAvailable !== false) {
+                    if (typeof this.modules[module.name].init === 'function') {
+                        await this.modules[module.name].init();
+                        console.log(`✅ Module ${module.name} initialisé`);
+                    }
+                } else {
+                    console.log(`⚠️ Module ${module.name} non disponible, continuation sans...`);
+                }
             } catch (error) {
-                console.warn(`❌ Module ${module.name} non disponible:`, error);
+                console.warn(`❌ Erreur initialisation module ${module.name}:`, error);
+                // Continuer même si un module échoue
             }
         }
+        
+        console.log('🔧 Tous les modules traités');
     }
 
+    // Méthode loadModule - CORRIGÉE
     async loadModule(moduleName, globalVar) {
         if (this.modules[moduleName]) return this.modules[moduleName];
         
+        // Vérifier d'abord si le module est disponible globalement
         if (typeof window[globalVar] !== 'undefined') {
             this.modules[moduleName] = window[globalVar];
-            console.log(`✅ Module ${moduleName} détecté`);
+            console.log(`✅ Module ${moduleName} détecté globalement`);
             return this.modules[moduleName];
         }
         
-        // Fallback: essayer de charger dynamiquement
+        // Fallback: essayer de charger dynamiquement avec gestion d'erreur améliorée
         try {
-            const module = await import(`./modules/${moduleName}.js`);
-            this.modules[moduleName] = module.default || module;
-            console.log(`✅ Module ${moduleName} chargé dynamiquement`);
+            // Pour les modules qui sont déjà chargés via script dans le HTML
+            switch(moduleName) {
+                case 'profile':
+                    if (typeof initializeProfileSystem !== 'undefined') {
+                        this.modules[moduleName] = { init: initializeProfileSystem };
+                        console.log(`✅ Module ${moduleName} chargé via fonction globale`);
+                        return this.modules[moduleName];
+                    }
+                    break;
+                case 'members':
+                    if (typeof membersSystem !== 'undefined') {
+                        this.modules[moduleName] = membersSystem;
+                        console.log(`✅ Module ${moduleName} détecté`);
+                        return this.modules[moduleName];
+                    }
+                    break;
+                case 'scanner':
+                    if (typeof qrScanner !== 'undefined') {
+                        this.modules[moduleName] = qrScanner;
+                        console.log(`✅ Module ${moduleName} détecté`);
+                        return this.modules[moduleName];
+                    }
+                    break;
+                case 'qrGenerator':
+                    if (typeof qrGenerator !== 'undefined') {
+                        this.modules[moduleName] = qrGenerator;
+                        console.log(`✅ Module ${moduleName} détecté`);
+                        return this.modules[moduleName];
+                    }
+                    break;
+            }
+            
+            // Si le module n'est pas trouvé, créer un placeholder
+            console.warn(`⚠️ Module ${moduleName} non trouvé, création d'un placeholder`);
+            this.modules[moduleName] = {
+                init: () => Promise.resolve(),
+                isAvailable: false
+            };
+            
             return this.modules[moduleName];
+            
         } catch (error) {
-            throw new Error(`Module ${moduleName} non trouvé`);
+            console.warn(`⚠️ Erreur chargement module ${moduleName}:`, error);
+            
+            // Créer un module placeholder pour éviter les erreurs
+            this.modules[moduleName] = {
+                init: () => Promise.resolve(),
+                isAvailable: false,
+                error: error.message
+            };
+            
+            return this.modules[moduleName];
         }
     }
 
     setupEventListeners() {
-        // Navigation event delegation - enhanced to handle all dynamic content
+        // Navigation event delegation - enhanced to handle all dynamic content - CORRIGÉE
         document.addEventListener('click', (e) => {
             const link = e.target.closest('a');
             
@@ -644,26 +705,126 @@ class AppController {
         }
     }
 
+    // Méthode initializeProfilePage - CORRIGÉE
     async initializeProfilePage() {
         console.log('👤 Initialisation de la page profil...');
         
         try {
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            const memberData = this.getMemberDataForProfile();
-            
-            if (memberData) {
-                console.log('✅ Données membre disponibles pour le profil:', memberData.registrationNumber);
-                await this.initializeProfileWithData(memberData);
+            // Vérifier si le module profile est disponible
+            if (this.modules.profile && this.modules.profile.isAvailable !== false) {
+                console.log('✅ Utilisation du module profil');
+                
+                const memberData = this.getMemberDataForProfile();
+                
+                if (memberData) {
+                    console.log('✅ Données membre disponibles pour le profil:', memberData.registrationNumber);
+                    
+                    // Stocker les données pour le module profile
+                    sessionStorage.setItem('currentMemberProfile', JSON.stringify(memberData));
+                    
+                    // Initialiser le système de profil
+                    if (typeof this.modules.profile.init === 'function') {
+                        await this.modules.profile.init();
+                    } else if (typeof initializeProfileSystem === 'function') {
+                        await initializeProfileSystem();
+                    }
+                    
+                } else {
+                    console.warn('⚠️ Aucune donnée membre disponible pour le profil');
+                    this.showProfileFallback();
+                }
             } else {
-                console.warn('⚠️ Aucune donnée membre disponible pour le profil');
-                this.showProfileFallback();
+                console.warn('⚠️ Module profil non disponible, utilisation du fallback');
+                this.initializeProfileFallback();
             }
             
         } catch (error) {
             console.error('❌ Erreur initialisation page profil:', error);
             this.showProfileFallback();
         }
+    }
+
+    // Nouvelle méthode pour gérer le profil sans module
+    initializeProfileFallback() {
+        console.log('🔄 Initialisation fallback du profil...');
+        
+        const memberData = this.getMemberDataForProfile();
+        
+        if (!memberData) {
+            this.showProfileFallback();
+            return;
+        }
+        
+        // Rendu basique du profil sans module dédié
+        this.renderBasicProfile(memberData);
+    }
+
+    renderBasicProfile(memberData) {
+        const profileContent = document.getElementById('profileContent');
+        if (!profileContent) return;
+        
+        const { firstName, lastName, registrationNumber, email, phoneNumber, occupation, studyOrWorkPlace, joinDate } = memberData;
+        
+        profileContent.innerHTML = `
+            <div class="container py-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <button class="btn btn-light btn-sm" onclick="appController.loadPage('members')">
+                            <i class="fas fa-arrow-left me-1"></i>Retour
+                        </button>
+                        <h5 class="mb-0 ms-2 d-inline">Profil Membre</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 text-center">
+                                <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                     style="width: 100px; height: 100px;">
+                                    <span class="text-white fw-bold fs-4">
+                                        ${firstName?.charAt(0)}${lastName?.charAt(0)}
+                                    </span>
+                                </div>
+                                <h4 class="mt-3">${firstName} ${lastName}</h4>
+                                <span class="badge bg-secondary">${registrationNumber}</span>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="row">
+                                    <div class="col-6 mb-3">
+                                        <strong>Occupation:</strong><br>
+                                        <span class="text-muted">${occupation || 'Non spécifié'}</span>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <strong>Lieu:</strong><br>
+                                        <span class="text-muted">${studyOrWorkPlace || 'Non spécifié'}</span>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <strong>Email:</strong><br>
+                                        <span class="text-muted">${email || 'Non spécifié'}</span>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <strong>Téléphone:</strong><br>
+                                        <span class="text-muted">${phoneNumber || 'Non spécifié'}</span>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <strong>Date d'adhésion:</strong><br>
+                                        <span class="text-muted">${joinDate ? new Date(joinDate).toLocaleDateString('fr-FR') : 'Non spécifié'}</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <button class="btn btn-primary me-2" onclick="appController.showNotification('Fonction QR non disponible', 'warning')">
+                                        <i class="fas fa-qrcode me-1"></i>Générer QR
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="appController.loadPage('members')">
+                                        <i class="fas fa-users me-1"></i>Retour aux membres
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     getMemberDataForProfile() {
@@ -711,27 +872,6 @@ class AppController {
         } catch (error) {
             console.error('❌ Erreur récupération données membre:', error);
             return null;
-        }
-    }
-
-    async initializeProfileWithData(memberData) {
-        try {
-            sessionStorage.setItem('currentMemberProfile', JSON.stringify(memberData));
-            
-            if (typeof initializeProfileSystem === 'function') {
-                window.profileSystem = initializeProfileSystem();
-                console.log('✅ Système profil initialisé via appController');
-            } else if (typeof ProfileSystem !== 'undefined') {
-                window.profileSystem = new ProfileSystem();
-                await window.profileSystem.init();
-                console.log('✅ Système profil initialisé via fallback');
-            } else {
-                throw new Error('Aucun système profil disponible');
-            }
-            
-        } catch (error) {
-            console.error('❌ Erreur initialisation profil avec données:', error);
-            throw error;
         }
     }
 
@@ -1167,6 +1307,30 @@ class AppController {
         console.log('- Language:', this.appState.language);
     }
 
+    // Méthode de débogage pour vérifier les modules
+    debugModules() {
+        console.log('🐛 DEBUG MODULES:');
+        console.log('- Modules chargés:', Object.keys(this.modules));
+        
+        // Vérifier la disponibilité globale
+        console.log('- Variables globales disponibles:');
+        console.log('  * initializeProfileSystem:', typeof initializeProfileSystem);
+        console.log('  * membersSystem:', typeof membersSystem);
+        console.log('  * qrScanner:', typeof qrScanner);
+        console.log('  * qrGenerator:', typeof qrGenerator);
+        console.log('  * ProfileSystem:', typeof ProfileSystem);
+        
+        // Vérifier l'état de chaque module
+        Object.keys(this.modules).forEach(moduleName => {
+            const module = this.modules[moduleName];
+            console.log(`  - ${moduleName}:`, {
+                available: module.isAvailable !== false,
+                hasInit: typeof module.init === 'function',
+                error: module.error || 'none'
+            });
+        });
+    }
+
     // Nettoyage
     destroy() {
         this.pageCache.clear();
@@ -1205,6 +1369,14 @@ window.openMemberProfile = function(registrationNumber) {
 window.debugApp = function() {
     if (window.appController) {
         window.appController.debugNavigation();
+    } else {
+        console.log('❌ AppController non disponible');
+    }
+};
+
+window.debugModules = function() {
+    if (window.appController) {
+        window.appController.debugModules();
     } else {
         console.log('❌ AppController non disponible');
     }

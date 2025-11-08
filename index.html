@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="American Corner Mahajanga - Complete QR code member management and attendance system">
-    <title>American Corner Mahajanga - Complete System</title>
+    <meta name="description" content="American Corner Mahajanga - Système complet de gestion des membres et présence par QR code">
+    <title>American Corner Mahajanga - Système Complet</title>
     
-    <!-- Inline favicon to avoid 404 error -->
+    <!-- Favicon inline pour éviter les erreurs 404 -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇺🇸</text></svg>">
     
     <!-- Libraries -->
@@ -16,17 +16,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom CSS -->
+    <!-- CSS Personnalisé -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/member.css">
     <link rel="stylesheet" href="css/qr-generator.css">
+    <link rel="stylesheet" href="css/profile.css">
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="#home" id="nav-home" aria-label="Return to American Corner Mahajanga homepage">
+            <a class="navbar-brand" href="#home" id="nav-home" aria-label="Retour à la page d'accueil American Corner Mahajanga">
                 <i class="fas fa-university me-2" aria-hidden="true"></i>
                 American Corner Mahajanga
             </a>
@@ -37,46 +38,46 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#home" data-page="home" aria-label="Go to homepage">Home</a>
+                        <a class="nav-link active" href="#home" data-page="home" aria-label="Aller à la page d'accueil">Accueil</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#about" data-page="about" aria-label="Learn more about American Corner">About</a>
+                        <a class="nav-link" href="#about" data-page="about" aria-label="En savoir plus sur American Corner">À Propos</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#attendance" data-page="attendance" aria-label="Access the attendance system">Attendance</a>
+                        <a class="nav-link" href="#attendance" data-page="attendance" aria-label="Accéder au système de présence">Présence</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#qr-generator" data-page="qr-generator" aria-label="Generate QR codes">QR Codes</a>
+                        <a class="nav-link" href="#qr-generator" data-page="qr-generator" aria-label="Générer des QR codes">QR Codes</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#members" data-page="members" aria-label="View member list">Members</a>
+                        <a class="nav-link" href="#members" data-page="members" aria-label="Voir la liste des membres">Membres</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#contact" data-page="contact" aria-label="Contact us">Contact</a>
+                        <a class="nav-link" href="#contact" data-page="contact" aria-label="Nous contacter">Contact</a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content Area -->
+    <!-- Zone de contenu principal -->
     <main id="main-content">
-        <!-- Pages will be loaded here dynamically -->
+        <!-- Les pages seront chargées ici dynamiquement -->
         <div class="container py-5 text-center">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">Chargement...</span>
             </div>
-            <p class="mt-2">Loading application...</p>
+            <p class="mt-2">Chargement de l'application...</p>
         </div>
     </main>
 
-    <!-- Footer -->
+    <!-- Pied de page -->
     <footer class="footer">
         <div class="container">
             <div class="row">
                 <div class="col-md-4 mb-4 mb-md-0">
                     <h5>American Corner Mahajanga</h5>
-                    <p>A partnership between the U.S. Embassy in Madagascar and the University of Mahajanga.</p>
+                    <p>Un partenariat entre l'Ambassade des États-Unis à Madagascar et l'Université de Mahajanga.</p>
                     <div class="social-icons">
                         <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
                         <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
@@ -85,40 +86,40 @@
                     </div>
                 </div>
                 <div class="col-md-4 mb-4 mb-md-0">
-                    <h5>Quick Links</h5>
+                    <h5>Liens Rapides</h5>
                     <ul class="list-unstyled">
-                        <li><a href="#home" class="text-white text-decoration-none" data-page="home">Home</a></li>
-                        <li><a href="#about" class="text-white text-decoration-none" data-page="about">About</a></li>
-                        <li><a href="#attendance" class="text-white text-decoration-none" data-page="attendance">Attendance</a></li>
+                        <li><a href="#home" class="text-white text-decoration-none" data-page="home">Accueil</a></li>
+                        <li><a href="#about" class="text-white text-decoration-none" data-page="about">À Propos</a></li>
+                        <li><a href="#attendance" class="text-white text-decoration-none" data-page="attendance">Présence</a></li>
                         <li><a href="#qr-generator" class="text-white text-decoration-none" data-page="qr-generator">QR Codes</a></li>
                         <li><a href="#contact" class="text-white text-decoration-none" data-page="contact">Contact</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
-                    <h5>Resources</h5>
+                    <h5>Ressources</h5>
                     <ul class="list-unstyled">
-                        <li><a href="https://mg.usembassy.gov" class="text-white text-decoration-none" target="_blank">U.S. Embassy Madagascar</a></li>
+                        <li><a href="https://mg.usembassy.gov" class="text-white text-decoration-none" target="_blank">Ambassade USA Madagascar</a></li>
                         <li><a href="https://educationusa.state.gov" class="text-white text-decoration-none" target="_blank">EducationUSA</a></li>
-                        <li><a href="https://exchanges.state.gov" class="text-white text-decoration-none" target="_blank">Exchange Programs</a></li>
+                        <li><a href="https://exchanges.state.gov" class="text-white text-decoration-none" target="_blank">Programmes d'échange</a></li>
                     </ul>
                 </div>
             </div>
             <hr class="mt-4 mb-3">
             <div class="row">
                 <div class="col-md-12 text-center">
-                    <p class="mb-0">&copy; 2024 American Corner Mahajanga. All rights reserved.</p>
+                    <p class="mb-0">&copy; 2024 American Corner Mahajanga. Tous droits réservés.</p>
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- Custom JavaScript - CORRECT NEW ORDER -->
+    <!-- JavaScript Personnalisé - ORDRE CORRECT -->
     <script src="js/api.js"></script>
     <script src="js/members.js"></script>
     <script src="js/scanner.js"></script>
     <script src="js/attendance.js"></script>
     <script src="js/qr-generator.js"></script>
     <script src="js/profile.js"></script>
-    <script src="js/app.js"></script> <!-- App.js LAST -->
+    <script src="js/app.js"></script> <!-- App.js TOUJOURS en dernier -->
 </body>
 </html>
