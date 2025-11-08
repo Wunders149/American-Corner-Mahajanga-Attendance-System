@@ -43,16 +43,108 @@ class ProfileSystem {
     // ==================== GESTION DES DONNÉES ====================
     async loadMemberData() {
         try {
+            // Essayer d'abord de récupérer depuis l'URL
+            const memberFromURL = this.getMemberFromURL();
+            if (memberFromURL) {
+                this.member = memberFromURL;
+                console.log('✅ Données membre chargées depuis URL:', this.member.registrationNumber);
+                return;
+            }
+            
+            // Fallback: sessionStorage
             const memberData = sessionStorage.getItem('currentMemberProfile');
             if (!memberData) {
                 throw new Error('Aucune donnée membre trouvée');
             }
             
             this.member = JSON.parse(memberData);
-            console.log('✅ Données membre chargées:', this.member.registrationNumber);
+            console.log('✅ Données membre chargées depuis sessionStorage:', this.member.registrationNumber);
         } catch (error) {
             console.error('❌ Erreur chargement données membre:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Récupère les données du membre depuis l'URL
+     */
+    getMemberFromURL() {
+        try {
+            // Récupérer le numéro d'enregistrement depuis l'URL
+            const hash = window.location.hash;
+            if (!hash || !hash.includes('profile')) {
+                return null;
+            }
+
+            // Format: #profile{registrationNumber}
+            const registrationNumber = hash.replace('#profile', '');
+            if (!registrationNumber) {
+                return null;
+            }
+
+            console.log('🔗 Numéro d\'enregistrement détecté dans URL:', registrationNumber);
+
+            // Chercher le membre dans les données existantes
+            if (window.membersSystem && window.membersSystem.members) {
+                const member = window.membersSystem.members.find(m => 
+                    m.registrationNumber === registrationNumber
+                );
+                
+                if (member) {
+                    console.log('✅ Membre trouvé via membersSystem:', member.registrationNumber);
+                    return member;
+                }
+            }
+
+            // Fallback: chercher dans sessionStorage ou localStorage
+            const cachedMembers = this.getCachedMembers();
+            if (cachedMembers) {
+                const member = cachedMembers.find(m => 
+                    m.registrationNumber === registrationNumber
+                );
+                
+                if (member) {
+                    console.log('✅ Membre trouvé dans le cache:', member.registrationNumber);
+                    return member;
+                }
+            }
+
+            console.warn('⚠️ Membre non trouvé pour:', registrationNumber);
+            return null;
+
+        } catch (error) {
+            console.error('❌ Erreur récupération membre depuis URL:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Récupère les membres depuis le cache
+     */
+    getCachedMembers() {
+        try {
+            // Essayer sessionStorage d'abord
+            const sessionData = sessionStorage.getItem('currentMemberProfile');
+            if (sessionData) {
+                const member = JSON.parse(sessionData);
+                return [member];
+            }
+
+            // Essayer localStorage
+            const cachedData = localStorage.getItem('cachedMembers');
+            if (cachedData) {
+                return JSON.parse(cachedData);
+            }
+
+            // Essayer apiService
+            if (window.apiService && window.apiService.members) {
+                return window.apiService.members;
+            }
+
+            return null;
+        } catch (error) {
+            console.error('❌ Erreur récupération cache:', error);
+            return null;
         }
     }
 
@@ -590,9 +682,14 @@ class ProfileSystem {
                 <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
                 <h3 class="text-warning">Erreur</h3>
                 <p class="text-muted mb-4">${message}</p>
-                <button class="btn btn-primary" onclick="goBack()">
-                    <i class="fas fa-arrow-left me-2"></i>Retour aux membres
-                </button>
+                <div class="d-flex gap-2 justify-content-center flex-wrap">
+                    <button class="btn btn-primary" onclick="goBack()">
+                        <i class="fas fa-arrow-left me-2"></i>Retour aux membres
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="location.reload()">
+                        <i class="fas fa-sync me-2"></i>Rafraîchir
+                    </button>
+                </div>
             </div>
         `;
     }
@@ -659,7 +756,8 @@ function goBack() {
     } else if (window.history.length > 1) {
         window.history.back();
     } else {
-        window.location.href = 'index.html#members';
+        // Retour à la page des membres avec l'URL spécifique
+        window.location.href = 'https://acm-attendance-system.netlify.app/#members';
     }
 }
 
@@ -667,5 +765,31 @@ function goBack() {
 window.profileSystem = { init: initializeProfileSystem };
 window.goBack = goBack;
 window.initializeProfileSystem = initializeProfileSystem;
+
+// Initialisation automatique si on est sur la page de profil
+document.addEventListener('DOMContentLoaded', function() {
+    // Vérifier si on est sur la page de profil via l'URL
+    const currentHash = window.location.hash;
+    if (currentHash && currentHash.includes('profile')) {
+        console.log('🔗 Page de profil détectée dans URL, initialisation...');
+        setTimeout(() => {
+            initializeProfileSystem();
+        }, 100);
+    }
+});
+
+// Gestion du changement d'hash (navigation SPA)
+window.addEventListener('hashchange', function() {
+    const currentHash = window.location.hash;
+    if (currentHash && currentHash.includes('profile')) {
+        console.log('🔗 Navigation vers profil détectée, réinitialisation...');
+        setTimeout(() => {
+            if (profileSystem) {
+                profileSystem.isInitialized = false;
+            }
+            initializeProfileSystem();
+        }, 100);
+    }
+});
 
 console.log('👤 Script profile.js chargé - Prêt pour initialisation');
