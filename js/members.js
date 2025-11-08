@@ -1,4 +1,4 @@
-// members.js - Système complet de gestion des membres American Corner Mahajanga - VERSION AVEC LIAISON QR
+// members.js - Complete member management system for American Corner Mahajanga - VERSION WITH QR LINKAGE
 class MembersSystem {
     constructor() {
         this.members = [];
@@ -8,7 +8,7 @@ class MembersSystem {
         this.searchQuery = '';
         this.searchTimeout = null;
         this.isInitialized = false;
-        this.viewMode = 'grid'; // 'grid' ou 'list'
+        this.viewMode = 'grid'; // 'grid' or 'list'
         this.isLoading = false;
         this.retryCount = 0;
         this.maxRetries = 3;
@@ -17,7 +17,7 @@ class MembersSystem {
         
         this.init();
         
-        // Initialiser la liaison QR
+        // Initialize QR linkage
         setTimeout(() => {
             this.initializeQRLinkage();
         }, 2000);
@@ -29,7 +29,7 @@ class MembersSystem {
     }
 
     async init() {
-        console.log('👥 Initialisation du système des membres...');
+        console.log('👥 Initializing member system...');
         this.setupMobileOptimizations();
         this.setupNetworkListeners();
         await this.loadMembers();
@@ -62,53 +62,53 @@ class MembersSystem {
 
     setupNetworkListeners() {
         window.addEventListener('online', () => {
-            console.log('🌐 Connexion rétablie');
+            console.log('🌐 Connection restored');
             this.isOnline = true;
-            this.showNotification('Connexion internet rétablie', 'success');
+            this.showNotification('Internet connection restored', 'success');
             document.body.classList.remove('network-offline');
         });
 
         window.addEventListener('offline', () => {
-            console.log('📴 Perte de connexion');
+            console.log('📴 Connection lost');
             this.isOnline = false;
-            this.showNotification('Mode hors ligne activé', 'warning');
+            this.showNotification('Offline mode activated', 'warning');
             document.body.classList.add('network-offline');
         });
     }
 
-    // ==================== LIAISON AVEC GÉNÉRATEUR QR ====================
+    // ==================== QR GENERATOR LINKAGE ====================
 
     /**
-     * Vérifie et initialise la liaison QR
+     * Checks and initializes QR linkage
      */
     initializeQRLinkage() {
-        console.log('🔗 Initialisation de la liaison QR...');
+        console.log('🔗 Initializing QR linkage...');
         
-        // Vérifier périodiquement que le générateur QR est disponible
+        // Periodically check if QR generator is available
         const qrCheckInterval = setInterval(() => {
             if (window.qrGenerator) {
                 clearInterval(qrCheckInterval);
                 this.setupQRLinkage();
-                console.log('🎯 Générateur QR détecté, liaison activée');
+                console.log('🎯 QR Generator detected, linkage activated');
             }
         }, 500);
         
-        // Timeout après 10 secondes
+        // Timeout after 10 seconds
         setTimeout(() => {
             clearInterval(qrCheckInterval);
             if (!window.qrGenerator) {
-                console.warn('⚠️ Générateur QR non détecté après 10s');
+                console.warn('⚠️ QR Generator not detected after 10s');
             }
         }, 10000);
     }
 
     /**
-     * Système de liaison entre les membres et le générateur QR
+     * Linkage system between members and QR generator
      */
     setupQRLinkage() {
-        console.log('🔗 Configuration de la liaison QR...');
+        console.log('🔗 Configuring QR linkage...');
         
-        // Exposer les méthodes globalement pour les appels depuis HTML
+        // Expose methods globally for HTML calls
         window.generateMemberQR = (registrationNumber) => {
             this.generateMemberQR(registrationNumber);
         };
@@ -117,85 +117,85 @@ class MembersSystem {
             this.generateQuickQR(registrationNumber);
         };
         
-        console.log('✅ Liaison QR configurée');
+        console.log('✅ QR linkage configured');
     }
 
     /**
-     * Génère un QR code pour un membre avec redirection vers la page QR
-     * @param {string} registrationNumber - Numéro d'enregistrement du membre
+     * Generates a QR code for a member with redirection to QR page
+     * @param {string} registrationNumber - Member registration number
      */
     generateMemberQR(registrationNumber) {
         const member = this.members.find(m => m.registrationNumber === registrationNumber);
         if (!member) {
-            this.showNotification('Membre non trouvé', 'error');
+            this.showNotification('Member not found', 'error');
             return;
         }
 
-        console.log('🎯 Génération QR pour:', member.firstName, member.lastName);
+        console.log('🎯 Generating QR for:', member.firstName, member.lastName);
 
-        // Vérifier si nous sommes déjà sur la page QR
+        // Check if we're already on the QR page
         const currentPage = this.getCurrentPage();
         
         if (currentPage === 'qr-generator') {
-            // Nous sommes déjà sur la page QR, pré-remplir le formulaire
+            // We're already on QR page, pre-fill the form
             if (window.qrGenerator && typeof window.qrGenerator.prefillForm === 'function') {
                 window.qrGenerator.prefillForm(member);
             } else {
                 this.prefillForm(member);
             }
         } else {
-            // Rediriger vers la page QR
+            // Redirect to QR page
             this.navigateToQRGenerator(member);
         }
     }
 
     /**
-     * Génère directement un QR code pour un membre (méthode rapide)
-     * @param {string} registrationNumber - Numéro d'enregistrement du membre
+     * Directly generates a QR code for a member (quick method)
+     * @param {string} registrationNumber - Member registration number
      */
     generateQuickQR(registrationNumber) {
-        console.log('⚡ Génération QR rapide pour:', registrationNumber);
+        console.log('⚡ Quick QR generation for:', registrationNumber);
         
         const member = this.members.find(m => m.registrationNumber === registrationNumber);
         if (!member) {
-            this.showNotification('Membre non trouvé', 'error');
+            this.showNotification('Member not found', 'error');
             return;
         }
 
         if (window.qrGenerator && typeof window.qrGenerator.quickGenerateQR === 'function') {
-            // Utiliser la méthode rapide du générateur QR
+            // Use QR generator's quick method
             window.qrGenerator.quickGenerateQR(registrationNumber);
             
-            // Vérifier si on doit rediriger
+            // Check if we need to redirect
             const currentPage = this.getCurrentPage();
             if (currentPage !== 'qr-generator') {
                 this.navigateToQRGenerator(member);
             }
         } else {
-            // Fallback: redirection vers la page QR avec pré-remplissage
+            // Fallback: redirect to QR page with pre-fill
             this.prefillForm(member);
         }
     }
 
     /**
-     * Pré-remplit le formulaire QR avec les données du membre
-     * @param {Object} member - Données du membre
+     * Pre-fills QR form with member data
+     * @param {Object} member - Member data
      */
     prefillForm(member) {
-        console.log('📝 Pré-remplissage du formulaire QR pour:', member.registrationNumber);
+        console.log('📝 Pre-filling QR form for:', member.registrationNumber);
         
         if (!member) {
-            console.error('❌ Aucun membre fourni pour le pré-remplissage');
+            console.error('❌ No member provided for pre-fill');
             return;
         }
 
         try {
-            // Attendre que le générateur QR soit initialisé
+            // Wait for QR generator to initialize
             const waitForQRGenerator = setInterval(() => {
                 if (window.qrGenerator && typeof window.qrGenerator.fillFormFields === 'function') {
                     clearInterval(waitForQRGenerator);
                     
-                    // Pré-remplir les champs du formulaire
+                    // Pre-fill form fields
                     window.qrGenerator.fillFormFields({
                         registrationNumber: member.registrationNumber,
                         firstName: member.firstName,
@@ -205,9 +205,9 @@ class MembersSystem {
                         studyWorkPlace: member.studyOrWorkPlace || ''
                     });
                     
-                    console.log('✅ Formulaire QR pré-rempli avec succès');
+                    console.log('✅ QR form pre-filled successfully');
                     
-                    // Optionnel: Générer automatiquement le QR code
+                    // Optional: Automatically generate QR code
                     setTimeout(() => {
                         if (window.qrGenerator.generateQRCode) {
                             window.qrGenerator.generateQRCode();
@@ -217,41 +217,41 @@ class MembersSystem {
                 }
             }, 100);
 
-            // Timeout après 5 secondes
+            // Timeout after 5 seconds
             setTimeout(() => {
                 clearInterval(waitForQRGenerator);
-                console.warn('⚠️ Timeout attente générateur QR');
+                console.warn('⚠️ QR generator wait timeout');
             }, 5000);
 
         } catch (error) {
-            console.error('❌ Erreur pré-remplissage formulaire:', error);
-            this.showNotification('Erreur lors du pré-remplissage du formulaire QR', 'error');
+            console.error('❌ Form pre-fill error:', error);
+            this.showNotification('Error pre-filling QR form', 'error');
         }
     }
 
     /**
-     * Navigue vers la page QR Generator avec les données du membre
-     * @param {Object} member - Données du membre
+     * Navigates to QR Generator page with member data
+     * @param {Object} member - Member data
      */
     navigateToQRGenerator(member) {
-        console.log('🧭 Navigation vers QR Generator pour:', member.registrationNumber);
+        console.log('🧭 Navigating to QR Generator for:', member.registrationNumber);
         
         if (window.appController && typeof window.appController.loadPage === 'function') {
-            // Utiliser le contrôleur d'application existant
+            // Use existing application controller
             sessionStorage.setItem('qrPrefillData', JSON.stringify(member));
             window.appController.loadPage('qr-generator');
-            this.showNotification(`Redirection vers le générateur QR pour ${member.firstName} ${member.lastName}`, 'info');
+            this.showNotification(`Redirecting to QR generator for ${member.firstName} ${member.lastName}`, 'info');
         } else if (window.router && typeof window.router.navigate === 'function') {
-            // Utiliser un routeur alternatif
+            // Use alternative router
             sessionStorage.setItem('qrPrefillData', JSON.stringify(member));
             window.router.navigate('qr-generator');
         } else {
-            // Fallback basique avec hash
+            // Basic hash fallback
             sessionStorage.setItem('qrPrefillData', JSON.stringify(member));
             window.location.hash = 'qr-generator';
-            this.showNotification('Chargement du générateur QR...', 'info');
+            this.showNotification('Loading QR generator...', 'info');
             
-            // Pré-remplir après un délai
+            // Pre-fill after delay
             setTimeout(() => {
                 this.prefillForm(member);
             }, 1000);
@@ -259,11 +259,11 @@ class MembersSystem {
     }
 
     /**
-     * Détecte la page actuellement affichée
-     * @returns {string|null} ID de la page actuelle
+     * Detects currently displayed page
+     * @returns {string|null} Current page ID
      */
     getCurrentPage() {
-        // Méthode pour détecter la page actuelle
+        // Method to detect current page
         const pages = document.querySelectorAll('.page-section');
         for (let page of pages) {
             if (page.style.display === 'block' || page.classList.contains('active')) {
@@ -271,7 +271,7 @@ class MembersSystem {
             }
         }
         
-        // Vérifier aussi par l'URL hash
+        // Also check URL hash
         const hash = window.location.hash.replace('#', '');
         if (hash) {
             return hash;
@@ -280,43 +280,43 @@ class MembersSystem {
         return null;
     }
 
-    // ==================== FONCTIONS EXISTANTES (AVEC MISES À JOUR) ====================
+    // ==================== EXISTING FUNCTIONS (WITH UPDATES) ====================
 
     async loadMembers() {
         this.isLoading = true;
         
         try {
-            console.log('🔄 Chargement des données membres...');
+            console.log('🔄 Loading member data...');
             
-            // Priorité 1: Utiliser l'API si disponible et chargée
+            // Priority 1: Use API if available and loaded
             if (window.apiService && window.apiService.members && window.apiService.members.length > 0) {
                 this.members = window.apiService.members;
-                console.log(`✅ ${this.members.length} membres chargés depuis API`);
+                console.log(`✅ ${this.members.length} members loaded from API`);
             } 
-            // Priorité 2: Attendre que l'API se charge
+            // Priority 2: Wait for API to load
             else if (window.apiService && typeof window.apiService.fetchMembers === 'function') {
-                console.log('⏳ Chargement des membres depuis API...');
+                console.log('⏳ Loading members from API...');
                 await window.apiService.fetchMembers();
                 
                 if (window.apiService.members && window.apiService.members.length > 0) {
                     this.members = window.apiService.members;
-                    console.log(`✅ ${this.members.length} membres chargés depuis API après fetch`);
+                    console.log(`✅ ${this.members.length} members loaded from API after fetch`);
                 } else {
-                    throw new Error('API retourne une liste vide');
+                    throw new Error('API returned empty list');
                 }
             } 
-            // Priorité 3: Données mock en fallback
+            // Priority 3: Mock data fallback
             else {
-                console.warn('⚠️ API non disponible, chargement des données mock');
+                console.warn('⚠️ API unavailable, loading mock data');
                 this.members = await this.loadMockMembers();
-                console.log(`📦 ${this.members.length} membres mock chargés`);
+                console.log(`📦 ${this.members.length} mock members loaded`);
             }
             
             this.filteredMembers = [...this.members];
             this.isLoading = false;
             
         } catch (error) {
-            console.error('❌ Erreur chargement membres:', error);
+            console.error('❌ Member loading error:', error);
             this.isLoading = false;
             
             if (this.retryCount < this.maxRetries) {
@@ -324,7 +324,7 @@ class MembersSystem {
                 const delay = Math.min(1000 * Math.pow(2, this.retryCount), 10000);
                 
                 console.log(`🔄 Retry ${this.retryCount}/${this.maxRetries} in ${delay}ms`);
-                this.showNotification(`Nouvelle tentative (${this.retryCount}/${this.maxRetries})...`, 'info');
+                this.showNotification(`Retry attempt (${this.retryCount}/${this.maxRetries})...`, 'info');
                 
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return this.loadMembers();
@@ -344,17 +344,17 @@ class MembersSystem {
                 <div class="card text-center border-warning">
                     <div class="card-body py-5">
                         <i class="fas fa-wifi fa-4x text-warning mb-4"></i>
-                        <h3 class="text-warning mb-3">Problème de connexion</h3>
+                        <h3 class="text-warning mb-3">Connection Problem</h3>
                         <p class="text-muted mb-4">
-                            Impossible de charger les données depuis le serveur. 
-                            Vérifiez votre connexion internet.
+                            Unable to load data from server. 
+                            Check your internet connection.
                         </p>
                         <div class="d-flex gap-2 justify-content-center flex-wrap">
                             <button class="btn btn-warning" onclick="membersSystem.retryLoad()">
-                                <i class="fas fa-sync me-2"></i>Réessayer
+                                <i class="fas fa-sync me-2"></i>Retry
                             </button>
                             <button class="btn btn-outline-secondary" onclick="membersSystem.useOfflineData()">
-                                <i class="fas fa-users me-2"></i>Utiliser les données locales
+                                <i class="fas fa-users me-2"></i>Use local data
                             </button>
                         </div>
                     </div>
@@ -364,7 +364,7 @@ class MembersSystem {
     }
 
     useOfflineData() {
-        console.log('📴 Utilisation des données hors ligne...');
+        console.log('📴 Using offline data...');
         
         try {
             const cachedData = localStorage.getItem('cachedMembers');
@@ -372,35 +372,35 @@ class MembersSystem {
                 this.members = JSON.parse(cachedData);
                 this.filteredMembers = [...this.members];
                 this.renderMembers();
-                this.showNotification('Données locales chargées', 'info');
+                this.showNotification('Local data loaded', 'info');
             } else {
                 this.loadMockMembers().then(mockMembers => {
                     this.members = mockMembers;
                     this.filteredMembers = [...this.members];
                     this.renderMembers();
-                    this.showNotification('Données de démonstration chargées', 'warning');
+                    this.showNotification('Demo data loaded', 'warning');
                 });
             }
         } catch (error) {
-            console.error('❌ Erreur chargement données cache:', error);
+            console.error('❌ Cache data loading error:', error);
             this.loadMockMembers().then(mockMembers => {
                 this.members = mockMembers;
                 this.filteredMembers = [...this.members];
                 this.renderMembers();
-                this.showNotification('Données de démonstration chargées', 'warning');
+                this.showNotification('Demo data loaded', 'warning');
             });
         }
     }
 
-    // Fonctions utilitaires
+    // Utility functions
     formatOccupation(occupation) {
-        if (!occupation) return 'Non spécifié';
+        if (!occupation) return 'Not specified';
         const occupations = {
-            'student': 'Étudiant',
-            'employee': 'Employé',
+            'student': 'Student',
+            'employee': 'Employee',
             'entrepreneur': 'Entrepreneur',
-            'unemployed': 'Sans emploi',
-            'other': 'Autre'
+            'unemployed': 'Unemployed',
+            'other': 'Other'
         };
         return occupations[occupation] || occupation;
     }
@@ -412,10 +412,10 @@ class MembersSystem {
     }
 
     formatDate(dateString) {
-        if (!dateString) return 'Date inconnue';
+        if (!dateString) return 'Unknown date';
         try {
             const date = new Date(dateString);
-            return date.toLocaleDateString('fr-FR', {
+            return date.toLocaleDateString('en-US', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric'
@@ -457,14 +457,14 @@ class MembersSystem {
         return colors[colorIndex];
     }
 
-    // VERSION ROBUSTE - Utilisation de CSS pour les avatars
+    // ROBUST VERSION - Using CSS for avatars
     getProfileImage(member) {
         const initials = this.getInitials(member.firstName, member.lastName);
         const bgColor = this.getAvatarColor(member);
         const occupationIcon = this.getOccupationIcon(member.occupation);
         const occupationColor = this.getOccupationColor(member.occupation);
 
-        // Vérifier si l'image existe
+        // Check if image exists
         if (member.profileImage && member.profileImage.trim() !== '') {
             let imageUrl;
             
@@ -474,7 +474,7 @@ class MembersSystem {
                 imageUrl = member.profileImage;
             }
             
-            // Fallback CSS pour les images qui échouent
+            // CSS fallback for failed images
             const fallbackHTML = `
                 <div class="avatar-fallback" style="background-color: ${bgColor};">
                     <span class="avatar-initials">${initials}</span>
@@ -496,7 +496,7 @@ class MembersSystem {
             `;
         }
         
-        // Si pas de photo, utiliser le fallback CSS directement
+        // If no photo, use CSS fallback directly
         return `
             <div class="member-avatar-container">
                 <div class="avatar-fallback" style="background-color: ${bgColor};">
@@ -509,19 +509,19 @@ class MembersSystem {
         `;
     }
 
-    // Interface principale améliorée
+    // Enhanced main interface
     async loadMembersPage() {
-        console.log('📄 Chargement de la page membres...');
+        console.log('📄 Loading members page...');
         const container = document.getElementById('membersContainer');
         if (!container) {
-            console.error('❌ Conteneur membres non trouvé');
+            console.error('❌ Members container not found');
             return;
         }
         
-        // Afficher le loading amélioré
+        // Show enhanced loading
         container.innerHTML = this.getEnhancedLoadingHTML();
         
-        // S'assurer que les membres sont chargés
+        // Ensure members are loaded
         if (this.members.length === 0) {
             await this.loadMembers();
         }
@@ -531,17 +531,17 @@ class MembersSystem {
             return;
         }
         
-        // Mettre à jour les statistiques
+        // Update statistics
         this.updateQuickStats();
         
-        // Initialiser les membres filtrés
+        // Initialize filtered members
         this.filteredMembers = [...this.members];
         
-        // Afficher l'interface complète
+        // Display complete interface
         this.renderEnhancedControls();
         this.renderMembers();
         
-        console.log(`✅ ${this.members.length} membres chargés, ${this.filteredMembers.length} affichés`);
+        console.log(`✅ ${this.members.length} members loaded, ${this.filteredMembers.length} displayed`);
     }
 
     getEnhancedLoadingHTML() {
@@ -551,14 +551,14 @@ class MembersSystem {
                     <div class="loading-spinner mb-4">
                         <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;"></div>
                     </div>
-                    <h3 class="text-primary mb-3">Chargement des membres</h3>
-                    <p class="text-muted mb-4">Nous préparons les profils de notre communauté</p>
+                    <h3 class="text-primary mb-3">Loading Members</h3>
+                    <p class="text-muted mb-4">Preparing our community profiles</p>
                     <div class="progress mb-3" style="height: 6px; max-width: 300px; margin: 0 auto;">
                         <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 75%"></div>
                     </div>
                     <div class="mt-4">
                         <button class="btn btn-outline-primary btn-lg" onclick="membersSystem.retryLoad()">
-                            <i class="fas fa-sync me-2"></i>Actualiser
+                            <i class="fas fa-sync me-2"></i>Refresh
                         </button>
                     </div>
                 </div>
@@ -571,16 +571,16 @@ class MembersSystem {
         const active = this.members.filter(m => {
             const joinDate = new Date(m.joinDate);
             const monthsDiff = (new Date() - joinDate) / (1000 * 60 * 60 * 24 * 30);
-            return monthsDiff <= 6; // Actif si membre depuis moins de 6 mois
+            return monthsDiff <= 6; // Active if member for less than 6 months
         }).length;
         
         const newMembers = this.members.filter(m => {
             const joinDate = new Date(m.joinDate);
             const daysDiff = (new Date() - joinDate) / (1000 * 60 * 60 * 24);
-            return daysDiff <= 30; // Nouveau si membre depuis moins de 30 jours
+            return daysDiff <= 30; // New if member for less than 30 days
         }).length;
 
-        // Mettre à jour les éléments DOM
+        // Update DOM elements
         const totalEl = document.getElementById('totalMembers');
         const activeEl = document.getElementById('activeMembers');
         const newEl = document.getElementById('newMembers');
@@ -604,7 +604,7 @@ class MembersSystem {
     }
 
     async retryLoad() {
-        console.log('🔄 Nouvelle tentative de chargement...');
+        console.log('🔄 Retrying load...');
         await this.loadMembers();
         await this.loadMembersPage();
     }
@@ -615,14 +615,14 @@ class MembersSystem {
                 <div class="card text-center py-5">
                     <div class="card-body">
                         <i class="fas fa-users fa-4x text-muted mb-4"></i>
-                        <h3 class="text-muted">Aucun membre disponible</h3>
-                        <p class="text-muted mb-4">Les membres apparaîtront ici une fois chargés depuis le système</p>
+                        <h3 class="text-muted">No members available</h3>
+                        <p class="text-muted mb-4">Members will appear here once loaded from the system</p>
                         <div class="d-flex gap-2 justify-content-center flex-wrap">
                             <button class="btn btn-primary" onclick="membersSystem.retryLoad()">
-                                <i class="fas fa-sync me-2"></i>Actualiser
+                                <i class="fas fa-sync me-2"></i>Refresh
                             </button>
                             <button class="btn btn-outline-secondary" onclick="appController?.loadPage('home')">
-                                <i class="fas fa-home me-2"></i>Accueil
+                                <i class="fas fa-home me-2"></i>Home
                             </button>
                         </div>
                     </div>
@@ -640,7 +640,7 @@ class MembersSystem {
             <div class="col-12 mb-4">
                 <div class="card controls-card">
                     <div class="card-body p-4">
-                        <!-- En-tête avec compteur et mode de vue -->
+                        <!-- Header with counter and view mode -->
                         <div class="row align-items-center mb-4">
                             <div class="col-md-6">
                                 <div class="d-flex align-items-center">
@@ -648,7 +648,7 @@ class MembersSystem {
                                         <i class="fas fa-users fa-2x text-primary"></i>
                                     </div>
                                     <div>
-                                        <h4 class="card-title mb-0">Gestion des Membres</h4>
+                                        <h4 class="card-title mb-0">Member Management</h4>
                                         <p class="text-muted mb-0" id="membersSubtitle">${this.getFilteredMembersText()}</p>
                                     </div>
                                 </div>
@@ -656,16 +656,16 @@ class MembersSystem {
                             <div class="col-md-6 text-md-end">
                                 <div class="d-flex align-items-center justify-content-md-end gap-3">
                                     <span class="badge bg-primary fs-6" id="membersCount">${this.filteredMembers.length}/${this.members.length}</span>
-                                    ${stats.demoMode ? '<span class="badge bg-warning demo-badge">Mode Démo</span>' : ''}
+                                    ${stats.demoMode ? '<span class="badge bg-warning demo-badge">Demo Mode</span>' : ''}
                                     
-                                    <!-- Sélecteur de vue -->
+                                    <!-- View selector -->
                                     <div class="btn-group view-toggle" role="group">
                                         <button type="button" class="btn btn-outline-secondary ${this.viewMode === 'grid' ? 'active' : ''}" 
-                                                onclick="membersSystem.setViewMode('grid')" title="Vue Grille">
+                                                onclick="membersSystem.setViewMode('grid')" title="Grid View">
                                             <i class="fas fa-th"></i>
                                         </button>
                                         <button type="button" class="btn btn-outline-secondary ${this.viewMode === 'list' ? 'active' : ''}" 
-                                                onclick="membersSystem.setViewMode('list')" title="Vue Liste">
+                                                onclick="membersSystem.setViewMode('list')" title="List View">
                                             <i class="fas fa-list"></i>
                                         </button>
                                     </div>
@@ -673,7 +673,7 @@ class MembersSystem {
                             </div>
                         </div>
                         
-                        <!-- Barre de recherche améliorée -->
+                        <!-- Enhanced search bar -->
                         <div class="row mb-4">
                             <div class="col-12">
                                 <div class="search-container">
@@ -684,21 +684,21 @@ class MembersSystem {
                                         <input type="text" 
                                                class="form-control" 
                                                id="membersSearch" 
-                                               placeholder="Rechercher un membre par nom, numéro, téléphone, email..."
+                                               placeholder="Search member by name, number, phone, email..."
                                                value="${this.searchQuery}">
                                         <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn" ${!this.searchQuery ? 'disabled' : ''}>
-                                            <i class="fas fa-times"></i> Effacer
+                                            <i class="fas fa-times"></i> Clear
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Filtres et tris améliorés -->
+                        <!-- Enhanced filters and sorting -->
                         <div class="row align-items-center">
                             <div class="col-md-8">
                                 <div class="d-flex flex-wrap align-items-center gap-3">
-                                    <span class="text-muted fw-bold">Filtrer par :</span>
+                                    <span class="text-muted fw-bold">Filter by:</span>
                                     <div class="filter-group d-flex flex-wrap">
                                         ${this.renderEnhancedFilterButtons()}
                                     </div>
@@ -709,10 +709,10 @@ class MembersSystem {
                                     <div class="sort-dropdown">
                                         ${this.renderEnhancedSortDropdown()}
                                     </div>
-                                    <button class="btn btn-success" onclick="membersSystem.refreshData()" title="Rafraîchir les données">
+                                    <button class="btn btn-success" onclick="membersSystem.refreshData()" title="Refresh data">
                                         <i class="fas fa-sync"></i>
                                     </button>
-                                    <button class="btn btn-info" onclick="membersSystem.exportMembers()" title="Exporter les membres">
+                                    <button class="btn btn-info" onclick="membersSystem.exportMembers()" title="Export members">
                                         <i class="fas fa-download"></i>
                                     </button>
                                 </div>
@@ -728,10 +728,10 @@ class MembersSystem {
         
         container.innerHTML = controlsHTML;
         
-        // Configurer les événements
+        // Setup event listeners
         this.setupEnhancedControlsEventListeners();
         
-        // Focus sur la barre de recherche
+        // Focus on search bar
         const searchInput = document.getElementById('membersSearch');
         if (searchInput) {
             searchInput.focus();
@@ -748,11 +748,11 @@ class MembersSystem {
 
     renderEnhancedFilterButtons() {
         const filters = [
-            { value: 'all', label: 'Tous', icon: 'fa-users', color: 'primary' },
-            { value: 'student', label: 'Étudiants', icon: 'fa-graduation-cap', color: 'success' },
-            { value: 'employee', label: 'Employés', icon: 'fa-briefcase', color: 'info' },
+            { value: 'all', label: 'All', icon: 'fa-users', color: 'primary' },
+            { value: 'student', label: 'Students', icon: 'fa-graduation-cap', color: 'success' },
+            { value: 'employee', label: 'Employees', icon: 'fa-briefcase', color: 'info' },
             { value: 'entrepreneur', label: 'Entrepreneurs', icon: 'fa-lightbulb', color: 'warning' },
-            { value: 'other', label: 'Autres', icon: 'fa-user', color: 'secondary' }
+            { value: 'other', label: 'Others', icon: 'fa-user', color: 'secondary' }
         ];
         
         return filters.map(filter => `
@@ -767,11 +767,11 @@ class MembersSystem {
 
     renderEnhancedSortDropdown() {
         const sortOptions = [
-            { value: 'name', label: 'Nom A-Z', icon: 'fa-sort-alpha-down' },
-            { value: 'name-desc', label: 'Nom Z-A', icon: 'fa-sort-alpha-down-alt' },
-            { value: 'recent', label: 'Plus récents', icon: 'fa-calendar-plus' },
-            { value: 'oldest', label: 'Plus anciens', icon: 'fa-calendar-minus' },
-            { value: 'occupation', label: 'Par occupation', icon: 'fa-briefcase' }
+            { value: 'name', label: 'Name A-Z', icon: 'fa-sort-alpha-down' },
+            { value: 'name-desc', label: 'Name Z-A', icon: 'fa-sort-alpha-down-alt' },
+            { value: 'recent', label: 'Most Recent', icon: 'fa-calendar-plus' },
+            { value: 'oldest', label: 'Oldest', icon: 'fa-calendar-minus' },
+            { value: 'occupation', label: 'By Occupation', icon: 'fa-briefcase' }
         ];
         
         const currentSortOption = sortOptions.find(opt => opt.value === this.currentSort) || sortOptions[0];
@@ -796,7 +796,7 @@ class MembersSystem {
     }
 
     setupEnhancedControlsEventListeners() {
-        // Recherche
+        // Search
         const searchInput = document.getElementById('membersSearch');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         
@@ -818,7 +818,7 @@ class MembersSystem {
             });
         }
         
-        // Filtres
+        // Filters
         document.querySelectorAll('[data-filter]').forEach(button => {
             button.addEventListener('click', (e) => {
                 const filter = e.target.closest('[data-filter]').getAttribute('data-filter');
@@ -826,7 +826,7 @@ class MembersSystem {
             });
         });
         
-        // Tri
+        // Sorting
         document.querySelectorAll('[data-sort]').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -839,7 +839,7 @@ class MembersSystem {
     handleSearch(query) {
         this.searchQuery = query.trim();
         
-        // Mettre à jour le bouton clear
+        // Update clear button
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         if (clearSearchBtn) {
             clearSearchBtn.disabled = !this.searchQuery;
@@ -956,7 +956,7 @@ class MembersSystem {
     }
 
     updateControlsState() {
-        // Mettre à jour les boutons de filtre actifs
+        // Update active filter buttons
         document.querySelectorAll('[data-filter]').forEach(button => {
             const filter = button.getAttribute('data-filter');
             const filterConfig = {
@@ -976,13 +976,13 @@ class MembersSystem {
             }
         });
         
-        // Mettre à jour le texte d'information
+        // Update info text
         const infoElement = document.getElementById('membersSubtitle');
         if (infoElement) {
             infoElement.textContent = this.getFilteredMembersText();
         }
         
-        // Mettre à jour le bouton clear search
+        // Update clear search button
         const clearSearchBtn = document.getElementById('clearSearchBtn');
         if (clearSearchBtn) {
             clearSearchBtn.disabled = !this.searchQuery;
@@ -991,24 +991,24 @@ class MembersSystem {
 
     getFilteredMembersText() {
         if (this.searchQuery && this.currentFilter !== 'all') {
-            return `Résultats pour "${this.searchQuery}" parmi les ${this.getFilterLabel(this.currentFilter).toLowerCase()}`;
+            return `Results for "${this.searchQuery}" among ${this.getFilterLabel(this.currentFilter).toLowerCase()}`;
         } else if (this.searchQuery) {
-            return `Résultats pour "${this.searchQuery}"`;
+            return `Results for "${this.searchQuery}"`;
         } else if (this.currentFilter !== 'all') {
-            return `${this.getFilterLabel(this.currentFilter)} seulement`;
+            return `${this.getFilterLabel(this.currentFilter)} only`;
         }
-        return 'Tous les membres de notre communauté';
+        return 'All members of our community';
     }
 
     getFilterLabel(filter) {
         const labels = {
-            'all': 'Tous les membres',
-            'student': 'Étudiants',
-            'employee': 'Employés',
+            'all': 'All members',
+            'student': 'Students',
+            'employee': 'Employees',
             'entrepreneur': 'Entrepreneurs',
-            'other': 'Autres'
+            'other': 'Others'
         };
-        return labels[filter] || 'Filtrer';
+        return labels[filter] || 'Filter';
     }
 
     renderMembers() {
@@ -1032,41 +1032,41 @@ class MembersSystem {
     }
 
     getEnhancedNoResultsHTML() {
-        let message = 'Aucun membre trouvé';
-        let suggestion = 'Vérifiez les filtres ou la recherche';
+        let message = 'No members found';
+        let suggestion = 'Check filters or search';
         let actions = '';
         
         if (this.searchQuery && this.currentFilter !== 'all') {
-            message = `Aucun résultat pour "${this.searchQuery}" parmi les ${this.getFilterLabel(this.currentFilter).toLowerCase()}`;
-            suggestion = 'Essayez de modifier votre recherche ou les filtres';
+            message = `No results for "${this.searchQuery}" among ${this.getFilterLabel(this.currentFilter).toLowerCase()}`;
+            suggestion = 'Try modifying your search or filters';
             actions = `
                 <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.clearSearch()">
-                    <i class="fas fa-times me-1"></i>Effacer la recherche
+                    <i class="fas fa-times me-1"></i>Clear search
                 </button>
                 <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.setFilter('all')">
-                    <i class="fas fa-users me-1"></i>Voir tous les membres
+                    <i class="fas fa-users me-1"></i>View all members
                 </button>
             `;
         } else if (this.searchQuery) {
-            message = `Aucun résultat pour "${this.searchQuery}"`;
-            suggestion = 'Vérifiez l\'orthographe ou essayez d\'autres termes';
+            message = `No results for "${this.searchQuery}"`;
+            suggestion = 'Check spelling or try other terms';
             actions = `
                 <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.clearSearch()">
-                    <i class="fas fa-times me-1"></i>Effacer la recherche
+                    <i class="fas fa-times me-1"></i>Clear search
                 </button>
             `;
         } else if (this.currentFilter !== 'all') {
-            message = `Aucun ${this.getFilterLabel(this.currentFilter).toLowerCase()} trouvé`;
-            suggestion = 'Essayez un autre filtre ou affichez tous les membres';
+            message = `No ${this.getFilterLabel(this.currentFilter).toLowerCase()} found`;
+            suggestion = 'Try another filter or view all members';
             actions = `
                 <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.setFilter('all')">
-                    <i class="fas fa-users me-1"></i>Voir tous les membres
+                    <i class="fas fa-users me-1"></i>View all members
                 </button>
             `;
         } else {
             actions = `
                 <button class="btn btn-outline-primary btn-sm" onclick="membersSystem.retryLoad()">
-                    <i class="fas fa-sync me-1"></i>Actualiser
+                    <i class="fas fa-sync me-1"></i>Refresh
                 </button>
             `;
         }
@@ -1104,10 +1104,10 @@ class MembersSystem {
             <div class="col-md-6 col-lg-4 col-xl-3">
                 <div class="card member-card h-100" style="animation-delay: ${index * 0.1}s">
                     <div class="card-body p-4">
-                        <!-- Photo de profil avec système robuste -->
+                        <!-- Profile photo with robust system -->
                         ${profileImage}
                         
-                        <!-- Informations principales -->
+                        <!-- Main information -->
                         <div class="text-center mb-3">
                             <h5 class="member-name">${highlightText(member.firstName)} ${highlightText(member.lastName)}</h5>
                             <div class="member-id">${highlightText(member.registrationNumber)}</div>
@@ -1118,7 +1118,7 @@ class MembersSystem {
                             <span class="badge bg-${occupationColor} text-white">${occupation}</span>
                         </div>
                         
-                        <!-- Informations de contact -->
+                        <!-- Contact information -->
                         <div class="member-contact text-muted small mb-3">
                             ${member.email ? `
                                 <div class="d-flex align-items-center mb-2">
@@ -1134,7 +1134,7 @@ class MembersSystem {
                             ` : ''}
                         </div>
                         
-                        <!-- Lieu d'étude/travail -->
+                        <!-- Study/work place -->
                         ${member.studyOrWorkPlace ? `
                             <div class="member-location mb-3">
                                 <div class="d-flex align-items-center">
@@ -1146,30 +1146,30 @@ class MembersSystem {
                             </div>
                         ` : ''}
                         
-                        <!-- Date d'adhésion -->
+                        <!-- Join date -->
                         <div class="member-join-date text-center">
                             <small class="text-muted">
-                                <i class="fas fa-calendar-alt me-1"></i>Membre depuis ${joinDate}
+                                <i class="fas fa-calendar-alt me-1"></i>Member since ${joinDate}
                             </small>
                         </div>
                     </div>
                     
-                    <!-- Actions AVEC BOUTONS QR AMÉLIORÉS -->
+                    <!-- Actions WITH ENHANCED QR BUTTONS -->
                     <div class="card-footer bg-transparent border-top-0 pt-0 member-actions">
                         <div class="d-grid gap-2">
                             <button class="btn btn-primary btn-sm" 
                                     onclick="membersSystem.viewMemberDetails(${member.id})">
-                                <i class="fas fa-eye me-1"></i>Voir le Profil
+                                <i class="fas fa-eye me-1"></i>View Profile
                             </button>
                             <div class="btn-group" role="group">
                                 <button class="btn btn-outline-success btn-sm" 
                                         onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
-                                        title="Générer QR Code personnalisé">
+                                        title="Generate Custom QR Code">
                                     <i class="fas fa-qrcode me-1"></i>QR Code
                                 </button>
                                 <button class="btn btn-outline-info btn-sm" 
                                         onclick="membersSystem.generateQuickQR('${member.registrationNumber}')"
-                                        title="Génération rapide">
+                                        title="Quick Generation">
                                     <i class="fas fa-bolt me-1"></i>
                                 </button>
                             </div>
@@ -1216,7 +1216,7 @@ class MembersSystem {
                                         <small class="text-muted">
                                             <i class="fas fa-envelope me-1"></i>
                                             <span class="text-truncate d-inline-block" style="max-width: 200px;" title="${member.email || ''}">
-                                                ${member.email ? highlightText(member.email) : 'Non renseigné'}
+                                                ${member.email ? highlightText(member.email) : 'Not provided'}
                                             </span>
                                         </small>
                                     </div>
@@ -1229,23 +1229,23 @@ class MembersSystem {
                                         <div class="btn-group btn-group-sm">
                                             <button class="btn btn-outline-primary" 
                                                     onclick="membersSystem.viewMemberDetails(${member.id})"
-                                                    title="Voir le profil">
+                                                    title="View profile">
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                             <button class="btn btn-outline-success" 
                                                     onclick="membersSystem.generateMemberQR('${member.registrationNumber}')"
-                                                    title="Générer QR Code">
+                                                    title="Generate QR Code">
                                                 <i class="fas fa-qrcode"></i>
                                             </button>
                                             <button class="btn btn-outline-info" 
                                                     onclick="membersSystem.generateQuickQR('${member.registrationNumber}')"
-                                                    title="Génération rapide">
+                                                    title="Quick Generation">
                                                 <i class="fas fa-bolt"></i>
                                             </button>
                                             ${member.email || member.phoneNumber ? `
                                             <button class="btn btn-outline-secondary" 
                                                     onclick="membersSystem.quickContact(${member.id})"
-                                                    title="Contacter">
+                                                    title="Contact">
                                                 <i class="fas fa-envelope"></i>
                                             </button>
                                             ` : ''}
@@ -1261,57 +1261,57 @@ class MembersSystem {
     }
 
     /**
-     * Affiche le profil détaillé d'un membre
-     * @param {number} memberId - ID du membre
+     * Displays detailed member profile
+     * @param {number} memberId - Member ID
      */
     viewMemberDetails(memberId) {
         const member = this.members.find(m => m.id === memberId);
         if (member) {
-            console.log('👤 Affichage profil:', member.registrationNumber);
+            console.log('👤 Displaying profile:', member.registrationNumber);
             this.navigateToProfilePage(member);
         } else {
-            this.showNotification('Membre non trouvé', 'error');
+            this.showNotification('Member not found', 'error');
         }
     }
 
     /**
-     * Navigue vers la page de profil du membre
-     * @param {Object} member - Données du membre
+     * Navigates to member profile page
+     * @param {Object} member - Member data
      */
     navigateToProfilePage(member) {
-        console.log('🧭 Navigation vers le profil de:', member.registrationNumber);
+        console.log('🧭 Navigating to profile of:', member.registrationNumber);
         
-        // Stocker les données du membre pour la page de profil
+        // Store member data for profile page
         sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
         
-        // Utiliser le contrôleur d'application pour naviguer
+        // Use application controller to navigate
         if (window.appController && typeof window.appController.loadPage === 'function') {
             window.appController.loadPage('profile');
-            this.showNotification(`Profil de ${member.firstName} ${member.lastName}`, 'info');
+            this.showNotification(`Profile of ${member.firstName} ${member.lastName}`, 'info');
         } else {
-            // Fallback : redirection directe
-            console.warn('AppController non disponible, fallback vers profile.html');
+            // Fallback: direct redirect
+            console.warn('AppController unavailable, fallback to profile.html');
             window.location.href = 'profile.html';
         }
     }
 
     /**
-     * Navigue vers la page de profil du membre
-     * @param {Object} member - Données du membre
+     * Navigates to member profile page
+     * @param {Object} member - Member data
      */
     navigateToProfilePage(member) {
-        console.log('🧭 Navigation vers le profil de:', member.registrationNumber);
+        console.log('🧭 Navigating to profile of:', member.registrationNumber);
         
-        // Stocker les données du membre pour la page de profil
+        // Store member data for profile page
         sessionStorage.setItem('currentMemberProfile', JSON.stringify(member));
         
-        // Essayer différentes méthodes de navigation
+        // Try different navigation methods
         if (window.appController && typeof window.appController.loadPage === 'function') {
             try {
                 window.appController.loadPage('profile');
-                this.showNotification(`Profil de ${member.firstName} ${member.lastName}`, 'info');
+                this.showNotification(`Profile of ${member.firstName} ${member.lastName}`, 'info');
             } catch (error) {
-                console.warn('❌ Navigation via appController échouée, tentative alternative...', error);
+                console.warn('❌ Navigation via appController failed, trying alternative...', error);
                 this.fallbackToProfilePage();
             }
         } else {
@@ -1320,46 +1320,46 @@ class MembersSystem {
     }
 
     /**
-     * Méthode de fallback pour la navigation vers le profil
+     * Fallback method for profile page navigation
      */
     fallbackToProfilePage() {
-        // Méthode 1: Vérifier si la section profile existe dans le DOM
+        // Method 1: Check if profile section exists in DOM
         const profileSection = document.getElementById('profile');
         if (profileSection) {
-            console.log('✅ Section profile trouvée dans le DOM');
+            console.log('✅ Profile section found in DOM');
             this.showProfileInSection();
             return;
         }
         
-        // Méthode 2: Redirection vers profile.html
-        console.log('🔄 Redirection vers profile.html');
+        // Method 2: Redirect to profile.html
+        console.log('🔄 Redirecting to profile.html');
         window.location.href = 'profile.html';
     }
 
     /**
-     * Affiche le profil dans la section existante (pour les applications monopages)
+     * Displays profile in existing section (for single-page applications)
      */
     showProfileInSection() {
-        // Cacher toutes les autres sections
+        // Hide all other sections
         document.querySelectorAll('.page-section').forEach(section => {
             section.style.display = 'none';
         });
         
-        // Afficher la section profile
+        // Show profile section
         const profileSection = document.getElementById('profile');
         if (profileSection) {
             profileSection.style.display = 'block';
             
-            // Charger les données du profil
+            // Load profile data
             this.loadProfileData();
             
-            // Scroll vers le haut
+            // Scroll to top
             window.scrollTo(0, 0);
         }
     }
 
     /**
-     * Charge et affiche les données du profil dans la section
+     * Loads and displays profile data in section
      */
     loadProfileData() {
         try {
@@ -1369,14 +1369,14 @@ class MembersSystem {
                 this.renderProfilePage(member);
             }
         } catch (error) {
-            console.error('❌ Erreur chargement données profil:', error);
+            console.error('❌ Profile data loading error:', error);
             this.showProfileError();
         }
     }
 
     /**
-     * Affiche le profil dans la page
-     * @param {Object} member - Données du membre
+     * Displays profile in page
+     * @param {Object} member - Member data
      */
     renderProfilePage(member) {
         const profileContent = document.getElementById('profileContent');
@@ -1385,21 +1385,21 @@ class MembersSystem {
         const profileHTML = this.createProfileHTML(member);
         profileContent.innerHTML = profileHTML;
         
-        // Mettre à jour le titre de la page
-        document.title = `${member.firstName} ${member.lastName} - Profil Membre | American Corner Mahajanga`;
+        // Update page title
+        document.title = `${member.firstName} ${member.lastName} - Member Profile | American Corner Mahajanga`;
     }
 
     /**
-     * Crée le HTML du profil (identique à celui de profile.js)
+     * Creates profile HTML (identical to profile.js)
      */
     createProfileHTML(member) {
-        // Reprenez exactement le code de la méthode createProfileHTML 
-        // depuis le fichier profile.js que je vous ai fourni précédemment
-        // ... (le code HTML complet)
+        // Use exactly the same code from createProfileHTML method
+        // from the profile.js file I provided earlier
+        // ... (complete HTML code)
     }
 
     /**
-     * Affiche une erreur dans la section profil
+     * Displays error in profile section
      */
     showProfileError() {
         const profileContent = document.getElementById('profileContent');
@@ -1407,10 +1407,10 @@ class MembersSystem {
             profileContent.innerHTML = `
                 <div class="text-center py-5">
                     <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
-                    <h3 class="text-warning">Erreur</h3>
-                    <p class="text-muted mb-4">Impossible de charger le profil du membre</p>
+                    <h3 class="text-warning">Error</h3>
+                    <p class="text-muted mb-4">Unable to load member profile</p>
                     <button class="btn btn-primary" onclick="membersSystem.returnToMembers()">
-                        <i class="fas fa-arrow-left me-2"></i>Retour aux membres
+                        <i class="fas fa-arrow-left me-2"></i>Back to members
                     </button>
                 </div>
             `;
@@ -1418,7 +1418,7 @@ class MembersSystem {
     }
 
     /**
-     * Retourne à la liste des membres
+     * Returns to members list
      */
     returnToMembers() {
         if (window.appController && typeof window.appController.loadPage === 'function') {
@@ -1432,7 +1432,7 @@ class MembersSystem {
         }
     }
 
-    // Dans la méthode showMemberModal - Remplacer toute la gestion des modals par :
+    // In showMemberModal method - Replace all modal management with:
 
 showMemberModal(member) {
         const initials = this.getInitials(member.firstName, member.lastName);
@@ -1478,9 +1478,9 @@ showMemberModal(member) {
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title" id="memberProfileModalLabel">
                                 <i class="fas fa-user-circle me-2"></i>
-                                Profil du Membre - ${member.firstName} ${member.lastName}
+                                Member Profile - ${member.firstName} ${member.lastName}
                             </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer la fenêtre"></button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close window"></button>
                         </div>
                         <div class="modal-body">
                             <div class="row align-items-center mb-4">
@@ -1494,14 +1494,14 @@ showMemberModal(member) {
                                         <div class="col-sm-6">
                                             <p class="text-muted mb-2">
                                                 <i class="fas fa-id-card me-2"></i>
-                                                <strong>Numéro d'enregistrement:</strong> 
+                                                <strong>Registration Number:</strong> 
                                                 <span class="member-id-display">${member.registrationNumber}</span>
                                             </p>
                                         </div>
                                         <div class="col-sm-6">
                                             <p class="text-muted mb-0">
                                                 <i class="fas fa-calendar me-2"></i>
-                                                <strong>Membre depuis:</strong> ${joinDate}
+                                                <strong>Member since:</strong> ${joinDate}
                                             </p>
                                         </div>
                                     </div>
@@ -1512,13 +1512,13 @@ showMemberModal(member) {
                             
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-primary"></i>Informations personnelles</h5>
+                                    <h5 class="mb-3"><i class="fas fa-info-circle me-2 text-primary"></i>Personal Information</h5>
                                     <div class="info-grid">
                                         ${member.phoneNumber ? `
                                             <div class="info-item">
                                                 <i class="fas fa-phone text-muted"></i>
                                                 <div>
-                                                    <strong>Téléphone</strong>
+                                                    <strong>Phone</strong>
                                                     <div>${member.phoneNumber}</div>
                                                 </div>
                                             </div>
@@ -1536,7 +1536,7 @@ showMemberModal(member) {
                                             <div class="info-item">
                                                 <i class="fas fa-map-marker-alt text-muted"></i>
                                                 <div>
-                                                    <strong>Adresse</strong>
+                                                    <strong>Address</strong>
                                                     <div>${member.address}</div>
                                                 </div>
                                             </div>
@@ -1544,7 +1544,7 @@ showMemberModal(member) {
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <h5 class="mb-3"><i class="fas fa-briefcase me-2 text-primary"></i>Activité professionnelle</h5>
+                                    <h5 class="mb-3"><i class="fas fa-briefcase me-2 text-primary"></i>Professional Activity</h5>
                                     <div class="info-grid">
                                         <div class="info-item">
                                             <i class="fas fa-user-tie text-muted"></i>
@@ -1557,7 +1557,7 @@ showMemberModal(member) {
                                             <div class="info-item">
                                                 <i class="fas fa-building text-muted"></i>
                                                 <div>
-                                                    <strong>Lieu d'étude/travail</strong>
+                                                    <strong>Study/Work Place</strong>
                                                     <div>${member.studyOrWorkPlace}</div>
                                                 </div>
                                             </div>
@@ -1565,7 +1565,7 @@ showMemberModal(member) {
                                         <div class="info-item">
                                             <i class="fas fa-calendar-alt text-muted"></i>
                                             <div>
-                                                <strong>Date d'adhésion</strong>
+                                                <strong>Join Date</strong>
                                                 <div>${joinDate}</div>
                                             </div>
                                         </div>
@@ -1575,11 +1575,11 @@ showMemberModal(member) {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                <i class="fas fa-times me-1"></i>Fermer
+                                <i class="fas fa-times me-1"></i>Close
                             </button>
                             <button type="button" class="btn btn-primary" id="generateQRBtn"
                                     onclick="membersSystem.generateMemberQR('${member.registrationNumber}'); bootstrap.Modal.getInstance(document.getElementById('memberProfileModal')).hide();">
-                                <i class="fas fa-qrcode me-1"></i>Générer carte QR
+                                <i class="fas fa-qrcode me-1"></i>Generate QR card
                             </button>
                         </div>
                     </div>
@@ -1587,66 +1587,66 @@ showMemberModal(member) {
             </div>
         `;
         
-        // Supprimer toute modal existante
+        // Remove any existing modal
         const existingModal = document.getElementById('memberProfileModal');
         if (existingModal) {
             existingModal.remove();
         }
         
-        // Ajouter la nouvelle modal
+        // Add new modal
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         
         const modalElement = document.getElementById('memberProfileModal');
         
-        // CORRECTION : Utiliser les options Bootstrap correctes pour l'accessibilité
+        // CORRECTION: Use correct Bootstrap options for accessibility
         const modal = new bootstrap.Modal(modalElement, {
             backdrop: true,
             keyboard: true,
             focus: true
         });
         
-        // Gestion des événements corrigée
+        // Corrected event handling
         modalElement.addEventListener('show.bs.modal', () => {
-            // S'assurer que aria-hidden est correct avant l'affichage
+            // Ensure aria-hidden is correct before display
             modalElement.removeAttribute('aria-hidden');
         });
         
         modalElement.addEventListener('shown.bs.modal', () => {
-            // Focus management corrigé
+            // Corrected focus management
             const closeButton = modalElement.querySelector('[data-bs-dismiss="modal"]');
             if (closeButton) {
                 closeButton.focus();
             }
             
-            // S'assurer que le body a la classe correcte
+            // Ensure body has correct class
             document.body.classList.add('modal-open');
-            document.body.style.paddingRight = '0px'; // Éviter le décalage de scrollbar
+            document.body.style.paddingRight = '0px'; // Avoid scrollbar shift
         });
         
         modalElement.addEventListener('hide.bs.modal', () => {
-            // Préparer la fermeture
+            // Prepare for closing
         });
         
         modalElement.addEventListener('hidden.bs.modal', () => {
-            // Nettoyage complet après fermeture
+            // Complete cleanup after closing
             modalElement.remove();
             document.body.classList.remove('modal-open');
             document.body.style.paddingRight = '';
             
-            // Restaurer le focus sur l'élément qui a ouvert la modal
+            // Restore focus to element that opened modal
             const activeElement = document.activeElement;
             if (activeElement && activeElement.classList.contains('member-card')) {
                 activeElement.focus();
             }
         });
         
-        // Gestion du clavier
+        // Keyboard handling
         modalElement.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 modal.hide();
             }
             
-            // Trap focus inside modal (accessibilité)
+            // Trap focus inside modal (accessibility)
             if (e.key === 'Tab') {
                 const focusableElements = modalElement.querySelectorAll(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -1671,7 +1671,7 @@ showMemberModal(member) {
             }
         });
         
-        // Afficher la modal
+        // Show modal
         modal.show();
     }
 
@@ -1681,10 +1681,10 @@ showMemberModal(member) {
 
         const contactOptions = [];
         if (member.email) contactOptions.push(`📧 Email: ${member.email}`);
-        if (member.phoneNumber) contactOptions.push(`📞 Téléphone: ${member.phoneNumber}`);
+        if (member.phoneNumber) contactOptions.push(`📞 Phone: ${member.phoneNumber}`);
         
         if (contactOptions.length === 0) {
-            this.showNotification('Aucune information de contact disponible', 'warning');
+            this.showNotification('No contact information available', 'warning');
             return;
         }
 
@@ -1695,9 +1695,9 @@ showMemberModal(member) {
                         <div class="modal-header bg-info text-white">
                             <h5 class="modal-title" id="contactModalLabel">
                                 <i class="fas fa-envelope me-2"></i>
-                                Contacter ${member.firstName} ${member.lastName}
+                                Contact ${member.firstName} ${member.lastName}
                             </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <div class="contact-options">
@@ -1715,7 +1715,7 @@ showMemberModal(member) {
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>
                 </div>
@@ -1734,7 +1734,7 @@ showMemberModal(member) {
             focus: true
         });
         
-        // Configurer l'accessibilité
+        // Configure accessibility
         modalElement.addEventListener('shown.bs.modal', () => {
             const closeButton = modalElement.querySelector('[data-bs-dismiss="modal"]');
             if (closeButton) {
@@ -1742,42 +1742,42 @@ showMemberModal(member) {
             }
         });
         
-        modalElement.addEventListener('hidden.bs.modal', () => {
-            modalElement.remove();
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            this.remove();
         });
         
         modal.show();
     }
 
     async refreshData() {
-        console.log('🔄 Rafraîchissement des données membres...');
-        this.showNotification('Mise à jour des données en cours...', 'info');
+        console.log('🔄 Refreshing member data...');
+        this.showNotification('Updating data...', 'info');
         
         await this.loadMembers();
         await this.loadMembersPage();
         
-        this.showNotification('Données mises à jour avec succès', 'success');
+        this.showNotification('Data updated successfully', 'success');
     }
 
     exportMembers() {
         if (this.filteredMembers.length === 0) {
-            this.showNotification('Aucun membre à exporter', 'warning');
+            this.showNotification('No members to export', 'warning');
             return;
         }
 
         const data = this.filteredMembers.map(member => ({
-            'Numéro': member.registrationNumber,
-            'Nom': member.lastName,
-            'Prénom': member.firstName,
+            'Number': member.registrationNumber,
+            'Last Name': member.lastName,
+            'First Name': member.firstName,
             'Occupation': this.formatOccupation(member.occupation),
             'Email': member.email || '',
-            'Téléphone': member.phoneNumber || '',
-            'Lieu d\'étude/travail': member.studyOrWorkPlace || '',
-            'Adresse': member.address || '',
-            'Date d\'adhésion': this.formatDate(member.joinDate)
+            'Phone': member.phoneNumber || '',
+            'Study/Work Place': member.studyOrWorkPlace || '',
+            'Address': member.address || '',
+            'Join Date': this.formatDate(member.joinDate)
         }));
 
-        // Créer un fichier CSV
+        // Create CSV file
         const csv = this.convertToCSV(data);
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
@@ -1785,14 +1785,14 @@ showMemberModal(member) {
         
         const timestamp = new Date().toISOString().split('T')[0];
         link.setAttribute('href', url);
-        link.setAttribute('download', `membres_american_corner_${timestamp}.csv`);
+        link.setAttribute('download', `american_corner_members_${timestamp}.csv`);
         link.style.visibility = 'hidden';
         
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        this.showNotification(`Liste de ${this.filteredMembers.length} membres exportée avec succès`, 'success');
+        this.showNotification(`List of ${this.filteredMembers.length} members exported successfully`, 'success');
     }
 
     convertToCSV(data) {
@@ -1809,7 +1809,7 @@ showMemberModal(member) {
             )
         ].join('\n');
         
-        return '\uFEFF' + csv; // BOM pour Excel
+        return '\uFEFF' + csv; // BOM for Excel
     }
 
     showStats() {
@@ -1821,14 +1821,14 @@ showMemberModal(member) {
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title" id="statsModalLabel">
                                 <i class="fas fa-chart-bar me-2"></i>
-                                Statistiques des Membres
+                                Member Statistics
                             </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h6 class="border-bottom pb-2">Répartition par Occupation</h6>
+                                    <h6 class="border-bottom pb-2">Occupation Distribution</h6>
                                     <div id="occupationChart">
                                         ${Object.entries(stats.byOccupation)
                                             .sort((a, b) => b[1] - a[1])
@@ -1855,31 +1855,31 @@ showMemberModal(member) {
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <h6 class="border-bottom pb-2">Informations Générales</h6>
+                                    <h6 class="border-bottom pb-2">General Information</h6>
                                     <div class="list-group">
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Total des membres</span>
+                                            <span>Total members</span>
                                             <strong class="text-primary">${stats.total}</strong>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Avec photo de profil</span>
+                                            <span>With profile photo</span>
                                             <div>
                                                 <strong>${stats.withProfileImage}</strong>
                                                 <small class="text-muted ms-2">(${((stats.withProfileImage / stats.total) * 100).toFixed(1)}%)</small>
                                             </div>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Membres récents (30j)</span>
+                                            <span>Recent members (30d)</span>
                                             <strong class="text-success">${stats.recentMembers}</strong>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Membres actifs (6 mois)</span>
+                                            <span>Active members (6 months)</span>
                                             <strong class="text-info">${stats.activeMembers}</strong>
                                         </div>
                                         <div class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span>Mode de données</span>
+                                            <span>Data mode</span>
                                             <strong class="${stats.demoMode ? 'text-warning' : 'text-success'}">
-                                                ${stats.demoMode ? 'Démo' : 'Live'}
+                                                ${stats.demoMode ? 'Demo' : 'Live'}
                                             </strong>
                                         </div>
                                     </div>
@@ -1887,9 +1887,9 @@ showMemberModal(member) {
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                             <button type="button" class="btn btn-primary" onclick="membersSystem.exportMembers()">
-                                <i class="fas fa-download me-1"></i>Exporter les données
+                                <i class="fas fa-download me-1"></i>Export data
                             </button>
                         </div>
                     </div>
@@ -1897,7 +1897,7 @@ showMemberModal(member) {
             </div>
         `;
 
-        // Gérer la modal existante
+        // Handle existing modal
         const existingModal = document.getElementById('statsModal');
         if (existingModal) existingModal.remove();
         
@@ -1910,7 +1910,7 @@ showMemberModal(member) {
             focus: true
         });
         
-        // Configurer l'accessibilité
+        // Configure accessibility
         modalElement.addEventListener('shown.bs.modal', () => {
             const closeButton = modalElement.querySelector('[data-bs-dismiss="modal"]');
             if (closeButton) {
@@ -1946,14 +1946,14 @@ showMemberModal(member) {
             const joinDate = new Date(member.joinDate);
             const daysSinceJoin = (new Date() - joinDate) / (1000 * 60 * 60 * 24);
             if (daysSinceJoin <= 30) stats.recentMembers++;
-            if (daysSinceJoin <= 180) stats.activeMembers++; // 6 mois
+            if (daysSinceJoin <= 180) stats.activeMembers++; // 6 months
         });
 
         return stats;
     }
 
     async loadMockMembers() {
-        // Données mock de secours
+        // Backup mock data
         return [
             {
                 id: 1,
@@ -1977,7 +1977,7 @@ showMemberModal(member) {
                 occupation: 'student',
                 phoneNumber: '+261 34 55 667 78',
                 address: 'Mahajanga, Madagascar',
-                studyOrWorkPlace: 'Université de Mahajanga',
+                studyOrWorkPlace: 'University of Mahajanga',
                 joinDate: new Date('2023-03-20').toISOString(),
                 profileImage: null
             },
@@ -1990,7 +1990,7 @@ showMemberModal(member) {
                 occupation: 'employee',
                 phoneNumber: '+261 32 44 556 67',
                 address: 'Mahajanga, Madagascar',
-                studyOrWorkPlace: 'Société ABC',
+                studyOrWorkPlace: 'ABC Company',
                 joinDate: new Date('2023-06-10').toISOString(),
                 profileImage: null
             },
@@ -2015,7 +2015,7 @@ showMemberModal(member) {
             window.appController.showNotification(message, type);
         } else {
             console.log(`💬 ${type.toUpperCase()}: ${message}`);
-            // Fallback simple
+            // Simple fallback
             const alertClass = type === 'error' ? 'alert-danger' : 
                              type === 'success' ? 'alert-success' : 
                              type === 'warning' ? 'alert-warning' : 'alert-info';
@@ -2027,7 +2027,7 @@ showMemberModal(member) {
                 <div class="d-flex align-items-center">
                     <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>
                     <div class="flex-grow-1">${message}</div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             `;
             document.body.appendChild(alert);
@@ -2041,11 +2041,11 @@ showMemberModal(member) {
     }
 }
 
-// Créer et exposer l'instance globale
+// Create and expose global instance
 const membersSystem = new MembersSystem();
 window.membersSystem = membersSystem;
 
-// Initialisation
+// Initialization
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('👥 Système membres prêt avec liaison QR');
+    console.log('👥 Member system ready with QR linkage');
 });
